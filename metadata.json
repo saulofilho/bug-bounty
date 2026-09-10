@@ -1,0 +1,6 @@
+{
+  "name": "Bug Bounty Manager & Vulnerability Tracker",
+  "description": "Plataforma para gerenciar relatórios de bug bounty, assinatura criptográfica PGP, rastreio de envios, integração CVE, documentação técnica e métricas de recompensas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
