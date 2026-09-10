@@ -447,3 +447,349 @@ export async function fetchAutomatedTags(params: {
 
   return localAnalysis;
 }
+
+// ----------------------------------------------------------------------------
+// Automatic Keyword Tagging & Search Categorization System
+// ----------------------------------------------------------------------------
+
+export interface AutoExtractedTag {
+  tag: string;
+  label: string;
+  category: 'Vulnerabilidade' | 'Superfície' | 'Impacto' | 'Infraestrutura' | 'Protocolo';
+  color: {
+    bg: string;
+    text: string;
+    border: string;
+  };
+  matchedKeyword: string;
+}
+
+export interface TagCategoryRule {
+  tag: string;
+  label: string;
+  category: 'Vulnerabilidade' | 'Superfície' | 'Impacto' | 'Infraestrutura' | 'Protocolo';
+  color: {
+    bg: string;
+    text: string;
+    border: string;
+  };
+  keywords: string[];
+}
+
+export const AUTO_TAG_RULES: TagCategoryRule[] = [
+  {
+    tag: '#idor',
+    label: 'IDOR / BOLA',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-emerald-500/15', text: 'text-emerald-300', border: 'border-emerald-500/30' },
+    keywords: [
+      'idor', 'bola', 'broken object', 'object level', 'autorizacao', 'authorization',
+      'user-controlled', 'user_id', 'invoice_id', 'trocar id', 'outro usuario',
+      'other user', 'cross-tenant', 'multi-tenant', 'insecure direct object', 'guid', 'uuid',
+      'parametro manipulado', 'acesso horizontal', 'horizontal privilege'
+    ]
+  },
+  {
+    tag: '#ssrf',
+    label: 'SSRF',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-amber-500/15', text: 'text-amber-300', border: 'border-amber-500/30' },
+    keywords: [
+      'ssrf', 'server-side request', 'request forgery', '169.254.169.254', '169.254',
+      'metadata', 'imds', 'imdsv1', 'imdsv2', 'webhook', 'dns rebinding',
+      'cloud metadata', 'blind ssrf', 'internal network', '127.0.0.1', 'localhost'
+    ]
+  },
+  {
+    tag: '#sqli',
+    label: 'SQL Injection',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-red-500/15', text: 'text-red-300', border: 'border-red-500/30' },
+    keywords: [
+      'sql', 'sqli', 'injection', 'union select', 'or 1=1', 'database error',
+      'banco de dados', 'sql syntax', 'pg_sleep', 'sleep(', 'information_schema',
+      'boolean-based', 'time-based', 'error-based', 'payload sql', 'query'
+    ]
+  },
+  {
+    tag: '#xss',
+    label: 'Cross-Site Scripting (XSS)',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-yellow-500/15', text: 'text-yellow-300', border: 'border-yellow-500/30' },
+    keywords: [
+      'xss', 'cross-site scripting', 'stored xss', 'reflected xss', 'dom xss',
+      '<script>', 'onerror=', 'onload=', 'alert(', 'javascript:', 'document.cookie',
+      'svg onload', 'payload xss', 'html injection', 'cross site scripting'
+    ]
+  },
+  {
+    tag: '#rce',
+    label: 'Remote Code Execution (RCE)',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-rose-500/15', text: 'text-rose-300', border: 'border-rose-500/30' },
+    keywords: [
+      'rce', 'remote code', 'code execution', 'execucao remota', 'command injection',
+      'injecao de comando', 'shell', 'bash', 'cmd.exe', 'exec(', 'system(',
+      'whoami', 'deserialization', 'desserializacao', 'log4shell', 'jndi', 'popen'
+    ]
+  },
+  {
+    tag: '#auth-bypass',
+    label: 'Authentication Bypass',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-purple-500/15', text: 'text-purple-300', border: 'border-purple-500/30' },
+    keywords: [
+      'auth bypass', 'broken auth', 'authentication', 'autenticacao', 'login', 'jwt',
+      'none algorithm', 'token bypass', '2fa bypass', 'mfa bypass', 'session fixation',
+      'sem autenticacao', 'unauthenticated', 'oauth bypass', 'sso bypass'
+    ]
+  },
+  {
+    tag: '#rate-limiting',
+    label: 'Rate Limiting / Brute Force',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-orange-500/15', text: 'text-orange-300', border: 'border-orange-500/30' },
+    keywords: [
+      'rate limit', 'rate-limit', 'limite de taxa', 'brute force', 'forca bruta',
+      '429 too many', 'throttling', 'excessive attempts', 'tentativas ilimitadas',
+      'batching', 'graphql batching', 'flood', 'bloqueio ausente'
+    ]
+  },
+  {
+    tag: '#subdomain-takeover',
+    label: 'Subdomain Takeover',
+    category: 'Infraestrutura',
+    color: { bg: 'bg-cyan-500/15', text: 'text-cyan-300', border: 'border-cyan-500/30' },
+    keywords: [
+      'subdomain takeover', 'takeover', 'cname', 'dns', 'nosuchbucket', 'apontamento orfao',
+      'dangling dns', 'registro orfao', 'azure traffic manager', 'fastly'
+    ]
+  },
+  {
+    tag: '#data-leak',
+    label: 'Data Leak / Info Disclosure',
+    category: 'Impacto',
+    color: { bg: 'bg-sky-500/15', text: 'text-sky-300', border: 'border-sky-500/30' },
+    keywords: [
+      'information disclosure', 'exposicao de dados', 'vazamento', 'data leak', 'sensivel',
+      'pii', 'cpf', 'dados de cartao', 'segredos expostos', '.env', '.git',
+      'swagger.json', 'stacktrace', 'faturas e dados', 'dados confidenciais', 'debug mode'
+    ]
+  },
+  {
+    tag: '#api-security',
+    label: 'API Security',
+    category: 'Superfície',
+    color: { bg: 'bg-indigo-500/15', text: 'text-indigo-300', border: 'border-indigo-500/30' },
+    keywords: [
+      'api', 'rest', 'graphql', 'endpoint', '/api/v', '/api/', 'swagger', 'openapi',
+      'postman', 'microservice', 'json api'
+    ]
+  },
+  {
+    tag: '#cloud',
+    label: 'Cloud & Infrastructure',
+    category: 'Infraestrutura',
+    color: { bg: 'bg-blue-500/15', text: 'text-blue-300', border: 'border-blue-500/30' },
+    keywords: [
+      'aws', 's3 bucket', 's3', 'bucket', 'gcp', 'google cloud', 'azure', 'cloud',
+      'lambda', 'ec2', 'kubernetes', 'k8s', 'docker', 'container'
+    ]
+  },
+  {
+    tag: '#csrf',
+    label: 'CSRF',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-fuchsia-500/15', text: 'text-fuchsia-300', border: 'border-fuchsia-500/30' },
+    keywords: [
+      'csrf', 'cross-site request', 'samesite', 'anti-csrf', 'state parameter',
+      'cross site request forgery'
+    ]
+  },
+  {
+    tag: '#file-upload',
+    label: 'File Upload & Path Traversal',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-teal-500/15', text: 'text-teal-300', border: 'border-teal-500/30' },
+    keywords: [
+      'file upload', 'upload arbitrario', 'path traversal', 'directory traversal',
+      'lfi', 'local file inclusion', 'arbitrary file', '../', '..\\', 'zip slip'
+    ]
+  },
+  {
+    tag: '#business-logic',
+    label: 'Business Logic Flaw',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-lime-500/15', text: 'text-lime-300', border: 'border-lime-500/30' },
+    keywords: [
+      'business logic', 'logica de negocio', 'cupom', 'coupon', 'checkout', 'payment',
+      'pagamento', 'discount', 'desconto', 'carrinho', 'negative balance', 'pricing', 'preco'
+    ]
+  },
+  {
+    tag: '#account-takeover',
+    label: 'Account Takeover (ATO)',
+    category: 'Impacto',
+    color: { bg: 'bg-rose-500/15', text: 'text-rose-300', border: 'border-rose-500/30' },
+    keywords: [
+      'account takeover', 'ato', 'sequestro de conta', 'admin creation', 'superadmin',
+      'takeover account', 'password reset bypass', 'troca de senha'
+    ]
+  },
+  {
+    tag: '#privilege-escalation',
+    label: 'Privilege Escalation',
+    category: 'Impacto',
+    color: { bg: 'bg-amber-500/15', text: 'text-amber-300', border: 'border-amber-500/30' },
+    keywords: [
+      'privilege escalation', 'escalacao de privilegio', 'vertical privilege',
+      'privilegio elevado', 'root access', 'elevacao de privilegios'
+    ]
+  },
+  {
+    tag: '#xxe',
+    label: 'XXE (XML External Entity)',
+    category: 'Vulnerabilidade',
+    color: { bg: 'bg-zinc-500/15', text: 'text-zinc-300', border: 'border-zinc-500/30' },
+    keywords: [
+      'xxe', 'xml external entity', 'xml injection', 'entity SYSTEM', '<!entity'
+    ]
+  },
+  {
+    tag: '#crypto',
+    label: 'Cryptography & PGP',
+    category: 'Protocolo',
+    color: { bg: 'bg-violet-500/15', text: 'text-violet-300', border: 'border-violet-500/30' },
+    keywords: [
+      'crypto', 'pgp', 'criptografia', 'hash', 'signature', 'assinatura',
+      'weak cipher', 'cifra fraca', 'key exchange'
+    ]
+  }
+];
+
+/**
+ * Extracts automatic tags from title, description/summary and optional auxiliary text.
+ */
+export function extractAutomaticTags(
+  title: string = '',
+  description: string = '',
+  extraContext: string = ''
+): AutoExtractedTag[] {
+  const combined = `${title} ${description} ${extraContext}`.toLowerCase();
+  const matchedTags: AutoExtractedTag[] = [];
+  const seenTags = new Set<string>();
+
+  for (const rule of AUTO_TAG_RULES) {
+    for (const kw of rule.keywords) {
+      if (combined.includes(kw.toLowerCase())) {
+        if (!seenTags.has(rule.tag)) {
+          seenTags.add(rule.tag);
+          matchedTags.push({
+            tag: rule.tag,
+            label: rule.label,
+            category: rule.category,
+            color: rule.color,
+            matchedKeyword: kw
+          });
+        }
+        break; // matched this rule, proceed to next rule
+      }
+    }
+  }
+
+  return matchedTags;
+}
+
+/**
+ * Retrieves automatic tags for a single VulnerabilityReport based on its title and summary.
+ */
+export function getReportAutoTags(report: {
+  title?: string;
+  summary?: string;
+  vulnerabilityType?: string;
+  cwe?: string;
+  target?: string;
+}): AutoExtractedTag[] {
+  return extractAutomaticTags(
+    report.title || '',
+    report.summary || '',
+    `${report.vulnerabilityType || ''} ${report.cwe || ''} ${report.target || ''}`
+  );
+}
+
+export interface TagSummaryItem {
+  tag: string;
+  label: string;
+  count: number;
+  category: string;
+  color: {
+    bg: string;
+    text: string;
+    border: string;
+  };
+  isAuto: boolean;
+}
+
+/**
+ * Aggregates all unique automatic and manual tags across an array of reports,
+ * counting frequencies and maintaining visual categories.
+ */
+export function getAllTagsFromReports(reports: Array<{
+  title?: string;
+  summary?: string;
+  vulnerabilityType?: string;
+  cwe?: string;
+  target?: string;
+  tags?: string[];
+}>): TagSummaryItem[] {
+  const tagMap = new Map<string, TagSummaryItem>();
+
+  // Process all reports
+  reports.forEach(report => {
+    // 1. Process auto-extracted tags
+    const autoTags = getReportAutoTags(report);
+    autoTags.forEach(at => {
+      const existing = tagMap.get(at.tag);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        tagMap.set(at.tag, {
+          tag: at.tag,
+          label: at.label,
+          count: 1,
+          category: at.category,
+          color: at.color,
+          isAuto: true
+        });
+      }
+    });
+
+    // 2. Process manual tags (if any)
+    if (report.tags && report.tags.length > 0) {
+      report.tags.forEach(rawTag => {
+        const normalized = rawTag.startsWith('#') ? rawTag.toLowerCase() : `#${rawTag.toLowerCase()}`;
+        const existing = tagMap.get(normalized);
+        if (existing) {
+          // If already found as auto tag, don't double count if from same report
+          if (!autoTags.some(at => at.tag === normalized)) {
+            existing.count += 1;
+          }
+        } else {
+          // Find if there's a matching rule to inherit colors
+          const matchedRule = AUTO_TAG_RULES.find(r => r.tag === normalized);
+          tagMap.set(normalized, {
+            tag: normalized,
+            label: matchedRule ? matchedRule.label : normalized.replace(/^#/, '').toUpperCase(),
+            count: 1,
+            category: matchedRule ? matchedRule.category : 'Personalizada',
+            color: matchedRule ? matchedRule.color : { bg: 'bg-zinc-800', text: 'text-zinc-300', border: 'border-zinc-700' },
+            isAuto: false
+          });
+        }
+      });
+    }
+  });
+
+  // Convert to array and sort by frequency descending
+  return Array.from(tagMap.values()).sort((a, b) => b.count - a.count);
+}

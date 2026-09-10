@@ -23,6 +23,7 @@ export interface TimelineEvent {
   title: string;
   notes?: string;
   type: 'creation' | 'status_change' | 'bounty' | 'dispatch' | 'note' | 'pgp_signature';
+  hoursSpent?: number;
 }
 
 export interface VulnerabilityReport {
@@ -49,6 +50,7 @@ export interface VulnerabilityReport {
   createdAt: string;
   updatedAt: string;
   timeline: TimelineEvent[];
+  timeSpentHours?: number;
   attachments?: Array<{ name: string; size: string; type: string }>;
   tags?: string[];
   pgpSignature?: {

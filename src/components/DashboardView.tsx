@@ -28,6 +28,8 @@ import { BugBountyDirectoryView } from './BugBountyDirectoryView';
 import { WeeklySummary } from './WeeklySummary';
 import { StatusBadge } from './StatusBadge';
 import { ReportNotificationPanel } from './ReportNotificationPanel';
+import { HourlyRateMetrics } from './HourlyRateMetrics';
+import { TimelineEvent } from '../types';
 
 interface DashboardViewProps {
   reports: VulnerabilityReport[];
@@ -36,6 +38,7 @@ interface DashboardViewProps {
   onNavigateTab: (tab: 'reports' | 'cve' | 'targets' | 'docs' | 'platforms') => void;
   onOpenAbout?: () => void;
   onSelectSeverity?: (severity: Severity) => void;
+  onAddTimelineEvent?: (reportId: string, event: Omit<TimelineEvent, 'id'>) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -44,7 +47,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNewReport,
   onNavigateTab,
   onOpenAbout,
-  onSelectSeverity
+  onSelectSeverity,
+  onAddTimelineEvent
 }) => {
   const usdToBrl = 5.45;
 
@@ -248,6 +252,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       </section>
  
+      {/* Bug Bounty Hourly Rate & Efficiency Metrics (Calculated from Timeline Events & Bounties) */}
+      <HourlyRateMetrics
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onAddTimelineEvent={onAddTimelineEvent}
+      />
+
       {/* Actionable Report Attention & Milestones Notification Panel */}
       <ReportNotificationPanel
         reports={reports}

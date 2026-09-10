@@ -37,10 +37,10 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(25),
     updatedAt: getDaysAgoDate(14),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(25), title: "Relatório Submetido", notes: "Enviado através do programa de Bug Bounty da FinPay no HackerOne.", type: "creation" },
-      { id: "t2", date: getDaysAgoDate(24), title: "Triagem Confirmada", notes: "Triador do HackerOne reproduziu o achado com sucesso. Severidade ajustada para Crítica.", type: "status_change" },
-      { id: "t3", date: getDaysAgoDate(18), title: "Recompensa Concedida", notes: "Equipe de segurança aprovou bounty de $3,500 USD.", type: "bounty" },
-      { id: "t4", date: getDaysAgoDate(14), title: "Vulnerabilidade Mitigada", notes: "Hotfix em produção e relatório fechado como Resolvido.", type: "status_change" }
+      { id: "t1", date: getDaysAgoDate(25), title: "Relatório Submetido", notes: "Enviado através do programa de Bug Bounty da FinPay no HackerOne. Recon e PoC elaborados em 4.5h.", type: "creation", hoursSpent: 4.5 },
+      { id: "t2", date: getDaysAgoDate(24), title: "Triagem Confirmada", notes: "Triador do HackerOne reproduziu o achado com sucesso. Severidade ajustada para Crítica.", type: "status_change", hoursSpent: 1.0 },
+      { id: "t3", date: getDaysAgoDate(18), title: "Recompensa Concedida", notes: "Equipe de segurança aprovou bounty de $3,500 USD.", type: "bounty", hoursSpent: 0.5 },
+      { id: "t4", date: getDaysAgoDate(14), title: "Vulnerabilidade Mitigada", notes: "Hotfix em produção e relatório fechado como Resolvido.", type: "status_change", hoursSpent: 1.0 }
     ]
   },
   {
@@ -107,9 +107,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(14),
     updatedAt: getDaysAgoDate(6),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(14), title: "Relatório Submetido", notes: "Enviado via Intigriti.", type: "creation" },
-      { id: "t2", date: getDaysAgoDate(12), title: "Triagem Aprovada", notes: "Triador do Intigriti confirmou o XSS armazenado.", type: "status_change" },
-      { id: "t3", date: getDaysAgoDate(6), title: "Recompensa Paga", notes: "Bounty de 750 EUR (~$815 USD) liberado para saque.", type: "bounty" }
+      { id: "t1", date: getDaysAgoDate(14), title: "Relatório Submetido", notes: "Enviado via Intigriti. Fuzzing no Markdown e teste de sanitização.", type: "creation", hoursSpent: 3.0 },
+      { id: "t2", date: getDaysAgoDate(12), title: "Triagem Aprovada", notes: "Triador do Intigriti confirmou o XSS armazenado.", type: "status_change", hoursSpent: 0.75 },
+      { id: "t3", date: getDaysAgoDate(6), title: "Recompensa Paga", notes: "Bounty de 750 EUR (~$815 USD) liberado para saque.", type: "bounty", hoursSpent: 0.25 }
     ]
   },
   {
@@ -143,10 +143,10 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(9),
     updatedAt: getDaysAgoDate(3),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(9), title: "Submissão", notes: "Relatado com vídeo PoC e passos detalhados.", type: "creation" },
-      { id: "t2", date: getDaysAgoDate(7), title: "Triagem", notes: "Equipe de segurança do cliente confirmou o fluxo vulnerável.", type: "status_change" },
-      { id: "t3", date: getDaysAgoDate(4), title: "Bounty Concedido", notes: "$1,800 USD creditados.", type: "bounty" },
-      { id: "t4", date: getDaysAgoDate(3), title: "Correção em Produção", notes: "Email verification agora é mandatório.", type: "status_change" }
+      { id: "t1", date: getDaysAgoDate(9), title: "Submissão", notes: "Relatado com vídeo PoC e passos detalhados. Análise da RFC OAuth e testes de fluxo: 4h.", type: "creation", hoursSpent: 4.0 },
+      { id: "t2", date: getDaysAgoDate(7), title: "Triagem", notes: "Equipe de segurança do cliente confirmou o fluxo vulnerável.", type: "status_change", hoursSpent: 1.0 },
+      { id: "t3", date: getDaysAgoDate(4), title: "Bounty Concedido", notes: "$1,800 USD creditados.", type: "bounty", hoursSpent: 0.25 },
+      { id: "t4", date: getDaysAgoDate(3), title: "Correção em Produção", notes: "Email verification agora é mandatório.", type: "status_change", hoursSpent: 0.75 }
     ]
   },
   {
@@ -179,9 +179,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(5),
     updatedAt: getDaysAgoDate(2),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(5), title: "Relatado", notes: "Submetido com aviso de responsabilidade ética.", type: "creation" },
-      { id: "t2", date: getDaysAgoDate(3), title: "Aceito", notes: "Registro DNS removido em poucas horas.", type: "status_change" },
-      { id: "t3", date: getDaysAgoDate(2), title: "Recompensa Paga", notes: "$500 USD aprovados.", type: "bounty" }
+      { id: "t1", date: getDaysAgoDate(5), title: "Relatado", notes: "Submetido com aviso de responsabilidade ética. Recon DNS automatizado: 1.5h.", type: "creation", hoursSpent: 1.5 },
+      { id: "t2", date: getDaysAgoDate(3), title: "Aceito", notes: "Registro DNS removido em poucas horas.", type: "status_change", hoursSpent: 0.5 },
+      { id: "t3", date: getDaysAgoDate(2), title: "Recompensa Paga", notes: "$500 USD aprovados.", type: "bounty", hoursSpent: 0.25 }
     ]
   },
   {

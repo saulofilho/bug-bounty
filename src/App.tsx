@@ -390,6 +390,7 @@ export default function App() {
               setSelectedSeverityFilter(sev);
               setCurrentTab('reports');
             }}
+            onAddTimelineEvent={handleAddTimelineEvent}
           />
         )}
 

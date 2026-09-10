@@ -20,11 +20,15 @@ import {
   Calendar,
   RotateCcw,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Tag,
+  Sparkles
 } from 'lucide-react';
 import { VulnerabilityReport, ReportStatus, Severity, PlatformName } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
+import { AutoTagsFilterBar } from './AutoTagsFilterBar';
+import { getReportAutoTags, getAllTagsFromReports, AutoExtractedTag } from '../utils/taggingEngine';
 
 interface ReportsViewProps {
   reports: VulnerabilityReport[];
@@ -69,6 +73,23 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const [minReward, setMinReward] = useState<string>('');
   const [maxReward, setMaxReward] = useState<string>('');
   const [rewardPreset, setRewardPreset] = useState<string>('ALL');
+
+  // Automatic & Manual Tag Filter State
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  // Extract all unique automatic and manual tags across reports
+  const availableTags = useMemo(() => {
+    return getAllTagsFromReports(reports);
+  }, [reports]);
+
+  // Precompute auto-tags map for fast filtering and rendering
+  const reportAutoTagsMap = useMemo(() => {
+    const map = new Map<string, AutoExtractedTag[]>();
+    reports.forEach(r => {
+      map.set(r.id, getReportAutoTags(r));
+    });
+    return map;
+  }, [reports]);
 
   // Synchronize search query between global header and view
   const searchQuery = onSearchChange !== undefined ? externalSearchQuery : internalSearchQuery;
@@ -185,6 +206,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const handleClearAllAdvanced = () => {
     handleClearDateFilter();
     handleClearRewardFilter();
+    setSelectedTag(null);
   };
 
   const isDateActive = Boolean(startDate || endDate);
@@ -202,21 +224,44 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
   const filteredReports = useMemo(() => {
     return reports.filter(r => {
-      // Search matching title, target (alvo) or vulnerabilityType (tipo de vulnerabilidade)
+      const autoTags = reportAutoTagsMap.get(r.id) || [];
+
+      // Search matching title, target, vulnerabilityType, description/summary, CWE, CVE, and auto-tags
       const q = (searchQuery || '').toLowerCase().trim();
       let matchesSearch = true;
       if (q) {
         const tokens = q.split(/\s+/).filter(Boolean);
         matchesSearch = tokens.every(token => {
+          const cleanToken = token.startsWith('#') ? token : `#${token}`;
           const inTitle = (r.title || '').toLowerCase().includes(token);
           const inTarget = (r.target || '').toLowerCase().includes(token);
           const inType = (r.vulnerabilityType || '').toLowerCase().includes(token);
+          const inSummary = (r.summary || '').toLowerCase().includes(token);
           const inCwe = (r.cwe || '').toLowerCase().includes(token);
           const inCve = (r.cveIds || []).some(c => c.toLowerCase().includes(token));
-          const inTags = (r.tags || []).some(t => t.toLowerCase().includes(token));
+          const inTags = (r.tags || []).some(t => t.toLowerCase().includes(token) || t.toLowerCase() === cleanToken);
           const inId = (r.id || '').toLowerCase().includes(token);
-          return inTitle || inTarget || inType || inCwe || inCve || inTags || inId;
+          const inAutoTags = autoTags.some(at => 
+            at.tag.toLowerCase().includes(token) || 
+            at.tag.toLowerCase() === cleanToken || 
+            at.label.toLowerCase().includes(token) ||
+            at.matchedKeyword.toLowerCase().includes(token) ||
+            at.category.toLowerCase().includes(token)
+          );
+          return inTitle || inTarget || inType || inSummary || inCwe || inCve || inTags || inId || inAutoTags;
         });
+      }
+
+      // Tag Filter (Auto or Manual)
+      let matchesTag = true;
+      if (selectedTag) {
+        const cleanSelectedTag = selectedTag.toLowerCase();
+        const inAuto = autoTags.some(at => at.tag.toLowerCase() === cleanSelectedTag);
+        const inManual = (r.tags || []).some(t => {
+          const norm = t.startsWith('#') ? t.toLowerCase() : `#${t.toLowerCase()}`;
+          return norm === cleanSelectedTag;
+        });
+        matchesTag = inAuto || inManual;
       }
 
       // Status
@@ -270,11 +315,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         }
       }
 
-      return matchesSearch && matchesStatus && matchesSeverity && matchesPlatform && matchesDate && matchesReward;
+      return matchesSearch && matchesTag && matchesStatus && matchesSeverity && matchesPlatform && matchesDate && matchesReward;
     });
   }, [
     reports, 
     searchQuery, 
+    selectedTag,
     selectedStatus, 
     selectedSeverity, 
     selectedPlatform, 
@@ -282,7 +328,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     endDate, 
     dateField, 
     minReward, 
-    maxReward
+    maxReward,
+    reportAutoTagsMap
   ]);
 
   const handleCopyMarkdown = (e: React.MouseEvent, report: VulnerabilityReport) => {
@@ -655,12 +702,29 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           </div>
         )}
 
-        {/* Active Advanced Filter Chips */}
-        {activeAdvancedCount > 0 && (
+        {/* Active Advanced / Tag Filter Chips */}
+        {(activeAdvancedCount > 0 || selectedTag) && (
           <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
             <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
-              Filtros Avançados:
+              Filtros Ativos:
             </span>
+
+            {/* Selected Tag Chip */}
+            {selectedTag && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white text-black font-mono text-[11px] font-bold shadow-sm">
+                <Tag className="w-3 h-3 text-emerald-700" />
+                <span>Tag: {selectedTag}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTag(null)}
+                  className="hover:bg-black/15 p-0.5 rounded ml-0.5 cursor-pointer"
+                  title="Remover filtro de tag"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
             {isDateActive && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/30 text-emerald-400 border border-emerald-500/30 font-mono text-[11px]">
                 <Calendar className="w-3 h-3 text-emerald-400" />
@@ -711,6 +775,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         )}
       </div>
 
+      {/* Interactive Automatic Tags & Categorization Bar */}
+      <AutoTagsFilterBar
+        availableTags={availableTags}
+        selectedTag={selectedTag}
+        onSelectTag={setSelectedTag}
+        totalReports={reports.length}
+        filteredReportsCount={filteredReports.length}
+      />
+
       {/* Active Search Banner */}
       {searchQuery.trim() && (
         <div className="flex items-center justify-between px-3.5 py-2.5 rounded-lg bg-emerald-950/20 border border-emerald-500/30 text-xs text-emerald-300 font-mono">
@@ -720,7 +793,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               Filtro ativo: <span className="text-white font-bold bg-[#141414] px-1.5 py-0.5 rounded border border-[#2e2e2e]">"{searchQuery}"</span>
             </span>
             <span className="text-zinc-400">
-              ({filteredReports.length} {filteredReports.length === 1 ? 'relatório correspondente' : 'relatórios correspondentes'} no título, alvo ou tipo)
+              ({filteredReports.length} {filteredReports.length === 1 ? 'relatório correspondente' : 'relatórios correspondentes'} no título, alvo, tipo, descrição ou tags)
             </span>
           </div>
           <button
@@ -740,9 +813,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-zinc-500 px-1">
           <div>
             <span>Mostrando <strong>{filteredReports.length}</strong> de {reports.length} relatórios</span>
-            {activeAdvancedCount > 0 && (
+            {(activeAdvancedCount > 0 || selectedTag) && (
               <span className="text-emerald-400 font-mono ml-2">
-                (Filtros de data ou recompensa ativos)
+                (Filtros {selectedTag ? `de tag [${selectedTag}]` : ''} ativos)
               </span>
             )}
           </div>
@@ -758,13 +831,17 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           <ShieldAlert className="w-10 h-10 text-zinc-600 mx-auto" />
           <h3 className="text-base font-medium text-zinc-200">Nenhum relatório encontrado</h3>
           <p className="text-xs text-zinc-500 max-w-md mx-auto">
-            {activeAdvancedCount > 0 ? (
+            {selectedTag ? (
+              <>
+                Nenhum relatório possui a tag <strong className="text-white font-mono bg-zinc-800 px-1.5 py-0.5 rounded">{selectedTag}</strong> com os filtros atuais selecionados.
+              </>
+            ) : activeAdvancedCount > 0 ? (
               <>
                 Nenhum relatório corresponde aos critérios selecionados (verifique o intervalo de datas, limiares de recompensa ou filtros de busca).
               </>
             ) : searchQuery.trim() ? (
               <>
-                Nenhum relatório corresponde ao termo <strong className="text-zinc-300 font-mono">"{searchQuery}"</strong> no título, alvo ou tipo de vulnerabilidade.
+                Nenhum relatório corresponde ao termo <strong className="text-zinc-300 font-mono">"{searchQuery}"</strong> no título, alvo, tipo, descrição ou tags.
               </>
             ) : (
               <>
@@ -773,6 +850,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             )}
           </p>
           <div className="flex items-center justify-center gap-3 pt-2">
+            {selectedTag && (
+              <button
+                type="button"
+                onClick={() => setSelectedTag(null)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded bg-white text-black font-semibold text-xs transition-colors hover:bg-zinc-200"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Remover Filtro de Tag ({selectedTag})</span>
+              </button>
+            )}
             {activeAdvancedCount > 0 && (
               <button
                 type="button"
@@ -809,6 +896,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           {filteredReports.map(report => {
             const sevBadge = getSeverityBadgeColor(report.severity);
             const statusBadge = getStatusBadgeColor(report.status);
+            const autoTags = reportAutoTagsMap.get(report.id) || [];
 
             return (
               <div
@@ -845,18 +933,61 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                         </div>
                       )}
 
-                      {report.tags && report.tags.length > 0 && (
-                        <div className="hidden sm:flex items-center gap-1">
-                          {report.tags.slice(0, 3).map(t => (
-                            <span key={t} className="px-1.5 py-0.5 rounded bg-[#171717] text-zinc-400 text-[10px] font-mono border border-[#262626]">
-                              {t}
-                            </span>
-                          ))}
-                          {report.tags.length > 3 && (
-                            <span className="text-[10px] text-zinc-500 font-mono">
-                              +{report.tags.length - 3}
-                            </span>
-                          )}
+                      {/* Interactive Automatic Tags (Extracted from Title/Summary) & Manual Tags */}
+                      {(autoTags.length > 0 || (report.tags && report.tags.length > 0)) && (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {/* Auto-extracted tags */}
+                          {autoTags.map(at => {
+                            const isTagSelected = selectedTag === at.tag;
+                            return (
+                              <button
+                                key={at.tag}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTag(selectedTag === at.tag ? null : at.tag);
+                                }}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-mono border flex items-center gap-1 transition-all cursor-pointer ${
+                                  isTagSelected
+                                    ? 'bg-white text-black border-white font-bold ring-2 ring-emerald-500/40 shadow-sm'
+                                    : `${at.color.bg} ${at.color.text} ${at.color.border} hover:brightness-125`
+                                }`}
+                                title={`Tag automática: "${at.label}" detectada por "${at.matchedKeyword}" no conteúdo. Clique para filtrar.`}
+                              >
+                                <Sparkles className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                                <span>{at.tag}</span>
+                              </button>
+                            );
+                          })}
+
+                          {/* Extra Manual tags not covered by auto tags */}
+                          {report.tags && report.tags
+                            .filter(rawTag => {
+                              const norm = rawTag.startsWith('#') ? rawTag.toLowerCase() : `#${rawTag.toLowerCase()}`;
+                              return !autoTags.some(at => at.tag === norm);
+                            })
+                            .map(rawTag => {
+                              const norm = rawTag.startsWith('#') ? rawTag.toLowerCase() : `#${rawTag.toLowerCase()}`;
+                              const isTagSelected = selectedTag === norm;
+                              return (
+                                <button
+                                  key={rawTag}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTag(selectedTag === norm ? null : norm);
+                                  }}
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-all cursor-pointer ${
+                                    isTagSelected
+                                      ? 'bg-white text-black border-white font-bold shadow-sm'
+                                      : 'bg-[#171717] text-zinc-400 hover:text-zinc-200 border-[#282828] hover:bg-[#222]'
+                                  }`}
+                                  title={`Tag manual: ${rawTag}. Clique para filtrar.`}
+                                >
+                                  <span>{rawTag}</span>
+                                </button>
+                              );
+                            })}
                         </div>
                       )}
 

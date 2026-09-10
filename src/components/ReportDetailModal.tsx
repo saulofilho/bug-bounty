@@ -32,12 +32,15 @@ import {
   Info,
   Layers,
   CheckCheck,
-  Globe
+  Globe,
+  Timer
 } from 'lucide-react';
 import { VulnerabilityReport, ReportStatus, Severity, TimelineEvent, ValidationChecklistItem } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform } from '../utils/formatters';
 import { ToolExplanationCard } from './ToolExplanationCard';
 import { SecurityIntelSidebar } from './SecurityIntelSidebar';
+import { getReportAutoTags } from '../utils/taggingEngine';
+import { calculateReportHoursFromTimeline } from '../utils/hourlyRateEngine';
 import { StatusBadge } from './StatusBadge';
 
 interface ReportDetailModalProps {
@@ -78,6 +81,12 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   const [newStatus, setNewStatus] = useState<ReportStatus>(report?.status || 'DRAFT');
   const [newBounty, setNewBounty] = useState<number>(report?.bountyAmount || 0);
   const [timelineNote, setTimelineNote] = useState('');
+
+  // Inline timeline event state
+  const [showAddTimelineEvent, setShowAddTimelineEvent] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState('Sessão de Pesquisa & Validação');
+  const [newEventNotes, setNewEventNotes] = useState('');
+  const [newEventHours, setNewEventHours] = useState<number>(2);
 
   // Validation Checklist state
   const [newTaskInput, setNewTaskInput] = useState('');
@@ -721,19 +730,57 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Tags Assigned */}
-              {report.tags && report.tags.length > 0 && (
-                <div className="p-3.5 rounded-lg bg-[#121212] border border-[#262626] space-y-1.5">
-                  <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-wider">Tags do Relatório</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {report.tags.map(tag => (
-                      <span key={tag} className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-400">
-                        {tag}
+              {/* Tags & Categorization (Automatic & Manual) */}
+              {(() => {
+                const autoTags = getReportAutoTags(report);
+                const hasTags = autoTags.length > 0 || (report.tags && report.tags.length > 0);
+                if (!hasTags) return null;
+
+                return (
+                  <div className="p-3.5 rounded-lg bg-[#121212] border border-[#262626] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-wider">
+                        Tags & Categorização
                       </span>
-                    ))}
+                      {autoTags.length > 0 && (
+                        <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>Classificação Inteligente</span>
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1.5">
+                      {/* Auto-extracted tags */}
+                      {autoTags.map(at => (
+                        <span 
+                          key={at.tag} 
+                          className={`px-2 py-0.5 rounded text-xs font-mono border flex items-center gap-1.5 ${at.color.bg} ${at.color.text} ${at.color.border}`}
+                          title={`Tag automática: ${at.label} (${at.category}) detectada pela palavra-chave "${at.matchedKeyword}"`}
+                        >
+                          <Sparkles className="w-2.5 h-2.5 opacity-80" />
+                          <span>{at.tag}</span>
+                          <span className="text-[9px] opacity-70 border-l border-current pl-1 ml-0.5">
+                            {at.category}
+                          </span>
+                        </span>
+                      ))}
+
+                      {/* Manual tags not matching auto tags */}
+                      {report.tags && report.tags
+                        .filter(rawTag => {
+                          const norm = rawTag.startsWith('#') ? rawTag.toLowerCase() : `#${rawTag.toLowerCase()}`;
+                          return !autoTags.some(at => at.tag === norm);
+                        })
+                        .map(tag => (
+                          <span key={tag} className="px-2 py-0.5 rounded bg-zinc-800/80 border border-zinc-700 text-xs font-mono text-zinc-300">
+                            {tag}
+                          </span>
+                        ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* CVEs Linked */}
               {report.cveIds.length > 0 && (
@@ -1225,31 +1272,186 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           )}
 
           {/* TAB 3: TIMELINE */}
-          {activeTab === 'timeline' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-[#262626]">
-                <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Histórico de Rastreabilidade do Relatório</h4>
-                <span className="text-xs font-mono text-zinc-400">{report.timeline.length} eventos</span>
-              </div>
+          {activeTab === 'timeline' && (() => {
+            const { totalHours: reportTimelineHours } = calculateReportHoursFromTimeline(report);
+            const reportBountyUSD = report.bountyAmount || 0;
+            const reportHourlyRate = reportTimelineHours > 0 ? Math.round((reportBountyUSD / reportTimelineHours) * 100) / 100 : 0;
 
-              <div className="space-y-4 pl-2 border-l-2 border-[#262626] ml-3">
-                {report.timeline.map((event) => (
-                  <div key={event.id} className="relative pl-6 space-y-1">
-                    <div className="absolute -left-[31px] top-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-4 border-[#0a0a0a]" />
-                    <div className="flex items-baseline justify-between gap-4">
-                      <h5 className="text-xs font-semibold text-zinc-200">{event.title}</h5>
-                      <span className="text-xs font-mono text-zinc-500">{event.date}</span>
-                    </div>
-                    {event.notes && (
-                      <p className="text-xs text-zinc-400 leading-relaxed bg-[#121212] p-2.5 rounded border border-[#262626] font-mono">
-                        {event.notes}
-                      </p>
-                    )}
+            const handleAddEventSubmit = (e: React.FormEvent) => {
+              e.preventDefault();
+              if (!newEventTitle.trim()) return;
+              onAddTimelineEvent(report.id, {
+                date: new Date().toISOString().split('T')[0],
+                title: newEventTitle.trim(),
+                notes: newEventNotes.trim() ? `${newEventNotes.trim()} (${newEventHours}h investidas)` : `Sessão de trabalho: ${newEventHours}h investidas`,
+                type: 'note',
+                hoursSpent: newEventHours
+              });
+              setShowAddTimelineEvent(false);
+              setNewEventNotes('');
+              setNewEventHours(2);
+            };
+
+            return (
+              <div className="space-y-5">
+                {/* Timeline & Hourly Yield Summary Card */}
+                <div className="p-4 rounded-xl bg-gradient-to-r from-[#121613] to-[#121212] border border-emerald-500/20 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-sky-400" />
+                      <span>Tempo no Cronograma</span>
+                    </span>
+                    <p className="text-xl font-mono font-light text-white">
+                      {reportTimelineHours} <span className="text-xs text-zinc-400">horas</span>
+                    </p>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {report.timeline.length} etapas registradas
+                    </span>
                   </div>
-                ))}
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                      <DollarSign className="w-3 h-3 text-amber-400" />
+                      <span>Recompensa Total</span>
+                    </span>
+                    <p className="text-xl font-mono font-light text-white">
+                      {formatCurrency(reportBountyUSD, 'USD')}
+                    </p>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {report.currency || 'USD'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-semibold flex items-center gap-1">
+                      <Timer className="w-3 h-3 text-emerald-400" />
+                      <span>Valor por Hora ($/h)</span>
+                    </span>
+                    <p className="text-xl font-mono font-light text-emerald-400">
+                      {reportBountyUSD > 0 ? `${formatCurrency(reportHourlyRate, 'USD')} / h` : 'Pendente'}
+                    </p>
+                    <span className="text-[10px] text-zinc-400 font-mono">
+                      {reportHourlyRate >= 200 ? '🔥 Alto Retorno' : 'Rentabilidade calculada'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Toolbar & Add Event Toggle */}
+                <div className="flex items-center justify-between pb-2 border-b border-[#262626]">
+                  <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">
+                    Histórico Cronológico ({report.timeline.length} eventos)
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddTimelineEvent(!showAddTimelineEvent)}
+                    className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono rounded border border-zinc-700 flex items-center gap-1.5 transition-colors"
+                  >
+                    <span>{showAddTimelineEvent ? 'Fechar Formulário' : '+ Registrar Horas / Etapa'}</span>
+                  </button>
+                </div>
+
+                {/* Inline Time Logging Form */}
+                {showAddTimelineEvent && (
+                  <form onSubmit={handleAddEventSubmit} className="p-4 rounded-xl bg-[#141414] border border-[#2e2e2e] space-y-3 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold font-mono text-zinc-200 uppercase">
+                        Nova Etapa com Registro de Horas
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-400">
+                        Atualiza o cálculo de $/h automaticamente
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-zinc-400 font-mono mb-1">
+                          Título da Atividade:
+                        </label>
+                        <input
+                          type="text"
+                          value={newEventTitle}
+                          onChange={(e) => setNewEventTitle(e.target.value)}
+                          placeholder="Ex: Fuzzing de endpoints ou Exploração de PoC"
+                          className="w-full bg-[#181818] border border-[#333] text-zinc-200 text-xs rounded p-2 font-sans outline-none focus:border-emerald-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-zinc-400 font-mono mb-1">
+                          Horas Dedicadas:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.25"
+                          min="0.25"
+                          max="80"
+                          value={newEventHours}
+                          onChange={(e) => setNewEventHours(parseFloat(e.target.value) || 1)}
+                          className="w-full bg-[#181818] border border-[#333] text-zinc-200 text-xs rounded p-2 font-mono outline-none focus:border-emerald-500"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 font-mono mb-1">
+                        Notas & Evidências da Sessão:
+                      </label>
+                      <textarea
+                        value={newEventNotes}
+                        onChange={(e) => setNewEventNotes(e.target.value)}
+                        rows={2}
+                        placeholder="Descreva as técnicas aplicadas, parâmetros testados e resultados..."
+                        className="w-full bg-[#181818] border border-[#333] text-zinc-200 text-xs rounded p-2 font-sans outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddTimelineEvent(false)}
+                        className="px-3 py-1 bg-zinc-800 text-zinc-400 hover:text-white text-xs font-mono rounded"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono uppercase tracking-wider rounded transition-colors"
+                      >
+                        Salvar no Cronograma
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Timeline Events List */}
+                <div className="space-y-4 pl-2 border-l-2 border-[#262626] ml-3">
+                  {report.timeline.map((event) => (
+                    <div key={event.id} className="relative pl-6 space-y-1">
+                      <div className="absolute -left-[31px] top-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-4 border-[#0a0a0a]" />
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <h5 className="text-xs font-semibold text-zinc-200">{event.title}</h5>
+                          {event.hoursSpent !== undefined && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                              {event.hoursSpent}h investidas
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-mono text-zinc-500">{event.date}</span>
+                      </div>
+                      {event.notes && (
+                        <p className="text-xs text-zinc-400 leading-relaxed bg-[#121212] p-2.5 rounded border border-[#262626] font-mono">
+                          {event.notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* TAB 4: EXPORT & DISPATCH */}
           {activeTab === 'export' && (
