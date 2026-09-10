@@ -21,6 +21,7 @@ import { SeverityBreakdownChart } from './SeverityBreakdownChart';
 import { SeverityPieChart } from './SeverityPieChart';
 import { ReportsTrendChart } from './ReportsTrendChart';
 import { MonthlySubmissionCadenceChart } from './MonthlySubmissionCadenceChart';
+import { FutureEarningsProjectionChart } from './FutureEarningsProjectionChart';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { CvssComparisonTool } from './CvssComparisonTool';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
@@ -250,6 +251,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <MonthlySubmissionCadenceChart
         reports={reports}
         onNewReport={onNewReport}
+      />
+
+      {/* Recharts Forecast & Predictive Chart: Future Bounty Earnings Projection */}
+      <FutureEarningsProjectionChart
+        reports={reports}
+        onNewReport={onNewReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
       />
 
       {/* Recharts Line Chart: 30-Day Vulnerability Report Productivity & Trend */}
