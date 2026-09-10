@@ -27,6 +27,7 @@ import { CvssComparisonTool } from './CvssComparisonTool';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
 import { WeeklySummary } from './WeeklySummary';
 import { StatusBadge } from './StatusBadge';
+import { ReportNotificationPanel } from './ReportNotificationPanel';
 
 interface DashboardViewProps {
   reports: VulnerabilityReport[];
@@ -247,6 +248,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       </section>
  
+      {/* Actionable Report Attention & Milestones Notification Panel */}
+      <ReportNotificationPanel
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+      />
+
       {/* Recharts Line Chart: Monthly Bug Submission Cadence Over Time */}
       <MonthlySubmissionCadenceChart
         reports={reports}

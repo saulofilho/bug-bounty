@@ -38,6 +38,12 @@ A ferramenta organiza o ciclo de vida completo de vulnerabilidades — desde o r
 ## ✨ Funcionalidades Principais
 
 ### 1. 📊 Dashboard Executivo & Métricas
+- **Central de Atenção & Milestones (Notification Panel)**: Painel inteligente no topo do dashboard que detecta proativamente:
+  - *Rascunhos Pendentes de Conclusão*: Alerta rascunhos inativos há mais de 48h para evitar submissões duplicadas por outros hunters e atalho direto para finalizar o PoC.
+  - *Relatórios Aguardando Triagem*: Monitora o SLA de resposta (72h-96h) das plataformas (HackerOne, Bugcrowd, Intigriti, etc.) sinalizando quando um follow-up é recomendado.
+  - *Marcos de Recompensa & Resolução*: Acompanhamento de relatórios validados (*Triaged*) aguardando bounty e confirmação de correções de patches.
+  - *Alertas de Segurança & PGP*: Identifica achados Críticos ou Altos que ainda não foram assinados digitalmente com PGP.
+  - Filtros interativos por categoria, botões de ação com um clique e suporte a descarte/restauração de notificações.
 - **KPIs em Tempo Real**: Total de relatórios, taxa de aceitação (*Signal/Noise*), severidade média e valor total acumulado de *bounties* (USD e BRL).
 - **Projeção de Rendimentos Futuros (Forecast)**: Modelo preditivo em `recharts` que calcula ganhos futuros (3, 6 ou 12 meses) com cenários **Conservador**, **Esperado** e **Otimista**, avaliando o backlog em triagem e simulando metas extras de submissão.
 - **Cadência Mensal de Submissões**: Gráfico de linha temporal com 4 modos (Cadência, Severidade, Bounties e Acumulado) com suporte a média móvel de 3 meses.
@@ -193,6 +199,8 @@ O arquivo `.github/workflows/deploy.yml` já está configurado no repositório:
    ```
    https://<seu-usuario>.github.io/<nome-do-repositorio>/
    ```
+
+> 💡 **Nota sobre Lockfile & Node Version**: O repositório já inclui o `package-lock.json` oficial e o pipeline `.github/workflows/deploy.yml` está configurado para instalar dependências com fallback inteligente (`if [ -f package-lock.json ]; then npm ci || npm install; else npm install; fi`), prevenindo o erro `Dependencies lock file is not found` e operando com suporte total a Node 22 LTS e Node 24.
 
 ### 2. Por que o caminho relativo funciona perfeitamente?
 O arquivo `vite.config.ts` utiliza:
