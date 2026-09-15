@@ -23,6 +23,7 @@ import { AutoTaggingSuggestions } from './AutoTaggingSuggestions';
 import { fetchAutomatedTags } from '../utils/taggingEngine';
 import { CvssCalculatorTool } from './CvssCalculatorTool';
 import { MiniCvssCalculator } from './MiniCvssCalculator';
+import { CvssCalculatorModal } from './CvssCalculatorModal';
 
 interface ReportFormModalProps {
   initialReport?: VulnerabilityReport | null;
@@ -63,6 +64,7 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
     initialReport?.cvssVector || initialCalculated.vector
   );
   const [showAdvancedCvss, setShowAdvancedCvss] = useState(false);
+  const [isCvssModalOpen, setIsCvssModalOpen] = useState(false);
 
   const [cwe, setCwe] = useState(initialReport?.cwe || 'CWE-639: Authorization Bypass Through User-Controlled Key');
   const [cveInput, setCveInput] = useState((initialReport?.cveIds || []).join(', '));
@@ -458,15 +460,28 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowAdvancedCvss(!showAdvancedCvss)}
-                className="text-[10px] text-zinc-400 hover:text-emerald-400 font-mono flex items-center gap-1 transition-colors"
-                title="Alternar entre mini calculadora e especificações estendidas"
-              >
-                <span>{showAdvancedCvss ? 'Ocultar Guia Completo' : 'Ver Guia FIRST Detalhado'}</span>
-                {showAdvancedCvss ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-open-cvss-calculator-modal-from-form"
+                  onClick={() => setIsCvssModalOpen(true)}
+                  className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono flex items-center gap-1.5 transition-colors px-2 py-1 rounded bg-[#16161a] hover:bg-[#1f1f26] border border-emerald-500/30 hover:border-emerald-500/50 shadow-sm"
+                  title="Abrir Calculadora CVSS v3.1 completa com presets e cópia direta"
+                >
+                  <Calculator className="w-3 h-3" />
+                  <span>Calculadora no Modal</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedCvss(!showAdvancedCvss)}
+                  className="text-[10px] text-zinc-400 hover:text-emerald-400 font-mono flex items-center gap-1 transition-colors px-2 py-1 rounded bg-[#141414] hover:bg-[#1a1a1a] border border-[#262626]"
+                  title="Alternar entre mini calculadora e especificações estendidas"
+                >
+                  <span>{showAdvancedCvss ? 'Ocultar Guia' : 'Guia FIRST'}</span>
+                  {showAdvancedCvss ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+              </div>
             </div>
 
             {/* Mini CVSS 3.1 Calculator with synchronized cvssScore and cvssVector */}
@@ -751,6 +766,21 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
         </form>
 
       </div>
+
+      {/* Embedded CVSS Calculator Modal */}
+      {isCvssModalOpen && (
+        <CvssCalculatorModal
+          isOpen={isCvssModalOpen}
+          onClose={() => setIsCvssModalOpen(false)}
+          initialVector={cvssVector || initialCalculated.vector}
+          onApplyToReport={(_repId, vector, score) => {
+            setCvssVector(vector);
+            setCvssScore(score);
+            setCvssMetrics(parseCvssVector(vector));
+            setIsCvssModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };

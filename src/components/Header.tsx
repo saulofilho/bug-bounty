@@ -16,9 +16,11 @@ import {
   ChevronDown,
   Check,
   Plus,
-  Globe
+  Globe,
+  Calculator
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
+import { UserAuthWidget } from './UserAuthWidget';
 
 export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms';
 
@@ -28,6 +30,7 @@ export interface HeaderProps {
   onNewReport: () => void;
   onOpenAddTarget?: () => void;
   onOpenPgp?: () => void;
+  onOpenCvssCalculator?: () => void;
   onOpenAbout?: () => void;
   totalRewardedUSD: number;
   activeReportsCount: number;
@@ -42,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNewReport,
   onOpenAddTarget,
   onOpenPgp,
+  onOpenCvssCalculator,
   onOpenAbout,
   totalRewardedUSD,
   activeReportsCount,
@@ -85,6 +89,9 @@ export const Header: React.FC<HeaderProps> = ({
         } else if (e.key.toLowerCase() === 's') {
           e.preventDefault();
           if (onOpenPgp) onOpenPgp();
+        } else if (e.key.toLowerCase() === 'c') {
+          e.preventDefault();
+          if (onOpenCvssCalculator) onOpenCvssCalculator();
         } else if (e.key.toLowerCase() === 'n') {
           e.preventDefault();
           onNewReport();
@@ -99,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onOpenAddTarget, onOpenPgp, onNewReport, isQuickMenuOpen]);
+  }, [onOpenAddTarget, onOpenPgp, onOpenCvssCalculator, onNewReport, isQuickMenuOpen]);
 
   // Click outside to close quick actions dropdown
   useEffect(() => {
@@ -355,6 +362,21 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
 
+              {/* Quick Action: CVSS Calculator */}
+              {onOpenCvssCalculator && (
+                <button
+                  id="btn-quick-cvss-calc"
+                  type="button"
+                  onClick={onOpenCvssCalculator}
+                  title="Calculadora de Gravidade CVSS v3.1 (Alt+C)"
+                  aria-label="Calculadora CVSS v3.1"
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <span className="hidden xl:inline">CVSS Calc</span>
+                </button>
+              )}
+
               {/* Quick Actions Dropdown Menu Toggle */}
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -419,6 +441,24 @@ export const Header: React.FC<HeaderProps> = ({
                           <span>Assinar Relatório PGP</span>
                         </div>
                         <kbd className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">Alt+S</kbd>
+                      </button>
+                    )}
+
+                    {onOpenCvssCalculator && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsQuickMenuOpen(false);
+                          onOpenCvssCalculator();
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/70 transition-colors text-left group"
+                        role="menuitem"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Calculator className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                          <span>Calculadora CVSS v3.1</span>
+                        </div>
+                        <kbd className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">Alt+C</kbd>
                       </button>
                     )}
 
@@ -519,6 +559,9 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="sm:hidden">Novo</span>
               </button>
             </div>
+
+            {/* Firebase Auth User Status / Login Widget */}
+            <UserAuthWidget />
 
             {/* Wallet Balance (on Large screens) */}
             <div className="hidden 2xl:flex flex-col items-end text-right pl-1">

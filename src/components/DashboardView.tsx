@@ -13,14 +13,18 @@ import {
   Filter,
   Activity,
   HelpCircle,
-  Database
+  Database,
+  Calculator,
+  Lock,
+  Flame
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
-import { SeverityBreakdownChart } from './SeverityBreakdownChart';
+import { SeverityBarChart } from './SeverityBarChart';
 import { SeverityPieChart } from './SeverityPieChart';
 import { ReportsTrendChart } from './ReportsTrendChart';
-import { MonthlySubmissionCadenceChart } from './MonthlySubmissionCadenceChart';
+import { SixMonthTrendLineChart } from './SixMonthTrendLineChart';
 import { FutureEarningsProjectionChart } from './FutureEarningsProjectionChart';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { CvssComparisonTool } from './CvssComparisonTool';
@@ -37,6 +41,7 @@ interface DashboardViewProps {
   onNewReport: () => void;
   onNavigateTab: (tab: 'reports' | 'cve' | 'targets' | 'docs' | 'platforms') => void;
   onOpenAbout?: () => void;
+  onOpenCvssCalculator?: (vector?: string, reportId?: string) => void;
   onSelectSeverity?: (severity: Severity) => void;
   onAddTimelineEvent?: (reportId: string, event: Omit<TimelineEvent, 'id'>) => void;
 }
@@ -47,9 +52,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNewReport,
   onNavigateTab,
   onOpenAbout,
+  onOpenCvssCalculator,
   onSelectSeverity,
   onAddTimelineEvent
 }) => {
+  const { isAuthenticated, openLoginModal } = useAuth();
   const usdToBrl = 5.45;
 
   // Calculate high-precision metrics
@@ -160,6 +167,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {onOpenCvssCalculator && (
+            <button
+              id="btn-dashboard-cvss-calc"
+              onClick={() => onOpenCvssCalculator()}
+              className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-emerald-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm"
+              title="Calculadora de Gravidade CVSS v3.1 (Alt+C)"
+            >
+              <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+              <span>CVSS Calc</span>
+            </button>
+          )}
+
           {onOpenAbout && (
             <button
               id="btn-dashboard-about-help"
@@ -188,6 +207,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Firebase Auth Quick Warning Bar if unauthenticated */}
+      {!isAuthenticated && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-600/10 to-transparent border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-zinc-100">Modo Convidado (Acesso Limitado aos Relatórios)</span>
+                <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] border border-amber-500/30">
+                  Firebase Auth
+                </span>
+              </div>
+              <p className="text-zinc-400 text-[11px] mt-0.5">
+                Para registrar novos relatórios, editar vulnerabilidades existentes ou visualizar PoCs confidenciais, autentique-se como Administrador ou Pesquisador.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            id="btn-dashboard-auth-prompt"
+            onClick={() => openLoginModal('general')}
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold font-mono text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-950/40 shrink-0 cursor-pointer"
+          >
+            <Flame className="w-3.5 h-3.5" />
+            <span>Fazer Login</span>
+          </button>
+        </div>
+      )}
 
       {/* Prominent Weekly Summary (Last 7 Days: Submissions & Rewards Earned) */}
       <WeeklySummary
@@ -266,9 +316,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNewReport={onNewReport}
       />
 
-      {/* Recharts Line Chart: Monthly Bug Submission Cadence Over Time */}
-      <MonthlySubmissionCadenceChart
+      {/* Recharts Line Chart: Tendência de Novos Relatórios Descobertos nos Últimos 6 Meses */}
+      <SixMonthTrendLineChart
         reports={reports}
+        onNewReport={onNewReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
+      {/* Calendar Activity Heatmap (GitHub-style submission frequency, dates & streaks) */}
+      <ActivityHeatmap
+        reports={reports}
+        onSelectReport={onSelectReport}
         onNewReport={onNewReport}
       />
 
@@ -298,8 +356,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNewReport={onNewReport}
       />
 
-      {/* Recharts Bar & Severity Distribution Chart (Critical, High, Medium, Low) */}
-      <SeverityBreakdownChart
+      {/* Recharts Bar Chart: Vulnerability Distribution by Severity (Low, Medium, High, Critical) */}
+      <SeverityBarChart
         reports={reports}
         onSeverityClick={(sev) => {
           if (onSelectSeverity) {
@@ -308,13 +366,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onNavigateTab('reports');
           }
         }}
-        onNewReport={onNewReport}
-      />
-
-      {/* 365-Day Calendar Activity Heatmap (GitHub-style frequency & streaks) */}
-      <ActivityHeatmap
-        reports={reports}
-        onSelectReport={onSelectReport}
         onNewReport={onNewReport}
       />
 

@@ -22,8 +22,13 @@ import {
   ChevronDown,
   ChevronUp,
   Tag,
-  Sparkles
+  Sparkles,
+  Calculator,
+  Lock,
+  Flame,
+  FileDown
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, ReportStatus, Severity, PlatformName } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
@@ -38,10 +43,12 @@ interface ReportsViewProps {
   onNewReport: () => void;
   onUpdateStatus: (id: string, status: ReportStatus) => void;
   onOpenPgpSigner?: (reportId: string) => void;
+  onOpenCvssCalculator?: (vector?: string, reportId?: string) => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   selectedSeverity?: string;
   onSeverityChange?: (severity: string) => void;
+  onOpenPdfExport?: (report: VulnerabilityReport) => void;
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({
@@ -52,11 +59,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   onNewReport,
   onUpdateStatus,
   onOpenPgpSigner,
+  onOpenCvssCalculator,
   searchQuery: externalSearchQuery = '',
   onSearchChange,
   selectedSeverity: externalSelectedSeverity = 'ALL',
-  onSeverityChange
+  onSeverityChange,
+  onOpenPdfExport
 }) => {
+  const { isAuthenticated, openLoginModal } = useAuth();
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [internalSelectedSeverity, setInternalSelectedSeverity] = useState<string>('ALL');
@@ -370,13 +380,28 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={onNewReport}
-          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Submission +</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenCvssCalculator && (
+            <button
+              type="button"
+              id="btn-reports-view-cvss-calc"
+              onClick={() => onOpenCvssCalculator()}
+              className="flex items-center justify-center gap-1.5 bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2a2a30] hover:border-emerald-500/40 font-mono font-semibold px-3 py-2 rounded text-xs tracking-wider transition-all shadow-sm active:scale-95 shrink-0"
+              title="Calculadora de Gravidade CVSS v3.1 (Alt+C)"
+            >
+              <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+              <span>CVSS Calc</span>
+            </button>
+          )}
+
+          <button
+            onClick={onNewReport}
+            className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95 shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Submission +</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -825,6 +850,37 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         </div>
       )}
 
+      {/* Firebase Auth Notice Banner when unauthenticated */}
+      {!isAuthenticated && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-[#171324] to-[#0f0e18] border border-amber-500/30 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-zinc-100 uppercase tracking-wide">Acesso Restrito: Firebase Auth</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30">
+                  Protegido
+                </span>
+              </div>
+              <p className="text-zinc-400 text-[11px] mt-0.5">
+                Faça login para desbloquear a visualização de PoCs confidenciais, edição de relatórios e novas submissões.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            id="btn-reports-login-banner"
+            onClick={() => openLoginModal('general')}
+            className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold font-mono text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 shadow-md shadow-amber-950/30"
+          >
+            <Flame className="w-3.5 h-3.5" />
+            <span>Entrar / Login</span>
+          </button>
+        </div>
+      )}
+
       {/* Reports List Cards */}
       {filteredReports.length === 0 ? (
         <div className="p-12 text-center rounded-xl bg-[#0a0a0a] border border-[#262626] space-y-3">
@@ -909,6 +965,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   {/* Left Column: Badges, Title & Meta */}
                   <div className="space-y-2 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
+                      {!isAuthenticated && (
+                        <span 
+                          className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-mono font-bold border border-amber-500/30 flex items-center gap-1"
+                          title="Acesso restrito: faça login para abrir detalhes e PoC"
+                        >
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          Requer Login
+                        </span>
+                      )}
+
                       <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${sevBadge.bg} ${sevBadge.text} ${sevBadge.border}`}>
                         {report.severity} {report.cvssScore}
                       </span>
@@ -1043,6 +1109,32 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     {/* Quick action buttons */}
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                       
+                      {/* Calculate / Recalibrate CVSS */}
+                      {onOpenCvssCalculator && (
+                        <button
+                          title="Abrir Calculadora CVSS v3.1 para este relatório"
+                          onClick={() => onOpenCvssCalculator(report.cvssVector, report.id)}
+                          className="p-2 rounded bg-[#171717] hover:bg-[#262626] text-emerald-400 hover:text-emerald-300 transition-colors border border-[#262626] hover:border-emerald-500/40"
+                        >
+                          <Calculator className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      {/* Export Individual PDF Report */}
+                      {onOpenPdfExport && (
+                        <button
+                          id={`btn-export-pdf-${report.id}`}
+                          title="Exportar este relatório para PDF formal (A4)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenPdfExport(report);
+                          }}
+                          className="p-2 rounded bg-[#171717] hover:bg-[#20202e] text-emerald-400 hover:text-emerald-300 transition-colors border border-[#262626] hover:border-emerald-500/40"
+                        >
+                          <FileDown className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
                       {/* Copy Formatted Markdown */}
                       <button
                         title="Copiar relatório formatado em Markdown"

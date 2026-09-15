@@ -33,7 +33,10 @@ import {
   Layers,
   CheckCheck,
   Globe,
-  Timer
+  Timer,
+  Calculator,
+  FileDown,
+  SlidersHorizontal
 } from 'lucide-react';
 import { VulnerabilityReport, ReportStatus, Severity, TimelineEvent, ValidationChecklistItem } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform } from '../utils/formatters';
@@ -42,6 +45,9 @@ import { SecurityIntelSidebar } from './SecurityIntelSidebar';
 import { getReportAutoTags } from '../utils/taggingEngine';
 import { calculateReportHoursFromTimeline } from '../utils/hourlyRateEngine';
 import { StatusBadge } from './StatusBadge';
+import { useAuth } from '../context/AuthContext';
+import { PdfExportModal } from './PdfExportModal';
+import { downloadPdfReport } from '../utils/pdfReportGenerator';
 
 interface ReportDetailModalProps {
   report: VulnerabilityReport | null;
@@ -51,7 +57,9 @@ interface ReportDetailModalProps {
   onUpdateStatus: (id: string, newStatus: ReportStatus, bountyAmount?: number) => void;
   onAddTimelineEvent: (id: string, event: Omit<TimelineEvent, 'id'>) => void;
   onOpenPgpSigner?: (reportId: string) => void;
+  onOpenCvssCalculator?: (vector?: string, reportId?: string) => void;
   onUpdateChecklist?: (reportId: string, checklist: ValidationChecklistItem[]) => void;
+  onOpenPdfExport?: (report: VulnerabilityReport) => void;
 }
 
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
@@ -62,14 +70,21 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onUpdateStatus,
   onAddTimelineEvent,
   onOpenPgpSigner,
-  onUpdateChecklist
+  onOpenCvssCalculator,
+  onUpdateChecklist,
+  onOpenPdfExport
 }) => {
+  const { isAuthenticated, canEditReports, canDeleteReports, openLoginModal } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'poc' | 'checklist' | 'timeline' | 'export'>('details');
   const [copied, setCopied] = useState(false);
   const [copiedPgp, setCopiedPgp] = useState(false);
+  const [copiedCvssVector, setCopiedCvssVector] = useState(false);
   const [exportPlatform, setExportPlatform] = useState<'HackerOne' | 'Bugcrowd' | 'Intigriti' | 'General'>('HackerOne');
   const [isDispatching, setIsDispatching] = useState(false);
   const [dispatchReceipt, setDispatchReceipt] = useState<any | null>(null);
+
+  // PDF Export Modal state
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   // Focused Reading Mode & Tool Guide state
   const [isFocusedReading, setIsFocusedReading] = useState(false);
@@ -312,6 +327,23 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               </button>
 
               <button
+                id="btn-open-pdf-modal-normal"
+                type="button"
+                onClick={() => {
+                  if (onOpenPdfExport) {
+                    onOpenPdfExport(report);
+                  } else {
+                    setShowPdfModal(true);
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#161622] hover:bg-[#202030] text-emerald-400 hover:text-emerald-300 border border-[#2c2c40] hover:border-emerald-500/50 text-xs font-mono font-semibold transition-all shadow-sm cursor-pointer"
+                title="Exportar Relatório Formal em PDF (A4)"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Exportar PDF</span>
+              </button>
+
+              <button
                 onClick={onClose}
                 className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-[#171717] transition-colors ml-1"
                 title="Fechar"
@@ -411,6 +443,23 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 title="Explicar como funciona a ferramenta"
               >
                 <HelpCircle className="w-4 h-4 text-emerald-400" />
+              </button>
+
+              <button
+                id="btn-open-pdf-modal-focus"
+                type="button"
+                onClick={() => {
+                  if (onOpenPdfExport) {
+                    onOpenPdfExport(report);
+                  } else {
+                    setShowPdfModal(true);
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#161622] hover:bg-[#202030] text-emerald-400 hover:text-emerald-300 border border-[#2c2c40] hover:border-emerald-500/50 text-xs font-mono font-semibold transition-all shadow-sm cursor-pointer"
+                title="Exportar Relatório Formal em PDF (A4)"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Exportar PDF</span>
               </button>
 
               <button
@@ -524,8 +573,21 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 <span className="text-zinc-200 font-bold truncate block">{report.cwe}</span>
               </div>
               <div>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">Vetor CVSS 3.1</span>
-                <span className="text-emerald-400 font-bold truncate block">{report.cvssVector}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">Vetor CVSS 3.1</span>
+                  {onOpenCvssCalculator && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenCvssCalculator(report.cvssVector, report.id)}
+                      className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono flex items-center gap-1 transition-colors"
+                      title="Abrir Calculadora CVSS para recalcular score"
+                    >
+                      <Calculator className="w-3 h-3" />
+                      <span>Calc</span>
+                    </button>
+                  )}
+                </div>
+                <span className="text-emerald-400 font-bold truncate block select-all">{report.cvssVector}</span>
               </div>
             </div>
 
@@ -725,8 +787,36 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   <p className="font-semibold text-zinc-200 truncate">{report.cwe}</p>
                 </div>
                 <div className="p-3.5 rounded-lg bg-[#121212] border border-[#262626] space-y-1">
-                  <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-wider">CVSS 3.1 Vector</span>
-                  <p className="font-mono text-xs text-emerald-400 truncate">{report.cvssVector}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-wider">CVSS 3.1 Vector</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(report.cvssVector);
+                          setCopiedCvssVector(true);
+                          setTimeout(() => setCopiedCvssVector(false), 2000);
+                        }}
+                        className="text-[10px] text-zinc-400 hover:text-white font-mono flex items-center gap-1 transition-colors"
+                        title="Copiar vetor CVSS v3.1"
+                      >
+                        {copiedCvssVector ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedCvssVector ? 'Copiado' : 'Copiar'}</span>
+                      </button>
+                      {onOpenCvssCalculator && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenCvssCalculator(report.cvssVector, report.id)}
+                          className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono flex items-center gap-1 transition-colors ml-1"
+                          title="Recalcular no Modal CVSS v3.1"
+                        >
+                          <Calculator className="w-3 h-3" />
+                          <span>Calculadora</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="font-mono text-xs text-emerald-400 truncate select-all">{report.cvssVector}</p>
                 </div>
               </div>
 
@@ -1457,6 +1547,79 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           {activeTab === 'export' && (
             <div className="space-y-6">
               
+              {/* Prominent Formal Delivery PDF Document Export Card */}
+              <div className="p-5 rounded-xl bg-gradient-to-r from-[#111118] via-[#0f0f16] to-[#0c0c11] border border-emerald-500/40 shadow-xl space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 flex items-center justify-center shrink-0">
+                        <FileDown className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                          Documento de Entrega Formal em PDF (A4)
+                        </span>
+                        <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono border border-emerald-500/30">
+                          Estilo BugSentinel
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Exporte este relatório individual em documento PDF formal com diagramação profissional, classificação CVSS v3.1, passos de reprodução, código da PoC, impacto, plano de mitigação, checklist técnico e assinatura digital PGP.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      id="btn-quick-download-pdf-tab"
+                      onClick={() => downloadPdfReport(report)}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs uppercase font-mono tracking-wider transition-all shadow-md shadow-emerald-950/40 cursor-pointer"
+                      title="Baixar PDF instantaneamente com configurações padrão"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      <span>Baixar PDF (.pdf)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      id="btn-open-pdf-customizer-tab"
+                      onClick={() => {
+                        if (onOpenPdfExport) {
+                          onOpenPdfExport(report);
+                        } else {
+                          setShowPdfModal(true);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#161622] hover:bg-[#202030] border border-[#2b2b3d] hover:border-emerald-500/40 text-zinc-200 hover:text-white font-semibold text-xs uppercase font-mono tracking-wider transition-all cursor-pointer"
+                      title="Abrir pré-visualização interativa e configurar opções do documento"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Personalizar & Preview</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-[#20202c] text-[11px] font-mono text-zinc-400">
+                  <div className="flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Diagramação A4 Vetorial</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Tema Cyber Dark / Clean</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Vetor CVSS v3.1 Completo</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Assinatura Digital OpenPGP</span>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg bg-[#121212] border border-[#262626]">
                 <div className="space-y-1">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-200">Formatação para Plataformas Parceiras</h4>
@@ -1657,6 +1820,13 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
                 <button
                   onClick={() => {
+                    if (!isAuthenticated || !canEditReports) {
+                      openLoginModal('edit', () => {
+                        onEdit(report);
+                        onClose();
+                      });
+                      return;
+                    }
                     onEdit(report);
                     onClose();
                   }}
@@ -1680,12 +1850,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             <>
               <button
                 onClick={() => {
+                  if (!isAuthenticated || !canDeleteReports) {
+                    openLoginModal('delete');
+                    return;
+                  }
                   if (confirm('Tem certeza que deseja excluir este relatório?')) {
                     onDelete(report.id);
                     onClose();
                   }
                 }}
                 className="flex items-center gap-1.5 text-rose-400 hover:text-rose-300 font-medium px-3 py-1.5 rounded hover:bg-rose-500/10 uppercase tracking-wider text-xs transition-colors"
+                title={!canDeleteReports ? "Apenas Administradores podem excluir relatórios" : undefined}
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Excluir</span>
@@ -1693,7 +1868,31 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
+                  id="btn-footer-export-pdf"
                   onClick={() => {
+                    if (onOpenPdfExport) {
+                      onOpenPdfExport(report);
+                    } else {
+                      setShowPdfModal(true);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 bg-[#161622] hover:bg-[#202030] text-emerald-400 hover:text-emerald-300 border border-[#2b2b3d] hover:border-emerald-500/40 font-semibold px-3 py-1.5 rounded uppercase tracking-wider text-xs transition-all cursor-pointer"
+                  title="Exportar este relatório para documento PDF formal"
+                >
+                  <FileDown className="w-4 h-4" />
+                  <span>Exportar PDF</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated || !canEditReports) {
+                      openLoginModal('edit', () => {
+                        onEdit(report);
+                        onClose();
+                      });
+                      return;
+                    }
                     onEdit(report);
                     onClose();
                   }}
@@ -1714,6 +1913,13 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         </div>
 
       </div>
+
+      {/* Individual Formal Delivery PDF Export Modal */}
+      <PdfExportModal
+        report={report}
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+      />
     </div>
   );
 };

@@ -16,10 +16,21 @@ import { BugBountyDirectoryView } from './components/BugBountyDirectoryView';
 import { PgpSignerModal } from './components/PgpSignerModal';
 import { AboutHelpModal } from './components/AboutHelpModal';
 import { AddTargetModal } from './components/AddTargetModal';
+import { CvssCalculatorModal } from './components/CvssCalculatorModal';
+import { FirebaseAuthModal } from './components/FirebaseAuthModal';
+import { PdfExportModal } from './components/PdfExportModal';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { INITIAL_REPORTS, INITIAL_TARGETS, INITIAL_DOCS } from './data/initialData';
-import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem } from './types';
+import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity } from './types';
 
-export default function App() {
+function AppContent() {
+  const {
+    isAuthenticated,
+    canEditReports,
+    canDeleteReports,
+    openLoginModal
+  } = useAuth();
+
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
 
   // Persistence with localStorage fallback
@@ -71,9 +82,13 @@ export default function App() {
   const [isAddTargetModalOpen, setIsAddTargetModalOpen] = useState(false);
   const [isPgpModalOpen, setIsPgpModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isCvssModalOpen, setIsCvssModalOpen] = useState(false);
+  const [cvssModalVector, setCvssModalVector] = useState<string | undefined>(undefined);
+  const [cvssModalReportId, setCvssModalReportId] = useState<string | undefined>(undefined);
   const [pgpInitialReportId, setPgpInitialReportId] = useState<string>('');
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [selectedSeverityFilter, setSelectedSeverityFilter] = useState<string>('ALL');
+  const [reportForPdfExport, setReportForPdfExport] = useState<VulnerabilityReport | null>(null);
 
   const handleResetToSeedData = () => {
     setReports(INITIAL_REPORTS);
@@ -121,7 +136,23 @@ export default function App() {
     }
   }, [reports]);
 
-  // Report Handlers
+  // Auto close detail and form modal when unauthenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      if (selectedReportForDetail) setSelectedReportForDetail(null);
+      if (isFormModalOpen) setIsFormModalOpen(false);
+    }
+  }, [isAuthenticated]);
+
+  // Report Handlers with Firebase Auth Access Control
+  const handleSelectReport = (report: VulnerabilityReport) => {
+    if (!isAuthenticated) {
+      openLoginModal('view', () => setSelectedReportForDetail(report));
+      return;
+    }
+    setSelectedReportForDetail(report);
+  };
+
   const handleSaveReport = (report: VulnerabilityReport) => {
     setReports(prev => {
       const exists = prev.some(r => r.id === report.id);
@@ -146,6 +177,14 @@ export default function App() {
   };
 
   const handleDeleteReport = (id: string) => {
+    if (!isAuthenticated) {
+      openLoginModal('delete', () => handleDeleteReport(id));
+      return;
+    }
+    if (!canDeleteReports) {
+      openLoginModal('delete');
+      return;
+    }
     setReports(prev => prev.filter(r => r.id !== id));
     if (selectedReportForDetail?.id === id) {
       setSelectedReportForDetail(null);
@@ -153,6 +192,10 @@ export default function App() {
   };
 
   const handleUpdateStatus = (id: string, newStatus: ReportStatus, bountyAmount?: number) => {
+    if (!isAuthenticated) {
+      openLoginModal('edit', () => handleUpdateStatus(id, newStatus, bountyAmount));
+      return;
+    }
     setReports(prev => prev.map(r => {
       if (r.id === id) {
         return {
@@ -197,17 +240,39 @@ export default function App() {
   };
 
   const handleOpenNewReport = () => {
+    if (!isAuthenticated) {
+      openLoginModal('create', () => {
+        setReportForFormModal(null);
+        setIsFormModalOpen(true);
+      });
+      return;
+    }
     setReportForFormModal(null);
     setIsFormModalOpen(true);
   };
 
   const handleEditReport = (report: VulnerabilityReport) => {
+    if (!isAuthenticated) {
+      openLoginModal('edit', () => {
+        setReportForFormModal(report);
+        setIsFormModalOpen(true);
+      });
+      return;
+    }
+    if (!canEditReports) {
+      openLoginModal('edit');
+      return;
+    }
     setReportForFormModal(report);
     setIsFormModalOpen(true);
   };
 
   // Link CVE directly to report
   const handleLinkCveToNewReport = (cve: CVERecord) => {
+    if (!isAuthenticated) {
+      openLoginModal('create', () => handleLinkCveToNewReport(cve));
+      return;
+    }
     const prefilledReport: VulnerabilityReport = {
       id: `REP-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
       title: `[${cve.id}] ${cve.title}`,
@@ -250,6 +315,10 @@ export default function App() {
 
   // Target quick report
   const handleNewReportForTarget = (domain: string, platform: PlatformName) => {
+    if (!isAuthenticated) {
+      openLoginModal('create', () => handleNewReportForTarget(domain, platform));
+      return;
+    }
     const prefilled: VulnerabilityReport = {
       id: `REP-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
       title: '',
@@ -335,6 +404,79 @@ export default function App() {
     }));
   };
 
+  // CVSS Calculator Handlers
+  const handleOpenCvssCalculator = (vector?: string, reportId?: string) => {
+    setCvssModalVector(vector);
+    setCvssModalReportId(reportId);
+    setIsCvssModalOpen(true);
+  };
+
+  const handleApplyCvssToReport = (reportId: string, vector: string, score: number, severity: Severity) => {
+    setReports(prev => prev.map(r => {
+      if (r.id === reportId) {
+        const cvssTimelineEvent: TimelineEvent = {
+          id: `t-${Date.now()}`,
+          date: new Date().toISOString().split('T')[0],
+          title: 'Vetor CVSS v3.1 Atualizado',
+          notes: `Score recalculado para ${severity} ${score.toFixed(1)} com vetor técnico ${vector}.`,
+          type: 'status_change'
+        };
+
+        return {
+          ...r,
+          cvssVector: vector,
+          cvssScore: score,
+          severity,
+          updatedAt: new Date().toISOString().split('T')[0],
+          timeline: [...r.timeline, cvssTimelineEvent]
+        };
+      }
+      return r;
+    }));
+  };
+
+  const handleCreateReportWithCvss = (vector: string, score: number, severity: Severity) => {
+    if (!isAuthenticated) {
+      openLoginModal('create', () => handleCreateReportWithCvss(vector, score, severity));
+      return;
+    }
+    setIsCvssModalOpen(false);
+    const newReport: VulnerabilityReport = {
+      id: `REP-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      title: '',
+      target: targets[0]?.domain || 'api.target.com',
+      platform: 'HackerOne',
+      vulnerabilityType: 'Vulnerabilidade Técnica',
+      severity,
+      status: 'DRAFT',
+      cvssVector: vector,
+      cvssScore: score,
+      cwe: 'CWE-693: Protection Mechanism Failure',
+      cveIds: [],
+      tags: [],
+      summary: '',
+      stepsToReproduce: [],
+      proofOfConcept: '',
+      businessImpact: '',
+      remediation: '',
+      bountyAmount: 0,
+      currency: 'USD',
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0],
+      timeline: [
+        {
+          id: `t-${Date.now()}`,
+          date: new Date().toISOString().split('T')[0],
+          title: 'Rascunho Inicial Criado',
+          notes: `Vetor CVSS v3.1 ${vector} (${score.toFixed(1)} ${severity}) configurado via Calculadora.`,
+          type: 'creation'
+        }
+      ]
+    };
+    setReportForFormModal(newReport);
+    setIsFormModalOpen(true);
+  };
+
   const totalRewardedUSD = reports
     .filter(r => r.status === 'REWARDED' || r.bountyAmount > 0)
     .reduce((acc, r) => acc + (r.bountyAmount || 0), 0);
@@ -369,6 +511,7 @@ export default function App() {
         onNewReport={handleOpenNewReport}
         onOpenAddTarget={() => setIsAddTargetModalOpen(true)}
         onOpenPgp={() => handleOpenPgpSigner()}
+        onOpenCvssCalculator={() => handleOpenCvssCalculator()}
         onOpenAbout={() => setIsAboutModalOpen(true)}
         totalRewardedUSD={totalRewardedUSD}
         activeReportsCount={activeReportsCount}
@@ -382,10 +525,11 @@ export default function App() {
         {currentTab === 'dashboard' && (
           <DashboardView
             reports={reports}
-            onSelectReport={(rep) => setSelectedReportForDetail(rep)}
+            onSelectReport={handleSelectReport}
             onNewReport={handleOpenNewReport}
             onNavigateTab={(tab) => setCurrentTab(tab)}
             onOpenAbout={() => setIsAboutModalOpen(true)}
+            onOpenCvssCalculator={(vec, id) => handleOpenCvssCalculator(vec, id)}
             onSelectSeverity={(sev) => {
               setSelectedSeverityFilter(sev);
               setCurrentTab('reports');
@@ -397,16 +541,18 @@ export default function App() {
         {currentTab === 'reports' && (
           <ReportsView
             reports={reports}
-            onSelectReport={(rep) => setSelectedReportForDetail(rep)}
+            onSelectReport={handleSelectReport}
             onEditReport={(rep) => handleEditReport(rep)}
             onDeleteReport={handleDeleteReport}
             onNewReport={handleOpenNewReport}
             onUpdateStatus={(id, st) => handleUpdateStatus(id, st)}
             onOpenPgpSigner={handleOpenPgpSigner}
+            onOpenCvssCalculator={(vec, id) => handleOpenCvssCalculator(vec, id)}
             searchQuery={globalSearchQuery}
             onSearchChange={setGlobalSearchQuery}
             selectedSeverity={selectedSeverityFilter}
             onSeverityChange={setSelectedSeverityFilter}
+            onOpenPdfExport={(rep) => setReportForPdfExport(rep)}
           />
         )}
 
@@ -453,9 +599,18 @@ export default function App() {
           onUpdateStatus={handleUpdateStatus}
           onAddTimelineEvent={handleAddTimelineEvent}
           onOpenPgpSigner={handleOpenPgpSigner}
+          onOpenCvssCalculator={(vec, id) => handleOpenCvssCalculator(vec, id)}
           onUpdateChecklist={handleUpdateChecklist}
+          onOpenPdfExport={(rep) => setReportForPdfExport(rep)}
         />
       )}
+
+      {/* Individual Report Formal Delivery PDF Modal */}
+      <PdfExportModal
+        report={reportForPdfExport}
+        isOpen={!!reportForPdfExport}
+        onClose={() => setReportForPdfExport(null)}
+      />
 
       {isFormModalOpen && (
         <ReportFormModal
@@ -479,6 +634,21 @@ export default function App() {
         onSignatureAttached={handleSignatureAttached}
       />
 
+      {/* CVSS v3.1 Calculator Utility Modal */}
+      <CvssCalculatorModal
+        isOpen={isCvssModalOpen}
+        onClose={() => {
+          setIsCvssModalOpen(false);
+          setCvssModalVector(undefined);
+          setCvssModalReportId(undefined);
+        }}
+        initialVector={cvssModalVector}
+        reportId={cvssModalReportId}
+        reportTitle={reports.find(r => r.id === cvssModalReportId)?.title}
+        onApplyToReport={cvssModalReportId ? (vec, score, sev) => handleApplyCvssToReport(cvssModalReportId, vec, score, sev) : undefined}
+        onCreateReportWithVector={handleCreateReportWithCvss}
+      />
+
       {/* Quick Action: Add Target Modal */}
       <AddTargetModal
         isOpen={isAddTargetModalOpen}
@@ -495,6 +665,9 @@ export default function App() {
         onClose={() => setIsAboutModalOpen(false)}
         onResetToSeedData={handleResetToSeedData}
       />
+
+      {/* Firebase Auth Simulation Modal */}
+      <FirebaseAuthModal />
 
       {/* Sophisticated Dark Global Status Footer */}
       <footer className="border-t border-[#262626] bg-[#0a0a0a] text-[10px] uppercase tracking-tighter text-zinc-500 mt-12 py-3.5 px-3 sm:px-4 lg:px-6 xl:px-8">
@@ -519,5 +692,13 @@ export default function App() {
       </footer>
 
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
