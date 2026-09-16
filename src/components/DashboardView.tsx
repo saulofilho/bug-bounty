@@ -17,7 +17,9 @@ import {
   Calculator,
   Lock,
   Flame,
-  Timer
+  Timer,
+  MessageSquareWarning,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
@@ -34,6 +36,9 @@ import { BugBountyDirectoryView } from './BugBountyDirectoryView';
 import { WeeklySummary } from './WeeklySummary';
 import { StatusBadge } from './StatusBadge';
 import { ReportNotificationPanel } from './ReportNotificationPanel';
+import { SmartAnomalyDetector } from './SmartAnomalyDetector';
+import { DashboardActivityTimeline } from './DashboardActivityTimeline';
+import { ReporterInteractionSentiment } from './ReporterInteractionSentiment';
 import { HourlyRateMetrics } from './HourlyRateMetrics';
 import { TriageEfficiencyCard } from './TriageEfficiencyCard';
 import { GlobalThreatMap } from './GlobalThreatMap';
@@ -191,6 +196,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           )}
 
+          <button
+            id="btn-dashboard-sentiment-tracker"
+            onClick={() => document.getElementById('reporter-interaction-sentiment-tracker')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-red-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm"
+            title="Ir para Reporter Interaction Sentiment Tracker"
+          >
+            <MessageSquareWarning className="w-3.5 h-3.5 text-red-400" />
+            <span>Sentiment Tracker</span>
+          </button>
+
           {onOpenAbout && (
             <button
               id="btn-dashboard-about-help"
@@ -278,16 +293,56 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Critical Findings */}
-        <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg">
-          <p className="text-xs text-zinc-500 uppercase mb-1">Critical Findings</p>
-          <h3 className="text-3xl font-light text-red-500 font-mono">
-            {String(severityStats.find(s => s.severity === 'CRITICAL')?.count || 0).padStart(2, '0')}
-          </h3>
-          <div className="mt-2 text-[10px] text-zinc-400 italic flex items-center justify-between">
-            <span>{triagedReports.length} pending validation</span>
-            <span className="text-red-400 font-mono">{formatCurrency(severityStats.find(s => s.severity === 'CRITICAL')?.earned || 0, 'USD')}</span>
-          </div>
-        </div>
+        {(() => {
+          const criticalCount = severityStats.find(s => s.severity === 'CRITICAL')?.count || 0;
+          const criticalEarned = severityStats.find(s => s.severity === 'CRITICAL')?.earned || 0;
+          const isCriticalActive = criticalCount > 0;
+
+          return (
+            <div 
+              onClick={() => {
+                if (onSelectSeverity) onSelectSeverity('CRITICAL');
+                else onNavigateTab('reports');
+              }}
+              className={`p-4 rounded-lg transition-all relative overflow-hidden cursor-pointer ${
+                isCriticalActive 
+                  ? 'bg-gradient-to-br from-red-950/40 via-[#161012] to-[#121212] critical-vuln-card-glow' 
+                  : 'bg-[#121212] border border-[#262626]'
+              }`}
+              title="Clique para filtrar apenas vulnerabilidades CRITICAL"
+            >
+              {isCriticalActive && (
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 critical-radar-ping" />
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-red-300 uppercase tracking-wider bg-red-950/80 border border-red-500/50 px-1.5 py-0.2 rounded shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                    ALERTA P1
+                  </span>
+                </div>
+              )}
+              <p className="text-xs text-zinc-400 uppercase mb-1 flex items-center gap-1.5">
+                <ShieldAlert className={`w-3.5 h-3.5 text-red-500 ${isCriticalActive ? 'animate-pulse' : ''}`} />
+                <span>Critical Findings</span>
+              </p>
+              <h3 className="text-3xl font-light text-red-500 font-mono tracking-tight flex items-baseline gap-2">
+                <span className={isCriticalActive ? 'drop-shadow-[0_0_8px_rgba(239,68,68,0.6)] font-normal' : ''}>
+                  {String(criticalCount).padStart(2, '0')}
+                </span>
+                {isCriticalActive && (
+                  <span className="text-[10px] font-bold text-red-300 uppercase font-mono tracking-widest bg-red-500/20 px-1.5 py-0.5 rounded border border-red-500/40 animate-pulse">
+                    MÁXIMA PRIORIDADE
+                  </span>
+                )}
+              </h3>
+              <div className="mt-2 text-[10px] text-zinc-400 italic flex items-center justify-between">
+                <span>{triagedReports.length} pending validation</span>
+                <span className="text-red-400 font-mono font-bold">{formatCurrency(criticalEarned, 'USD')}</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Triage Efficiency Metric Card */}
         <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
@@ -367,6 +422,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         reports={reports}
         onSelectReport={onSelectReport}
         onNewReport={onNewReport}
+      />
+
+      {/* Smart Anomaly Detector: Timeline & Documentation Analysis */}
+      <SmartAnomalyDetector
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
+      {/* Dashboard Activity Timeline: Scrollable Unified History Feed of System-Wide Actions */}
+      <DashboardActivityTimeline
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+        onNewReport={onNewReport}
+      />
+
+      {/* Reporter Interaction Sentiment: Timeline Tone & Program Manager Friction Tracker */}
+      <ReporterInteractionSentiment
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
       />
 
       {/* D3.js Global Threat Map: Geospatial Target Distribution & IP Telemetry */}
@@ -584,25 +661,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   const visuals = getTimelineEventVisuals(evt.type);
                   const Icon = visuals.icon;
                   const sevBadge = getSeverityBadgeColor(evt.reportSeverity);
+                  const isCritical = evt.reportSeverity === 'CRITICAL';
 
                   return (
                     <div
                       key={`${evt.reportId}-${evt.id}`}
                       onClick={() => onSelectReport(evt.report)}
-                      className="p-2.5 rounded-lg bg-[#121212] border border-[#242424] hover:border-zinc-700 hover:bg-[#161616] transition-all cursor-pointer group"
-                      title="Clique para inspecionar o relatório completo"
+                      className={`p-2.5 rounded-lg border transition-all cursor-pointer group relative overflow-hidden ${
+                        isCritical
+                          ? 'bg-gradient-to-r from-red-950/30 via-[#161214] to-[#121212] critical-vuln-card-glow-subtle'
+                          : 'bg-[#121212] border-[#242424] hover:border-zinc-700 hover:bg-[#161616]'
+                      }`}
+                      title={isCritical ? "Alerta Crítico: clique para inspecionar" : "Clique para inspecionar o relatório completo"}
                     >
+                      {isCritical && (
+                        <div className="absolute top-1.5 right-2 flex items-center gap-1 pointer-events-none">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-start gap-2.5 min-w-0">
-                          <div className={`p-1.5 rounded shrink-0 border ${visuals.bg} ${visuals.color} mt-0.5`}>
+                          <div className={`p-1.5 rounded shrink-0 border ${
+                            isCritical 
+                              ? 'bg-red-950/60 border-red-500/50 text-red-400 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse' 
+                              : `${visuals.bg} ${visuals.color}`
+                          } mt-0.5`}>
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-semibold text-zinc-200 group-hover:text-emerald-400 transition-colors">
+                              <span className={`text-xs font-semibold transition-colors ${
+                                isCritical ? 'text-red-200 group-hover:text-red-100' : 'text-zinc-200 group-hover:text-emerald-400'
+                              }`}>
                                 {evt.title}
                               </span>
-                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${sevBadge.bg} ${sevBadge.text}`}>
+                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${sevBadge.bg} ${sevBadge.text} ${
+                                isCritical ? 'border border-red-500/50 animate-pulse shadow-[0_0_6px_rgba(239,68,68,0.5)]' : ''
+                              }`}>
                                 {evt.reportSeverity}
                               </span>
                               <StatusBadge status={evt.report.status} size="xs" />
@@ -613,7 +711,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                               </p>
                             )}
                             <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-zinc-500">
-                              <span className="text-zinc-400">{evt.reportId}</span>
+                              <span className={isCritical ? 'text-red-400 font-semibold' : 'text-zinc-400'}>{evt.reportId}</span>
                               <span>•</span>
                               <span className="truncate max-w-[140px]">{evt.reportTarget}</span>
                             </div>
@@ -678,18 +776,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {recentReports.map(report => {
                     const sevBadge = getSeverityBadgeColor(report.severity);
                     const statusBadge = getStatusBadgeColor(report.status);
+                    const isCritical = report.severity === 'CRITICAL';
 
                     return (
                       <tr 
                         key={report.id}
                         onClick={() => onSelectReport(report)}
-                        className="hover:bg-[#121212]/60 cursor-pointer transition-colors"
+                        className={`cursor-pointer transition-all ${
+                          isCritical
+                            ? 'bg-red-950/20 hover:bg-red-950/35 border-l-2 border-l-red-500 shadow-[inset_0_0_15px_rgba(239,68,68,0.12)]'
+                            : 'hover:bg-[#121212]/60'
+                        }`}
                       >
                         <td className="px-4 py-3 font-mono text-zinc-500 whitespace-nowrap">
-                          {report.id}
+                          <div className="flex items-center gap-2">
+                            {isCritical && (
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                              </span>
+                            )}
+                            <span className={isCritical ? 'text-red-400 font-bold' : ''}>{report.id}</span>
+                          </div>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-semibold text-zinc-200 hover:text-emerald-400 transition-colors truncate max-w-xs">
+                          <p className={`font-semibold transition-colors truncate max-w-xs ${
+                            isCritical ? 'text-red-100 group-hover:text-white' : 'text-zinc-200 hover:text-emerald-400'
+                          }`}>
                             {report.title}
                           </p>
                           <p className="text-[10px] text-zinc-500 font-mono">
@@ -697,7 +810,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </p>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${sevBadge.bg} ${sevBadge.text}`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${sevBadge.bg} ${sevBadge.text} ${
+                            isCritical ? 'border border-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse' : ''
+                          }`}>
                             {report.severity}
                           </span>
                         </td>

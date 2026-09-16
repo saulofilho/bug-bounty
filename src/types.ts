@@ -24,6 +24,7 @@ export interface TimelineEvent {
   notes?: string;
   type: 'creation' | 'status_change' | 'bounty' | 'dispatch' | 'note' | 'pgp_signature';
   hoursSpent?: number;
+  authorRole?: 'reporter' | 'program_manager' | 'triager' | 'system';
 }
 
 export interface VulnerabilityReport {

@@ -24,3 +24,43 @@
     background: #3f3f46;
   }
 }
+
+@keyframes criticalPulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 16px -2px rgba(239, 68, 68, 0.45), 0 0 6px -1px rgba(220, 38, 38, 0.35);
+    border-color: rgba(239, 68, 68, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 28px 4px rgba(239, 68, 68, 0.75), 0 0 14px 2px rgba(220, 38, 38, 0.55);
+    border-color: rgba(248, 113, 113, 0.95);
+  }
+}
+
+@keyframes criticalBadgePing {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.critical-vuln-card-glow {
+  border-color: rgba(239, 68, 68, 0.7) !important;
+  animation: criticalPulseGlow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.critical-vuln-card-glow-subtle {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  animation: criticalPulseGlow 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.critical-radar-ping {
+  animation: criticalBadgePing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

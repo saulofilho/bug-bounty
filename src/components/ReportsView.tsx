@@ -996,13 +996,29 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             const sevBadge = getSeverityBadgeColor(report.severity);
             const statusBadge = getStatusBadgeColor(report.status);
             const autoTags = reportAutoTagsMap.get(report.id) || [];
+            const isCritical = report.severity === 'CRITICAL';
 
             return (
               <div
                 key={report.id}
                 onClick={() => onSelectReport(report)}
-                className="group p-5 rounded-xl bg-[#0a0a0a] hover:bg-[#121212] border border-[#262626] hover:border-zinc-700 transition-all cursor-pointer shadow-sm"
+                className={`group p-5 rounded-xl transition-all cursor-pointer shadow-sm relative overflow-hidden ${
+                  isCritical
+                    ? 'bg-gradient-to-br from-red-950/30 via-[#141012] to-[#0a0a0a] critical-vuln-card-glow'
+                    : 'bg-[#0a0a0a] hover:bg-[#121212] border border-[#262626] hover:border-zinc-700'
+                }`}
               >
+                {isCritical && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 critical-radar-ping" />
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-red-300 uppercase tracking-wider bg-red-950/80 border border-red-500/50 px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(239,68,68,0.5)] hidden sm:inline-block">
+                      CRÍTICA
+                    </span>
+                  </div>
+                )}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   
                   {/* Left Column: Badges, Title & Meta */}
@@ -1018,7 +1034,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                         </span>
                       )}
 
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${sevBadge.bg} ${sevBadge.text} ${sevBadge.border}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${sevBadge.bg} ${sevBadge.text} ${sevBadge.border} ${
+                        isCritical ? 'border-red-500/60 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse' : ''
+                      }`}>
                         {report.severity} {report.cvssScore}
                       </span>
                       

@@ -417,27 +417,42 @@ export const ReportNotificationPanel: React.FC<ReportNotificationPanelProps> = (
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {filteredNotifications.map(item => (
-                <div
-                  key={item.id}
-                  onClick={() => onSelectReport(item.report)}
-                  className="group relative bg-[#111111] hover:bg-[#171717] border border-[#242424] hover:border-[#383838] p-4 rounded-lg transition-all cursor-pointer flex flex-col justify-between gap-3 shadow-md"
-                >
-                  <div>
-                    {/* Top Row: Badges & Dismiss */}
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${item.badgeColor}`}>
-                          {item.badgeLabel}
-                        </span>
-                        {(() => {
-                          const sevColor = getSeverityBadgeColor(item.report.severity);
-                          return (
-                            <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${sevColor.bg} ${sevColor.text} ${sevColor.border}`}>
-                              {item.report.severity}
+              {filteredNotifications.map(item => {
+                const isSeverityCritical = item.report?.severity === 'CRITICAL';
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => onSelectReport(item.report)}
+                    className={`group relative p-4 rounded-lg transition-all cursor-pointer flex flex-col justify-between gap-3 shadow-md ${
+                      isSeverityCritical
+                        ? 'bg-gradient-to-br from-red-950/30 via-[#141012] to-[#111111] critical-vuln-card-glow-subtle'
+                        : 'bg-[#111111] hover:bg-[#171717] border border-[#242424] hover:border-[#383838]'
+                    }`}
+                  >
+                    <div>
+                      {/* Top Row: Badges & Dismiss */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {isSeverityCritical && (
+                            <span className="relative flex h-2 w-2 mr-0.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
                             </span>
-                          );
-                        })()}
+                          )}
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${item.badgeColor}`}>
+                            {item.badgeLabel}
+                          </span>
+                          {(() => {
+                            const sevColor = getSeverityBadgeColor(item.report.severity);
+                            return (
+                              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${sevColor.bg} ${sevColor.text} ${sevColor.border} ${
+                                isSeverityCritical ? 'border-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse' : ''
+                              }`}>
+                                {item.report.severity}
+                              </span>
+                            );
+                          })()}
                         {item.report.status === 'DRAFT' && (
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                             DRAFT
@@ -490,7 +505,8 @@ export const ReportNotificationPanel: React.FC<ReportNotificationPanelProps> = (
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
 

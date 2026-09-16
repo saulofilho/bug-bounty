@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { 
   ShieldAlert, 
+  ShieldCheck,
   LayoutDashboard, 
   FileText, 
   Database, 
@@ -32,6 +33,8 @@ export interface HeaderProps {
   onOpenPgp?: () => void;
   onOpenCvssCalculator?: () => void;
   onOpenAbout?: () => void;
+  onOpenStorageIntegrity?: () => void;
+  isStorageRepaired?: boolean;
   totalRewardedUSD: number;
   activeReportsCount: number;
   searchQuery: string;
@@ -47,6 +50,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPgp,
   onOpenCvssCalculator,
   onOpenAbout,
+  onOpenStorageIntegrity,
+  isStorageRepaired,
   totalRewardedUSD,
   activeReportsCount,
   searchQuery,
@@ -525,6 +530,30 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                       <span className="text-[9px] font-mono text-emerald-400">14 sites</span>
                     </button>
+
+                    {onOpenStorageIntegrity && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsQuickMenuOpen(false);
+                          onOpenStorageIntegrity();
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors text-left"
+                        role="menuitem"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Integridade do Storage</span>
+                        </div>
+                        {isStorageRepaired ? (
+                          <span className="text-[9px] font-mono text-amber-300 bg-amber-950/60 border border-amber-500/40 px-1.5 py-0.2 rounded font-bold">
+                            Auto-Curado
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-mono text-emerald-400">100% OK</span>
+                        )}
+                      </button>
+                    )}
 
                     {onOpenAbout && (
                       <button

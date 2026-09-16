@@ -212,7 +212,8 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(1),
     updatedAt: getDaysAgoDate(1),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(1), title: "Rascunho criado", notes: "Finalizando testes locais de confirmação.", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(1), title: "Rascunho criado", notes: "Finalizando testes locais de confirmação.", type: "creation", authorRole: "reporter" },
+      { id: "t2", date: getDaysAgoDate(1), title: "Comentário do Program Manager", notes: "Já explicamos que rate-limit em endpoints de SMS não é considerado vulnerabilidade crítica sem impacto financeiro demonstrado. Não insista com pings desnecessários ou encerraremos a thread.", type: "note", authorRole: "program_manager" }
     ]
   },
   {
@@ -238,8 +239,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(36),
     updatedAt: getDaysAgoDate(28),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(36), title: "Relatório Submetido", type: "creation" },
-      { id: "t2", date: getDaysAgoDate(28), title: "Recompensa Concedida ($4,000)", type: "bounty" }
+      { id: "t1", date: getDaysAgoDate(36), title: "Relatório Submetido", notes: "PoC completa com scripts reproduzíveis.", type: "creation", authorRole: "reporter" },
+      { id: "t2", date: getDaysAgoDate(30), title: "Triagem Concluída", notes: "Thank you for the excellent report and clear reproduction steps! Triaged with high priority.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(28), title: "Recompensa Concedida ($4,000)", notes: "Equipe de segurança do cliente aprovou o valor máximo pela criticidade.", type: "bounty", authorRole: "program_manager" }
     ]
   },
   {
@@ -265,7 +267,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(52),
     updatedAt: getDaysAgoDate(48),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(52), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(52), title: "Submissão", notes: "Relatado com URLs e paths extraídos.", type: "creation", authorRole: "reporter" },
+      { id: "t2", date: getDaysAgoDate(50), title: "Parecer Inicial do Triador", notes: "Classificado inicialmente como informational only. Sourcemaps sem segredos embutidos têm negligible risk e sem impacto prático segundo a política padrão. Wontfix inicial.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(48), title: "Revisão pela Engenharia", notes: "Muito obrigado pelo envio e pela persistência técnica. Validamos que havia um endpoint interno desprotegido. Recompensa merecida concedida.", type: "bounty", authorRole: "program_manager" }
     ]
   },
   {
@@ -291,7 +295,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(52),
     updatedAt: getDaysAgoDate(45),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(52), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(52), title: "Submissão", notes: "Exploit PoC em HTML demonstrando roubo de token.", type: "creation", authorRole: "reporter" },
+      { id: "t2", date: getDaysAgoDate(49), title: "Aviso da Equipe de Segurança", notes: "Testes automatizados contínuos com requisições repetidas violam nossas regras de engajamento. Esta conduta é inadmissível. Qualquer nova violação resultará em bloqueio de conta e advertência formal na plataforma.", type: "note", authorRole: "program_manager" },
+      { id: "t3", date: getDaysAgoDate(45), title: "Mediação e Resolução", notes: "Pesquisador esclareceu os parâmetros de teste e enviou PoC estática sem pings automatizados. Agradecemos a colaboração e concedemos o bounty.", type: "bounty", authorRole: "program_manager" }
     ]
   },
   {

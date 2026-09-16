@@ -839,26 +839,41 @@ export const RiskAssessmentMatrix: React.FC<RiskAssessmentMatrixProps> = ({
                   const style = getRiskCategoryStyle(item.riskCategory);
                   const statusColor = getStatusBadgeColor(item.report.status);
                   const isSelectedInCell = selectedCell && selectedCell.likelihood === item.likelihood && selectedCell.impact === item.impact;
+                  const isCritical = item.riskCategory === 'CRITICAL' || item.report.severity === 'CRITICAL';
 
                   return (
                     <div
                       key={item.report.id}
-                      className={`p-3 rounded-lg border transition-all ${
-                        isSelectedInCell
+                      className={`p-3 rounded-lg border transition-all relative overflow-hidden ${
+                        isCritical
+                          ? 'critical-vuln-card-glow-subtle bg-gradient-to-r from-red-950/30 via-[#14121a] to-[#101320]'
+                          : isSelectedInCell
                           ? 'bg-[#151a2d] border-indigo-500/60 ring-1 ring-indigo-400/40'
                           : 'bg-[#101320] border-[#1e2338] hover:border-zinc-500/40'
                       }`}
                     >
+                      {isCritical && (
+                        <div className="absolute top-2 right-2 flex items-center gap-1">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-start justify-between gap-2">
                         {/* Rank and Title */}
                         <div className="flex items-start gap-2 min-w-0">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-300 shrink-0">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                            isCritical ? 'bg-red-950/80 text-red-300 border border-red-500/50 animate-pulse' : 'bg-zinc-800 text-zinc-300'
+                          }`}>
                             #{index + 1}
                           </span>
                           <div className="min-w-0">
                             <h4
                               onClick={() => onSelectReport && onSelectReport(item.report)}
-                              className="text-xs font-bold text-white hover:text-indigo-400 cursor-pointer transition-colors line-clamp-1"
+                              className={`text-xs font-bold hover:text-indigo-400 cursor-pointer transition-colors line-clamp-1 ${
+                                isCritical ? 'text-red-100' : 'text-white'
+                              }`}
                               title={item.report.title}
                             >
                               {item.report.title}
@@ -874,7 +889,9 @@ export const RiskAssessmentMatrix: React.FC<RiskAssessmentMatrixProps> = ({
                         {/* Risk Score Pill */}
                         <div className="shrink-0 text-right">
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold border ${style.badgeBg} ${style.badgeText} ${style.badgeBorder}`}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold border ${style.badgeBg} ${style.badgeText} ${style.badgeBorder} ${
+                              isCritical ? 'shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse' : ''
+                            }`}
                           >
                             Score: {item.riskScore}
                           </span>

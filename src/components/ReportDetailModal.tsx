@@ -1517,8 +1517,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
                 {/* Timeline Events List */}
                 <div className="space-y-4 pl-2 border-l-2 border-[#262626] ml-3">
-                  {report.timeline.map((event) => (
-                    <div key={event.id} className="relative pl-6 space-y-1">
+                  {report.timeline.map((event, idx) => (
+                    <div key={`${event.id || 'evt'}-${idx}`} className="relative pl-6 space-y-1">
                       <div className="absolute -left-[31px] top-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-4 border-[#0a0a0a]" />
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <div className="flex items-center gap-2">

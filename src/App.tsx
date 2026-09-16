@@ -20,6 +20,9 @@ import { CvssCalculatorModal } from './components/CvssCalculatorModal';
 import { FirebaseAuthModal } from './components/FirebaseAuthModal';
 import { PdfExportModal } from './components/PdfExportModal';
 import { CsvImportModal } from './components/CsvImportModal';
+import { StorageIntegrityModal } from './components/StorageIntegrityModal';
+import { validateAndRepairStorageIntegrity, StorageIntegrityResult } from './utils/storageIntegrityValidator';
+import { ShieldCheck, X as CloseIcon } from 'lucide-react';
 import { exportReportsToCsv } from './utils/csvReportParser';
 import { Toaster } from 'react-hot-toast';
 import { notifyCriticalVulnerability, showSuccessToast, showInfoToast } from './utils/toastNotifications';
@@ -37,47 +40,26 @@ function AppContent() {
 
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
 
-  // Persistence with localStorage fallback
-  const [reports, setReports] = useState<VulnerabilityReport[]>(() => {
-    try {
-      const saved = localStorage.getItem('bounty_reports_v2');
-      if (saved) {
-        const parsed: VulnerabilityReport[] = JSON.parse(saved);
-        // Merge any new initial reports that aren't in local storage yet
-        const existingIds = new Set(parsed.map(r => r.id));
-        const missing = INITIAL_REPORTS.filter(r => !existingIds.has(r.id));
-        if (missing.length > 0) {
-          const merged = [...parsed, ...missing];
-          localStorage.setItem('bounty_reports_v2', JSON.stringify(merged));
-          return merged;
-        }
-        return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed reading reports from localStorage:', e);
-    }
-    return INITIAL_REPORTS;
+  // 1. Storage Integrity Validation & Self-Healing Engine
+  // Runs immediately on application load to sanitize and repair corrupted entries in localStorage
+  const [integrityResult, setIntegrityResult] = useState<StorageIntegrityResult>(() => {
+    return validateAndRepairStorageIntegrity();
   });
+  const [isIntegrityModalOpen, setIsIntegrityModalOpen] = useState(false);
+  const [dismissedIntegrityBanner, setDismissedIntegrityBanner] = useState(false);
 
-  const [targets, setTargets] = useState<TargetProgram[]>(() => {
-    try {
-      const saved = localStorage.getItem('bounty_targets_v2');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Failed reading targets from localStorage:', e);
-    }
-    return INITIAL_TARGETS;
-  });
+  // Persistence initialized from verified, sanitized, and repaired datasets
+  const [reports, setReports] = useState<VulnerabilityReport[]>(() => integrityResult.repairedReports);
+  const [targets, setTargets] = useState<TargetProgram[]>(() => integrityResult.repairedTargets);
+  const [docs, setDocs] = useState<TechnicalDoc[]>(() => integrityResult.repairedDocs);
 
-  const [docs, setDocs] = useState<TechnicalDoc[]>(() => {
-    try {
-      const saved = localStorage.getItem('bounty_docs_v2');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Failed reading docs from localStorage:', e);
-    }
-    return INITIAL_DOCS;
-  });
+  // Revalidate handler for manual or triggered integrity checks
+  const handleRevalidateIntegrity = (newResult: StorageIntegrityResult) => {
+    setIntegrityResult(newResult);
+    setReports(newResult.repairedReports);
+    setTargets(newResult.repairedTargets);
+    setDocs(newResult.repairedDocs);
+  };
 
   // Modal States
   const [selectedReportForDetail, setSelectedReportForDetail] = useState<VulnerabilityReport | null>(null);
@@ -659,12 +641,49 @@ function AppContent() {
         onOpenPgp={() => handleOpenPgpSigner()}
         onOpenCvssCalculator={() => handleOpenCvssCalculator()}
         onOpenAbout={() => setIsAboutModalOpen(true)}
+        onOpenStorageIntegrity={() => setIsIntegrityModalOpen(true)}
+        isStorageRepaired={integrityResult.totalRepairs > 0}
         totalRewardedUSD={totalRewardedUSD}
         activeReportsCount={activeReportsCount}
         searchQuery={globalSearchQuery}
         onSearchChange={setGlobalSearchQuery}
         reportsMatchingCount={matchingReportsCount}
       />
+
+      {/* Auto-Healing Storage Integrity Alert Banner */}
+      {integrityResult.totalRepairs > 0 && !dismissedIntegrityBanner && (
+        <div className="bg-gradient-to-r from-amber-950/80 via-[#191522] to-[#121522] border-b border-amber-500/40 px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3 text-xs shadow-md animate-fadeIn z-30">
+          <div className="flex items-center gap-2.5 text-amber-200">
+            <div className="p-1 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-white">Mecanismo de Auto-Cura Ativo:</span>{' '}
+              <span>
+                {integrityResult.totalRepairs}{' '}
+                {integrityResult.totalRepairs === 1 ? 'inconsistência foi detectada e reparada' : 'inconsistências foram detectadas e reparadas'} automaticamente no localStorage durante o carregamento inicial, prevenindo erros de renderização.
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsIntegrityModalOpen(true)}
+              className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[11px] font-bold transition-colors flex items-center gap-1"
+            >
+              <span>Ver Diagnóstico ({integrityResult.issues.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDismissedIntegrityBanner(true)}
+              className="p-1 text-zinc-400 hover:text-white transition-colors"
+              title="Dispensar aviso"
+            >
+              <CloseIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-[1800px] w-full mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 pt-6">
@@ -773,6 +792,7 @@ function AppContent() {
           initialReport={reportForFormModal}
           targets={targets}
           docs={docs}
+          existingReports={reports}
           onClose={() => {
             setIsFormModalOpen(false);
             setReportForFormModal(null);
@@ -826,12 +846,39 @@ function AppContent() {
       {/* Firebase Auth Simulation Modal */}
       <FirebaseAuthModal />
 
+      {/* Storage Integrity & Auto-Healing Diagnostic Modal */}
+      <StorageIntegrityModal
+        isOpen={isIntegrityModalOpen}
+        onClose={() => setIsIntegrityModalOpen(false)}
+        lastResult={integrityResult}
+        onRevalidate={handleRevalidateIntegrity}
+        onResetToSeedData={handleResetToSeedData}
+      />
+
       {/* Sophisticated Dark Global Status Footer */}
       <footer className="border-t border-[#262626] bg-[#0a0a0a] text-[10px] uppercase tracking-tighter text-zinc-500 mt-12 py-3.5 px-3 sm:px-4 lg:px-6 xl:px-8">
         <div className="w-full max-w-[1800px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
             <span>Automation Agent: <span className="text-emerald-400 font-mono font-semibold">ONLINE / IDLE</span></span>
-            <span className="hidden sm:inline">Sync: <span className="text-zinc-400 font-mono">Live (localStorage)</span></span>
+            <button
+              type="button"
+              onClick={() => setIsIntegrityModalOpen(true)}
+              className="hidden sm:inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              title="Clique para auditar a integridade do localStorage"
+            >
+              <span>Storage:</span>
+              {integrityResult.totalRepairs > 0 ? (
+                <span className="text-amber-400 font-mono font-semibold flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-amber-400" />
+                  Auto-Curado ({integrityResult.totalRepairs})
+                </span>
+              ) : (
+                <span className="text-emerald-400 font-mono font-semibold flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                  100% Íntegro
+                </span>
+              )}
+            </button>
             <span className="hidden md:inline">Standards: <span className="text-zinc-400 font-mono">CVSS v3.1 • FIRST.Org</span></span>
           </div>
           <div className="flex items-center gap-4 text-right font-mono text-zinc-500">

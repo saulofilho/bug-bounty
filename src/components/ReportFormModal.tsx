@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   X, 
   Sparkles, 
@@ -13,7 +13,9 @@ import {
   ChevronDown,
   ChevronUp,
   Tag,
-  Hash
+  Hash,
+  Copy,
+  AlertTriangle
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus, PlatformName, TargetProgram, TechnicalDoc, AutoTagSuggestion } from '../types';
 import { calculateCvssScore, parseCvssVector, CvssMetrics } from '../utils/cvss';
@@ -24,11 +26,15 @@ import { fetchAutomatedTags } from '../utils/taggingEngine';
 import { CvssCalculatorTool } from './CvssCalculatorTool';
 import { MiniCvssCalculator } from './MiniCvssCalculator';
 import { CvssCalculatorModal } from './CvssCalculatorModal';
+import { DuplicateReportDetectorCard } from './DuplicateReportDetectorCard';
+import { detectPotentialDuplicates } from '../utils/duplicateDetector';
+import { INITIAL_REPORTS } from '../data/initialData';
 
 interface ReportFormModalProps {
   initialReport?: VulnerabilityReport | null;
   targets: TargetProgram[];
   docs?: TechnicalDoc[];
+  existingReports?: VulnerabilityReport[];
   onClose: () => void;
   onSave: (report: VulnerabilityReport) => void;
 }
@@ -37,10 +43,25 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
   initialReport,
   targets,
   docs = [],
+  existingReports,
   onClose,
   onSave
 }) => {
   const isEditing = !!initialReport;
+
+  // Resolve existing reports for duplicate detection with fallback to localStorage / initialData
+  const availableExistingReports = useMemo(() => {
+    if (existingReports && existingReports.length > 0) {
+      return existingReports;
+    }
+    try {
+      const saved = localStorage.getItem('bounty_reports_v2');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // fallback
+    }
+    return INITIAL_REPORTS;
+  }, [existingReports]);
 
   // Basic Form State
   const [title, setTitle] = useState(initialReport?.title || '');
@@ -90,6 +111,22 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
+
+  // Potential Duplicate Detection Analysis (Live across targets & vuln types)
+  const duplicateSummary = useMemo(() => {
+    return detectPotentialDuplicates(
+      {
+        id: initialReport?.id,
+        target,
+        vulnerabilityType,
+        title,
+        cwe,
+        proofOfConcept,
+        summary
+      },
+      availableExistingReports
+    );
+  }, [initialReport?.id, target, vulnerabilityType, title, cwe, proofOfConcept, summary, availableExistingReports]);
 
   // Synchronized CVSS Handlers
   const handleCvssMetricsChange = (newMetrics: CvssMetrics) => {
@@ -333,10 +370,29 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-[#262626] bg-[#0a0a0a]">
           <div>
-            <h2 className="text-base sm:text-lg font-light text-white flex items-center gap-2">
-              <Shield className="w-5 h-5 text-emerald-400" />
-              <span>{isEditing ? 'Editar Relatório de Vulnerabilidade' : 'Novo Relatório de Vulnerabilidade'}</span>
-            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-lg font-light text-white flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-400" />
+                <span>{isEditing ? 'Editar Relatório de Vulnerabilidade' : 'Novo Relatório de Vulnerabilidade'}</span>
+              </h2>
+
+              {/* Live Duplicate Detection Header Badge */}
+              {duplicateSummary.hasPotentialDuplicates ? (
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border flex items-center gap-1 shrink-0 ${
+                  duplicateSummary.highestRiskLevel === 'HIGH'
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                }`}>
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>{duplicateSummary.highestScore}% Risco Duplicata ({duplicateSummary.matches.length})</span>
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400 bg-emerald-950/30 border border-emerald-800/30 flex items-center gap-1 shrink-0">
+                  <Check className="w-3 h-3" />
+                  <span>0% Duplicatas</span>
+                </span>
+              )}
+            </div>
             <p className="text-xs text-zinc-400 font-mono mt-0.5">
               Formate seu relatório de bug bounty com impacto técnico e justificativa para triadores
             </p>
@@ -375,6 +431,14 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
           </button>
         </div>
 
+        {/* Potential Duplicate Reports Detector Banner (Live Scan) */}
+        <DuplicateReportDetectorCard
+          summary={duplicateSummary}
+          candidateTarget={target}
+          candidateVulnType={vulnerabilityType}
+          candidateTitle={title}
+        />
+
         {/* Feedback Messages */}
         {aiError && (
           <div className="mx-6 mt-4 p-3 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 font-mono">
@@ -395,15 +459,49 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
           {/* Row 1: Target, Platform, Vuln Type */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Alvo / Host Afetado *</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Alvo / Host Afetado *</label>
+                {duplicateSummary.matches.some(m => m.domainScore >= 80) && (
+                  <span className="text-[10px] text-amber-400 font-mono font-medium flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    Host com histórico
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
                 required
                 placeholder="ex: api.empresa.com"
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
-                className="w-full bg-[#121212] border border-[#262626] rounded px-3 py-2 text-zinc-200 focus:border-zinc-500 focus:outline-none font-mono text-xs"
+                className={`w-full bg-[#121212] border rounded px-3 py-2 text-zinc-200 focus:outline-none font-mono text-xs transition-colors ${
+                  duplicateSummary.matches.some(m => m.domainScore >= 80)
+                    ? 'border-amber-500/50 focus:border-amber-400'
+                    : 'border-[#262626] focus:border-zinc-500'
+                }`}
               />
+
+              {/* Quick Target Chips */}
+              {targets && targets.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  <span className="text-[10px] text-zinc-600 font-mono">Alvos sugeridos:</span>
+                  {targets.slice(0, 3).map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTarget(t.domain)}
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
+                        target === t.domain 
+                          ? 'bg-emerald-950/40 text-emerald-300 border-emerald-700/50' 
+                          : 'bg-[#15151b] text-zinc-400 hover:text-zinc-200 border-[#262630]'
+                      }`}
+                      title={`Selecionar ${t.name} (${t.domain})`}
+                    >
+                      {t.domain}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -423,14 +521,44 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Tipo de Vulnerabilidade</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Tipo de Vulnerabilidade</label>
+                {duplicateSummary.matches.some(m => m.vulnTypeScore >= 80) && (
+                  <span className="text-[10px] text-rose-400 font-mono font-medium flex items-center gap-1">
+                    <Copy className="w-3 h-3" />
+                    Categoria coincidente
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="ex: IDOR, SSRF, Stored XSS, RCE"
                 value={vulnerabilityType}
                 onChange={(e) => setVulnerabilityType(e.target.value)}
-                className="w-full bg-[#121212] border border-[#262626] rounded px-3 py-2 text-zinc-200 focus:border-zinc-500 focus:outline-none font-mono text-xs"
+                className={`w-full bg-[#121212] border rounded px-3 py-2 text-zinc-200 focus:outline-none font-mono text-xs transition-colors ${
+                  duplicateSummary.matches.some(m => m.vulnTypeScore >= 80)
+                    ? 'border-rose-500/50 focus:border-rose-400'
+                    : 'border-[#262626] focus:border-zinc-500'
+                }`}
               />
+
+              {/* Quick Vuln Type Chips */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                {['IDOR / BOLA', 'SSRF', 'Stored XSS', 'SQLi', 'Auth Bypass'].map((vt) => (
+                  <button
+                    key={vt}
+                    type="button"
+                    onClick={() => setVulnerabilityType(vt)}
+                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
+                      vulnerabilityType === vt
+                        ? 'bg-emerald-950/40 text-emerald-300 border-emerald-700/50'
+                        : 'bg-[#15151b] text-zinc-400 hover:text-zinc-200 border-[#262630]'
+                    }`}
+                  >
+                    {vt}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
