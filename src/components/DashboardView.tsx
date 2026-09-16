@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -16,11 +16,13 @@ import {
   Database,
   Calculator,
   Lock,
-  Flame
+  Flame,
+  Timer
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
+import { calculateTriageEfficiency } from '../utils/triageEfficiencyEngine';
 import { SeverityBarChart } from './SeverityBarChart';
 import { SeverityPieChart } from './SeverityPieChart';
 import { ReportsTrendChart } from './ReportsTrendChart';
@@ -33,6 +35,13 @@ import { WeeklySummary } from './WeeklySummary';
 import { StatusBadge } from './StatusBadge';
 import { ReportNotificationPanel } from './ReportNotificationPanel';
 import { HourlyRateMetrics } from './HourlyRateMetrics';
+import { TriageEfficiencyCard } from './TriageEfficiencyCard';
+import { GlobalThreatMap } from './GlobalThreatMap';
+import { RecentGlobalThreatIntelligence } from './RecentGlobalThreatIntelligence';
+import { VulnerabilityImpactScorecard } from './VulnerabilityImpactScorecard';
+import { VulnerabilityHeatmap } from './VulnerabilityHeatmap';
+import { RiskAssessmentMatrix } from './RiskAssessmentMatrix';
+import { BountyPayoutTracker } from './BountyPayoutTracker';
 import { TimelineEvent } from '../types';
 
 interface DashboardViewProps {
@@ -74,6 +83,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const acceptanceRate = closedCount > 0 ? Math.round((resolvedOrRewardedCount / closedCount) * 100) : 100;
 
   const avgRewardUSD = rewardedReports.length > 0 ? Math.round(totalEarnedUSD / rewardedReports.length) : 0;
+
+  // Triage efficiency calculated from historical timeline events
+  const triageEfficiency = useMemo(() => calculateTriageEfficiency(reports), [reports]);
 
   // Platform breakdown
   const platforms = ['HackerOne', 'Bugcrowd', 'Intigriti', 'YesWeHack', 'Synack', 'Direct / VDP'];
@@ -248,7 +260,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       />
 
       {/* Primary KPI Metrics Grid - Sophisticated Dark Architecture */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* Total Bounties / Earnings */}
         <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg">
@@ -277,6 +289,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
+        {/* Triage Efficiency Metric Card */}
+        <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-zinc-500 uppercase flex items-center gap-1">
+                <Timer className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Eficiência de Triagem</span>
+              </p>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                Timeline
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <h3 className="text-3xl font-light text-cyan-400 font-mono">
+                {triageEfficiency.avgDaysToTriage > 0 ? `${triageEfficiency.avgDaysToTriage.toFixed(1)}` : '—'}
+              </h3>
+              <span className="text-xs font-mono text-zinc-400">dias</span>
+              <span className="text-[10px] font-mono text-zinc-500">(~{triageEfficiency.avgHoursToTriage}h)</span>
+            </div>
+          </div>
+          <div className="mt-2">
+            <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+              <div 
+                className="bg-cyan-500 h-full transition-all duration-700" 
+                style={{ width: `${Math.min(100, Math.max(15, triageEfficiency.slaUnder48hPercent))}%` }} 
+              />
+            </div>
+            <div className="mt-1.5 text-[10px] text-zinc-400 flex items-center justify-between font-mono">
+              <span className="text-cyan-300">{triageEfficiency.slaUnder48hPercent}% &le; 48h</span>
+              <span className="text-emerald-400 font-bold">{triageEfficiency.avgDaysToClose.toFixed(1)}d fechamento</span>
+            </div>
+          </div>
+        </div>
+
         {/* CVE ID Reservations / Tracked */}
         <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg">
           <p className="text-xs text-zinc-500 uppercase mb-1">CVE ID Reservations</p>
@@ -301,6 +347,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
       </section>
+
+      {/* Triage Efficiency & Response Turnaround Module (DRAFT -> TRIAGED / CLOSED from Timeline) */}
+      <TriageEfficiencyCard
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
  
       {/* Bug Bounty Hourly Rate & Efficiency Metrics (Calculated from Timeline Events & Bounties) */}
       <HourlyRateMetrics
@@ -316,6 +369,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNewReport={onNewReport}
       />
 
+      {/* D3.js Global Threat Map: Geospatial Target Distribution & IP Telemetry */}
+      <GlobalThreatMap
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
+      {/* Recent Global Threat Intelligence: Live security headlines & advisories via Search Tool Grounding */}
+      <RecentGlobalThreatIntelligence
+        reports={reports}
+        onNavigateToCve={() => onNavigateTab('cve')}
+        onNewReport={onNewReport}
+      />
+
+      {/* Recharts Spider/Radar Chart: Vulnerability Impact Scorecard (Aggregates Business Impact across Open Reports) */}
+      <VulnerabilityImpactScorecard
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
       {/* Recharts Line Chart: Tendência de Novos Relatórios Descobertos nos Últimos 6 Meses */}
       <SixMonthTrendLineChart
         reports={reports}
@@ -328,6 +402,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         reports={reports}
         onSelectReport={onSelectReport}
         onNewReport={onNewReport}
+      />
+
+      {/* Target Programs Vulnerability Heatmap: Severity Distribution (Critical/High/Medium/Low) across Programs */}
+      <VulnerabilityHeatmap
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onSelectSeverity={onSelectSeverity}
+        onNavigateToReports={() => onNavigateTab('reports')}
+        onNewReport={onNewReport}
+      />
+
+      {/* 5x5 Likelihood vs. Impact Risk Assessment Matrix & Prioritization Queue */}
+      <RiskAssessmentMatrix
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
+      {/* Bounty Payout Tracker: Monthly Earnings Trends & Projected Future Bounties */}
+      <BountyPayoutTracker
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
       />
 
       {/* Recharts Forecast & Predictive Chart: Future Bounty Earnings Projection */}

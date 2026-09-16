@@ -26,7 +26,9 @@ import {
   Calculator,
   Lock,
   Flame,
-  FileDown
+  FileDown,
+  Upload,
+  Download
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, ReportStatus, Severity, PlatformName } from '../types';
@@ -49,6 +51,8 @@ interface ReportsViewProps {
   selectedSeverity?: string;
   onSeverityChange?: (severity: string) => void;
   onOpenPdfExport?: (report: VulnerabilityReport) => void;
+  onOpenCsvImport?: () => void;
+  onExportCsv?: () => void;
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({
@@ -64,7 +68,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   onSearchChange,
   selectedSeverity: externalSelectedSeverity = 'ALL',
   onSeverityChange,
-  onOpenPdfExport
+  onOpenPdfExport,
+  onOpenCsvImport,
+  onExportCsv
 }) => {
   const { isAuthenticated, openLoginModal } = useAuth();
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
@@ -380,7 +386,33 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenCsvImport && (
+            <button
+              type="button"
+              id="btn-reports-view-import-csv"
+              onClick={onOpenCsvImport}
+              className="flex items-center justify-center gap-1.5 bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2a2a30] hover:border-emerald-500/40 font-mono font-semibold px-3 py-2 rounded text-xs tracking-wider transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer"
+              title="Importar relatórios via arquivo CSV de outras ferramentas (HackerOne, Bugcrowd, Intigriti, planilhas)"
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Importar CSV</span>
+            </button>
+          )}
+
+          {onExportCsv && (
+            <button
+              type="button"
+              id="btn-reports-view-export-csv"
+              onClick={onExportCsv}
+              className="flex items-center justify-center gap-1.5 bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2a2a30] hover:border-emerald-500/40 font-mono font-semibold px-3 py-2 rounded text-xs tracking-wider transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer"
+              title="Exportar todos os relatórios cadastrados em formato CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+            </button>
+          )}
+
           {onOpenCvssCalculator && (
             <button
               type="button"
@@ -936,6 +968,17 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Limpar Busca</span>
+              </button>
+            )}
+            {onOpenCsvImport && (
+              <button
+                type="button"
+                id="btn-empty-state-import-csv"
+                onClick={onOpenCsvImport}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded bg-[#14141e] hover:bg-[#1f1f2c] text-emerald-400 hover:text-emerald-300 font-mono font-semibold text-xs border border-emerald-500/30 hover:border-emerald-500/60 transition-all cursor-pointer shadow-sm"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Importar CSV</span>
               </button>
             )}
             <button

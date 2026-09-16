@@ -19,6 +19,10 @@ import { AddTargetModal } from './components/AddTargetModal';
 import { CvssCalculatorModal } from './components/CvssCalculatorModal';
 import { FirebaseAuthModal } from './components/FirebaseAuthModal';
 import { PdfExportModal } from './components/PdfExportModal';
+import { CsvImportModal } from './components/CsvImportModal';
+import { exportReportsToCsv } from './utils/csvReportParser';
+import { Toaster } from 'react-hot-toast';
+import { notifyCriticalVulnerability, showSuccessToast, showInfoToast } from './utils/toastNotifications';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { INITIAL_REPORTS, INITIAL_TARGETS, INITIAL_DOCS } from './data/initialData';
 import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity } from './types';
@@ -89,6 +93,7 @@ function AppContent() {
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [selectedSeverityFilter, setSelectedSeverityFilter] = useState<string>('ALL');
   const [reportForPdfExport, setReportForPdfExport] = useState<VulnerabilityReport | null>(null);
+  const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
 
   const handleResetToSeedData = () => {
     setReports(INITIAL_REPORTS);
@@ -154,6 +159,24 @@ function AppContent() {
   };
 
   const handleSaveReport = (report: VulnerabilityReport) => {
+    const existing = reports.find(r => r.id === report.id);
+    const isNew = !existing;
+    const isCritical = report.severity === 'CRITICAL';
+    const wasCritical = existing?.severity === 'CRITICAL';
+    const becameCritical = isCritical && (!existing || !wasCritical);
+
+    if (isNew && isCritical) {
+      notifyCriticalVulnerability(report, 'created', handleSelectReport);
+    } else if (!isNew && becameCritical) {
+      notifyCriticalVulnerability(report, 'escalated', handleSelectReport);
+    } else if (!isNew && isCritical) {
+      notifyCriticalVulnerability(report, 'updated', handleSelectReport);
+    } else if (isNew) {
+      showSuccessToast(`Relatório "${report.title.slice(0, 30)}..." criado com sucesso.`);
+    } else {
+      showSuccessToast(`Relatório atualizado com sucesso.`);
+    }
+
     setReports(prev => {
       const exists = prev.some(r => r.id === report.id);
       if (exists) {
@@ -186,6 +209,7 @@ function AppContent() {
       return;
     }
     setReports(prev => prev.filter(r => r.id !== id));
+    showInfoToast('Relatório removido com sucesso.');
     if (selectedReportForDetail?.id === id) {
       setSelectedReportForDetail(null);
     }
@@ -198,11 +222,24 @@ function AppContent() {
     }
     setReports(prev => prev.map(r => {
       if (r.id === id) {
+        showSuccessToast(`Status atualizado para: ${newStatus}`);
+        const today = new Date().toISOString().split('T')[0];
+        const updatedTimeline: TimelineEvent[] = [
+          ...(r.timeline || []),
+          {
+            id: `t-${Date.now()}`,
+            date: today,
+            title: `Status alterado para ${newStatus}`,
+            notes: `Transição de status registrada no cronograma: ${r.status} ➔ ${newStatus}.`,
+            type: bountyAmount !== undefined && bountyAmount > (r.bountyAmount || 0) ? 'bounty' : 'status_change'
+          }
+        ];
         return {
           ...r,
           status: newStatus,
           bountyAmount: bountyAmount !== undefined ? bountyAmount : r.bountyAmount,
-          updatedAt: new Date().toISOString().split('T')[0]
+          updatedAt: today,
+          timeline: updatedTimeline
         };
       }
       return r;
@@ -265,6 +302,100 @@ function AppContent() {
     }
     setReportForFormModal(report);
     setIsFormModalOpen(true);
+  };
+
+  const handleOpenCsvImport = () => {
+    if (!isAuthenticated) {
+      openLoginModal('create', () => {
+        setIsCsvImportModalOpen(true);
+      });
+      return;
+    }
+    if (!canEditReports) {
+      openLoginModal('create');
+      return;
+    }
+    setIsCsvImportModalOpen(true);
+  };
+
+  const handleImportReports = (importedReports: VulnerabilityReport[], mode: 'append' | 'replace') => {
+    let updatedReports: VulnerabilityReport[];
+    if (mode === 'replace') {
+      updatedReports = importedReports;
+    } else {
+      const existingIds = new Set(reports.map(r => r.id));
+      const newItems = importedReports.map((r, i) => {
+        if (existingIds.has(r.id)) {
+          return { ...r, id: `rep-imp-${Date.now()}-${i}` };
+        }
+        return r;
+      });
+      updatedReports = [...newItems, ...reports];
+    }
+
+    setReports(updatedReports);
+
+    // Alert if any critical reports were imported
+    const criticals = importedReports.filter(r => r.severity === 'CRITICAL');
+    if (criticals.length > 0) {
+      notifyCriticalVulnerability(criticals[0], 'imported', handleSelectReport);
+      if (criticals.length > 1) {
+        showInfoToast(`Atenção: ${criticals.length} vulnerabilidades com severidade CRITICAL foram importadas.`);
+      }
+    } else {
+      showSuccessToast(`${importedReports.length} relatórios importados com sucesso.`);
+    }
+
+    // Auto-discover any new targets
+    const existingTargetNames = new Set(targets.map(t => t.name.toLowerCase()));
+    const newTargetsToAdd: TargetProgram[] = [];
+
+    importedReports.forEach(r => {
+      const targetName = r.target.trim();
+      if (targetName && !existingTargetNames.has(targetName.toLowerCase())) {
+        existingTargetNames.add(targetName.toLowerCase());
+        newTargetsToAdd.push({
+          id: `tgt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          name: targetName,
+          domain: targetName.replace(/^https?:\/\//, '').split('/')[0],
+          platform: r.platform,
+          programUrl: r.submissionUrl || (targetName.startsWith('http') ? targetName : `https://${targetName}`),
+          bountyRange: r.bountyAmount > 0 ? `$100 - $${Math.max(r.bountyAmount * 2, 2500)}` : '$100 - $2,500',
+          inScope: [targetName.startsWith('http') ? targetName : `*.${targetName}`],
+          outOfScope: ['Social engineering', 'DDoS', 'Physical access'],
+          notes: `Alvo criado automaticamente via importação de relatórios CSV (${r.platform}).`,
+          status: 'ACTIVE',
+          reportsCount: 1,
+          totalRewarded: r.bountyAmount || 0
+        });
+      }
+    });
+
+    if (newTargetsToAdd.length > 0) {
+      setTargets(prev => [...newTargetsToAdd, ...prev]);
+    }
+  };
+
+  const handleExportAllCsv = () => {
+    exportReportsToCsv(reports);
+  };
+
+  const handleTriggerTestCriticalToast = () => {
+    const sampleCritical = reports.find(r => r.severity === 'CRITICAL') || reports[0];
+    if (sampleCritical) {
+      notifyCriticalVulnerability(
+        {
+          ...sampleCritical,
+          id: sampleCritical.id,
+          title: '[SIMULAÇÃO CRÍTICA] Remote Code Execution via Insecure Deserialization in API Gateway',
+          target: 'core-api.target.com',
+          severity: 'CRITICAL',
+          cvssScore: 9.8
+        },
+        'created',
+        handleSelectReport
+      );
+    }
   };
 
   // Link CVE directly to report
@@ -412,6 +543,21 @@ function AppContent() {
   };
 
   const handleApplyCvssToReport = (reportId: string, vector: string, score: number, severity: Severity) => {
+    const existing = reports.find(r => r.id === reportId);
+    if (existing) {
+      const updatedReport: VulnerabilityReport = {
+        ...existing,
+        cvssVector: vector,
+        cvssScore: score,
+        severity
+      };
+      if (severity === 'CRITICAL') {
+        notifyCriticalVulnerability(updatedReport, 'recalibrated', handleSelectReport);
+      } else {
+        showSuccessToast(`CVSS atualizado para ${severity} (${score.toFixed(1)}).`);
+      }
+    }
+
     setReports(prev => prev.map(r => {
       if (r.id === reportId) {
         const cvssTimelineEvent: TimelineEvent = {
@@ -553,6 +699,8 @@ function AppContent() {
             selectedSeverity={selectedSeverityFilter}
             onSeverityChange={setSelectedSeverityFilter}
             onOpenPdfExport={(rep) => setReportForPdfExport(rep)}
+            onOpenCsvImport={handleOpenCsvImport}
+            onExportCsv={handleExportAllCsv}
           />
         )}
 
@@ -612,6 +760,14 @@ function AppContent() {
         onClose={() => setReportForPdfExport(null)}
       />
 
+      {/* CSV Reports Import Modal */}
+      <CsvImportModal
+        isOpen={isCsvImportModalOpen}
+        onClose={() => setIsCsvImportModalOpen(false)}
+        onImportReports={handleImportReports}
+        existingCount={reports.length}
+      />
+
       {isFormModalOpen && (
         <ReportFormModal
           initialReport={reportForFormModal}
@@ -664,6 +820,7 @@ function AppContent() {
         isOpen={isAboutModalOpen}
         onClose={() => setIsAboutModalOpen(false)}
         onResetToSeedData={handleResetToSeedData}
+        onTestCriticalToast={handleTriggerTestCriticalToast}
       />
 
       {/* Firebase Auth Simulation Modal */}
@@ -690,6 +847,28 @@ function AppContent() {
           </div>
         </div>
       </footer>
+
+      {/* Toast Notification Container with cyber dark theme */}
+      <Toaster
+        position="top-right"
+        gutter={10}
+        containerStyle={{
+          top: 24,
+          right: 24,
+          zIndex: 99999
+        }}
+        toastOptions={{
+          duration: 5000,
+          style: {
+            background: '#12121c',
+            color: '#f4f4f5',
+            border: '1px solid #28283c',
+            borderRadius: '10px',
+            fontSize: '12px',
+            fontFamily: 'monospace'
+          }
+        }}
+      />
 
     </div>
   );

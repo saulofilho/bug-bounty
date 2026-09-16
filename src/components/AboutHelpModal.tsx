@@ -14,19 +14,23 @@ import {
   Info,
   ExternalLink,
   Zap,
-  Lock
+  Lock,
+  ShieldAlert,
+  BellRing
 } from 'lucide-react';
 
 interface AboutHelpModalProps {
   isOpen: boolean;
   onClose: () => void;
   onResetToSeedData?: () => void;
+  onTestCriticalToast?: () => void;
 }
 
 export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
   isOpen,
   onClose,
-  onResetToSeedData
+  onResetToSeedData,
+  onTestCriticalToast
 }) => {
   const [activeSection, setActiveSection] = useState<'overview' | 'guide' | 'storage'>('overview');
   const [resetConfirmed, setResetConfirmed] = useState(false);
@@ -183,6 +187,37 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   </p>
                 </div>
 
+              </div>
+
+              {/* Critical Toast Alert Feature Banner */}
+              <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-rose-600/20 border border-rose-500/40 text-rose-400 flex items-center justify-center shrink-0">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-white uppercase font-mono flex items-center gap-2">
+                      <span>Alerta Prioritário de Severidade CRITICAL</span>
+                      <span className="px-1.5 py-0.5 rounded bg-rose-600/30 text-rose-300 border border-rose-600/50 text-[9px]">
+                        react-hot-toast
+                      </span>
+                    </h4>
+                    <p className="text-zinc-400 text-[11px] leading-relaxed">
+                      Sempre que um relatório de vulnerabilidade for inserido ou alterado com severidade <strong>CRITICAL</strong> (ou recalculado via CVSS v3.1 para o nível crítico), um alerta visual de alta prioridade é disparado instantaneamente no canto superior com atalho direto para inspeção.
+                    </p>
+                  </div>
+                </div>
+
+                {onTestCriticalToast && (
+                  <button
+                    type="button"
+                    onClick={onTestCriticalToast}
+                    className="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 shrink-0 flex items-center gap-2 justify-center"
+                  >
+                    <BellRing className="w-3.5 h-3.5" />
+                    <span>Testar Notificação</span>
+                  </button>
+                )}
               </div>
 
             </div>

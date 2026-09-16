@@ -53,6 +53,10 @@ export interface VulnerabilityReport {
   timeSpentHours?: number;
   attachments?: Array<{ name: string; size: string; type: string }>;
   tags?: string[];
+  targetIp?: string;
+  targetRegion?: string;
+  targetCountry?: string;
+  targetCoordinates?: [number, number]; // [longitude, latitude]
   pgpSignature?: {
     signedText: string;
     keyFingerprint: string;
@@ -150,4 +154,26 @@ export interface SecurityIntelResult {
   timestamp: string;
   warning?: string;
   error?: string;
+}
+
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: 'Web / OWASP' | 'API Security' | 'Cloud & Infra' | 'Auth & Session' | 'Mobile' | 'Custom';
+  vulnerabilityType: string;
+  cwe: string;
+  cvssVector: string;
+  cvssScore: number;
+  severity: Severity;
+  titlePattern: string;
+  summary: string;
+  stepsToReproduce: string[];
+  proofOfConcept: string;
+  businessImpact: string;
+  remediation: string;
+  tags: string[];
+  isBuiltIn?: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
