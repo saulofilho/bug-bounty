@@ -64,6 +64,7 @@ export interface VulnerabilityReport {
     signedAt: string;
   };
   validationChecklist?: ValidationChecklistItem[];
+  githubIntegration?: GitHubIntegrationData;
 }
 
 export interface ValidationChecklistItem {
@@ -234,4 +235,27 @@ export interface ReportTemplate {
   isBuiltIn?: boolean;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface GitHubSyncLog {
+  id: string;
+  timestamp: string;
+  action: string;
+  details: string;
+  success: boolean;
+}
+
+export interface GitHubIntegrationData {
+  repoOwner: string;
+  repoName: string;
+  issueNumber?: number;
+  issueId?: number;
+  issueUrl?: string;
+  issueTitle?: string;
+  issueState?: 'open' | 'closed';
+  linkedAt: string;
+  lastSyncedAt?: string;
+  autoSyncStatus?: boolean;
+  selectedLabels?: string[];
+  syncLogs?: GitHubSyncLog[];
 }

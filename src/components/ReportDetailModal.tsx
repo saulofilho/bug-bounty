@@ -36,7 +36,9 @@ import {
   Timer,
   Calculator,
   FileDown,
-  SlidersHorizontal
+  SlidersHorizontal,
+  FolderGit2,
+  GitPullRequest
 } from 'lucide-react';
 import { VulnerabilityReport, ReportStatus, Severity, TimelineEvent, ValidationChecklistItem } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform } from '../utils/formatters';
@@ -49,6 +51,7 @@ import { useAuth } from '../context/AuthContext';
 import { PdfExportModal } from './PdfExportModal';
 import { downloadPdfReport } from '../utils/pdfReportGenerator';
 import { BreachImpactSimulator } from './BreachImpactSimulator';
+import { GitHubIntegration } from './GitHubIntegration';
 
 interface ReportDetailModalProps {
   report: VulnerabilityReport | null;
@@ -61,6 +64,9 @@ interface ReportDetailModalProps {
   onOpenCvssCalculator?: (vector?: string, reportId?: string) => void;
   onUpdateChecklist?: (reportId: string, checklist: ValidationChecklistItem[]) => void;
   onOpenPdfExport?: (report: VulnerabilityReport) => void;
+  allReports?: VulnerabilityReport[];
+  onSelectReport?: (report: VulnerabilityReport) => void;
+  onUpdateReport?: (updatedReport: VulnerabilityReport) => void;
 }
 
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
@@ -73,10 +79,13 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onOpenPgpSigner,
   onOpenCvssCalculator,
   onUpdateChecklist,
-  onOpenPdfExport
+  onOpenPdfExport,
+  allReports,
+  onSelectReport,
+  onUpdateReport
 }) => {
   const { isAuthenticated, canEditReports, canDeleteReports, openLoginModal } = useAuth();
-  const [activeTab, setActiveTab] = useState<'details' | 'poc' | 'checklist' | 'timeline' | 'export' | 'impact'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'poc' | 'checklist' | 'timeline' | 'export' | 'impact' | 'github'>('details');
   const [copied, setCopied] = useState(false);
   const [copiedPgp, setCopiedPgp] = useState(false);
   const [copiedCvssVector, setCopiedCvssVector] = useState(false);
@@ -328,6 +337,41 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               </button>
 
               <button
+                id="btn-open-simulator-header"
+                type="button"
+                onClick={() => setActiveTab('impact')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-semibold transition-all shadow-sm ${
+                  activeTab === 'impact'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50'
+                    : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30'
+                }`}
+                title="Abrir Simulador de Impacto Financeiro e Reputacional (IBM/FAIR)"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                <span className="hidden sm:inline">Simular Impacto</span>
+              </button>
+
+              <button
+                id="btn-open-github-header"
+                type="button"
+                onClick={() => setActiveTab('github')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-semibold transition-all shadow-sm ${
+                  activeTab === 'github'
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50'
+                    : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 border border-purple-500/30'
+                }`}
+                title="Vincular Repositório GitHub, Criar Issues e Sincronizar Status"
+              >
+                <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
+                <span className="hidden sm:inline">GitHub</span>
+                {report.githubIntegration?.issueNumber && (
+                  <span className="text-[10px] px-1 py-0.5 rounded bg-purple-500/30 text-purple-200 font-mono">
+                    #{report.githubIntegration.issueNumber}
+                  </span>
+                )}
+              </button>
+
+              <button
                 id="btn-open-pdf-modal-normal"
                 type="button"
                 onClick={() => {
@@ -542,6 +586,21 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             >
               <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
               <span>Simulador de Impacto</span>
+            </button>
+
+            <button
+              id="tab-btn-github-integration"
+              type="button"
+              onClick={() => setActiveTab('github')}
+              className={`px-3 py-1.5 rounded font-mono uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-all ${
+                activeTab === 'github' ? 'bg-[#171717] text-purple-400 border border-purple-500/40 shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
+              <span>GitHub {report.githubIntegration?.issueNumber ? `(#${report.githubIntegration.issueNumber})` : ''}</span>
+              {report.githubIntegration?.issueState === 'open' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              )}
             </button>
 
             <button
@@ -1793,8 +1852,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
           {activeTab === 'impact' && (
             <div className="space-y-4">
               <BreachImpactSimulator
-                reports={[report]}
+                reports={allReports && allReports.length > 0 ? allReports : [report]}
                 initialReportId={report.id}
+                onSelectReport={onSelectReport}
               />
             </div>
           )}

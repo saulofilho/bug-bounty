@@ -895,6 +895,8 @@ function AppContent() {
       {selectedReportForDetail && (
         <ReportDetailModal
           report={reports.find(r => r.id === selectedReportForDetail.id) || selectedReportForDetail}
+          allReports={reports}
+          onSelectReport={(rep) => setSelectedReportForDetail(rep)}
           onClose={() => setSelectedReportForDetail(null)}
           onEdit={(rep) => {
             setSelectedReportForDetail(null);
