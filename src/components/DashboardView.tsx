@@ -34,6 +34,7 @@ import { FutureEarningsProjectionChart } from './FutureEarningsProjectionChart';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { CvssComparisonTool } from './CvssComparisonTool';
 import { BreachImpactSimulator } from './BreachImpactSimulator';
+import { TargetRateLimitMonitor } from './TargetRateLimitMonitor';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
 import { WeeklySummary } from './WeeklySummary';
 import { StatusBadge } from './StatusBadge';
@@ -593,6 +594,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <BreachImpactSimulator
         reports={reports}
         onSelectReport={onSelectReport}
+      />
+
+      {/* Target Rate Limit Monitor: Real-Time API Testing Cadence & Radial Progress Gauge */}
+      <TargetRateLimitMonitor
+        reports={reports}
+        onNavigateToTargets={() => onNavigateTab('targets')}
       />
 
       {/* Bug Bounty Platforms Directory, Tutorials & Monetization Playbook */}

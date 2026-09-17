@@ -1,6 +1,6 @@
 {
   "name": "Bug Bounty Manager & Vulnerability Tracker",
-  "description": "Plataforma para gerenciar relatórios de bug bounty, simulador de impacto de incidentes (IBM/FAIR), importação/exportação CSV de plataformas externas, biblioteca de checklists OWASP, assinatura criptográfica PGP, rastreio de envios, integração CVE, Threat Intelligence e documentação técnica.",
+  "description": "Plataforma para gerenciar relatórios de bug bounty, monitor de rate limit de alvos em tempo real, simulador de impacto de incidentes (IBM/FAIR), biblioteca de checklists OWASP, assinatura criptográfica PGP, rastreio de envios, CVEs e Threat Intelligence.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
