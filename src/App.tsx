@@ -473,6 +473,82 @@ function AppContent() {
     setIsFormModalOpen(true);
   };
 
+  // Create report directly from Security Checklist
+  const handleNewReportWithChecklist = (checklistData: Partial<VulnerabilityReport>) => {
+    if (!isAuthenticated) {
+      openLoginModal('create', () => handleNewReportWithChecklist(checklistData));
+      return;
+    }
+    const prefilledReport: VulnerabilityReport = {
+      id: `REP-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      title: checklistData.title || 'Vulnerabilidade Validada por Checklist',
+      target: checklistData.target || 'api.target.com',
+      platform: checklistData.platform || 'HackerOne',
+      vulnerabilityType: checklistData.vulnerabilityType || 'Broken Access Control',
+      severity: checklistData.severity || 'HIGH',
+      status: 'DRAFT',
+      cvssVector: checklistData.cvssVector || 'CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N',
+      cvssScore: checklistData.cvssScore || (checklistData.severity === 'CRITICAL' ? 9.8 : checklistData.severity === 'HIGH' ? 8.1 : 5.4),
+      cwe: checklistData.cwe || 'CWE-639: Authorization Bypass Through User-Controlled Key',
+      cveIds: checklistData.cveIds || [],
+      tags: checklistData.tags || ['checklist-verified'],
+      summary: checklistData.summary || '',
+      stepsToReproduce: checklistData.stepsToReproduce && checklistData.stepsToReproduce.length > 0
+        ? checklistData.stepsToReproduce
+        : ['1. Reproduza os passos de verificação técnica do checklist.'],
+      proofOfConcept: checklistData.proofOfConcept || '# Prova de conceito estruturada',
+      businessImpact: checklistData.businessImpact || '',
+      remediation: checklistData.remediation || '',
+      validationChecklist: checklistData.validationChecklist || [],
+      bountyAmount: 0,
+      currency: 'USD',
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0],
+      timeline: [
+        {
+          id: `t-${Date.now()}`,
+          date: new Date().toISOString().split('T')[0],
+          title: 'Relatório Criado com Checklist de Segurança',
+          notes: `Checklist de verificação técnica associado com ${checklistData.validationChecklist?.length || 0} critérios mapeados.`,
+          type: 'creation'
+        }
+      ]
+    };
+
+    setReportForFormModal(prefilledReport);
+    setIsFormModalOpen(true);
+  };
+
+  // Apply checklist to existing report
+  const handleApplyChecklistToExistingReport = (reportId: string, checklistItems: ValidationChecklistItem[]) => {
+    setReports((prevReports) =>
+      prevReports.map((rep) => {
+        if (rep.id !== reportId) return rep;
+        const currentChecklist = rep.validationChecklist || [];
+        const existingIds = new Set(currentChecklist.map((c) => c.id));
+        const newItemsToAdd = checklistItems.filter((c) => !existingIds.has(c.id));
+        const updatedChecklist = [...currentChecklist, ...newItemsToAdd];
+
+        return {
+          ...rep,
+          validationChecklist: updatedChecklist,
+          updatedAt: new Date().toISOString().split('T')[0],
+          timeline: [
+            ...(rep.timeline || []),
+            {
+              id: `t-${Date.now()}`,
+              date: new Date().toISOString().split('T')[0],
+              title: 'Checklist Técnico Anexado',
+              notes: `${newItemsToAdd.length} critérios de verificação técnica foram incorporados ao relatório.`,
+              type: 'update'
+            }
+          ]
+        };
+      })
+    );
+    showSuccessToast(`Checklist anexado com sucesso ao relatório ${reportId}!`);
+  };
+
   // Target quick report
   const handleNewReportForTarget = (domain: string, platform: PlatformName) => {
     if (!isAuthenticated) {
@@ -801,6 +877,9 @@ function AppContent() {
             docs={docs}
             onSaveDoc={handleSaveDoc}
             onDeleteDoc={handleDeleteDoc}
+            reports={reports}
+            onApplyChecklistToNewReport={handleNewReportWithChecklist}
+            onApplyChecklistToExistingReport={handleApplyChecklistToExistingReport}
           />
         )}
 

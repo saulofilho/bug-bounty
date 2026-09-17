@@ -48,6 +48,7 @@ import { StatusBadge } from './StatusBadge';
 import { useAuth } from '../context/AuthContext';
 import { PdfExportModal } from './PdfExportModal';
 import { downloadPdfReport } from '../utils/pdfReportGenerator';
+import { BreachImpactSimulator } from './BreachImpactSimulator';
 
 interface ReportDetailModalProps {
   report: VulnerabilityReport | null;
@@ -75,7 +76,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onOpenPdfExport
 }) => {
   const { isAuthenticated, canEditReports, canDeleteReports, openLoginModal } = useAuth();
-  const [activeTab, setActiveTab] = useState<'details' | 'poc' | 'checklist' | 'timeline' | 'export'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'poc' | 'checklist' | 'timeline' | 'export' | 'impact'>('details');
   const [copied, setCopied] = useState(false);
   const [copiedPgp, setCopiedPgp] = useState(false);
   const [copiedCvssVector, setCopiedCvssVector] = useState(false);
@@ -532,6 +533,18 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             </button>
 
             <button
+              id="tab-btn-breach-impact"
+              type="button"
+              onClick={() => setActiveTab('impact')}
+              className={`px-3 py-1.5 rounded font-mono uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-all ${
+                activeTab === 'impact' ? 'bg-[#171717] text-rose-400 border border-rose-500/40 shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+              <span>Simulador de Impacto</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('export')}
               className={`px-3 py-1.5 rounded font-mono uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-all ${
                 activeTab === 'export' ? 'bg-[#171717] text-emerald-400 border border-[#262626]' : 'text-zinc-400 hover:text-white'
@@ -888,7 +901,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
               {/* Business Impact */}
               <div className="space-y-2">
-                <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">2. Impacto no Negócio & Risco Corporativo</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">2. Impacto no Negócio & Risco Corporativo</h4>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('impact')}
+                    className="text-[11px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1.5 transition-colors"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>Simular Custo de Vazamento (IBM/FAIR) →</span>
+                  </button>
+                </div>
                 <div className="p-4 rounded-lg bg-[#121212] border border-[#262626] leading-relaxed text-zinc-200 text-xs">
                   {report.businessImpact}
                 </div>
@@ -1763,6 +1786,16 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 </pre>
               </div>
 
+            </div>
+          )}
+
+          {/* TAB: BREACH IMPACT SIMULATOR */}
+          {activeTab === 'impact' && (
+            <div className="space-y-4">
+              <BreachImpactSimulator
+                reports={[report]}
+                initialReportId={report.id}
+              />
             </div>
           )}
 

@@ -15,23 +15,31 @@ import {
   Trash2,
   Edit2,
   TerminalSquare,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
-import { TechnicalDoc, ExploitPayload } from '../types';
+import { TechnicalDoc, ExploitPayload, VulnerabilityReport, ValidationChecklistItem } from '../types';
 import { PayloadLibrary } from './PayloadLibrary';
+import { SecurityChecklistLibrary } from './SecurityChecklistLibrary';
 
 interface DocsAndChecklistsViewProps {
   docs: TechnicalDoc[];
   onSaveDoc: (doc: TechnicalDoc) => void;
   onDeleteDoc: (id: string) => void;
+  reports?: VulnerabilityReport[];
+  onApplyChecklistToNewReport?: (reportData: Partial<VulnerabilityReport>) => void;
+  onApplyChecklistToExistingReport?: (reportId: string, checklist: ValidationChecklistItem[]) => void;
 }
 
 export const DocsAndChecklistsView: React.FC<DocsAndChecklistsViewProps> = ({
   docs,
   onSaveDoc,
-  onDeleteDoc
+  onDeleteDoc,
+  reports = [],
+  onApplyChecklistToNewReport,
+  onApplyChecklistToExistingReport
 }) => {
-  const [activeSection, setActiveSection] = useState<'docs' | 'payloads'>('docs');
+  const [activeSection, setActiveSection] = useState<'docs' | 'checklists' | 'payloads'>('docs');
   const [selectedDocId, setSelectedDocId] = useState<string>(docs[0]?.id || '');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [copied, setCopied] = useState(false);
@@ -114,11 +122,16 @@ export const DocsAndChecklistsView: React.FC<DocsAndChecklistsViewProps> = ({
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top View Mode Switcher (Docs vs Payload Library) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1e2338]">
+      {/* Top View Mode Switcher (Docs vs Checklists vs Payload Library) */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#1e2338]">
         <div>
           <h1 className="text-xl sm:text-2xl font-light uppercase tracking-tight text-white flex items-center gap-2.5">
-            {activeSection === 'docs' ? (
+            {activeSection === 'checklists' ? (
+              <>
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <span>Biblioteca de Checklists de Segurança (OWASP)</span>
+              </>
+            ) : activeSection === 'docs' ? (
               <>
                 <BookOpen className="w-5 h-5 text-emerald-400" />
                 <span>Documentação Técnica & Checklists</span>
@@ -131,14 +144,16 @@ export const DocsAndChecklistsView: React.FC<DocsAndChecklistsViewProps> = ({
             )}
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            {activeSection === 'docs'
+            {activeSection === 'checklists'
+              ? 'Roteiros padronizados de verificação técnica (OWASP Top 10, API Security, CWE) com aplicação direta a relatórios'
+              : activeSection === 'docs'
               ? 'Centralize suas metodologias de teste, checklists interativos de reconhecimento e writeups'
               : 'Arsenal de payloads organizados por tipo de vulnerabilidade (XSS, SQLi, SSRF, RCE, SSTI) com live interpolation'}
           </p>
         </div>
 
         {/* Section Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#0e1017] border border-[#1e2338] rounded-xl text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[#0e1017] border border-[#1e2338] rounded-xl text-xs font-mono">
           <button
             id="tab-docs-checklists-btn"
             type="button"
@@ -151,6 +166,20 @@ export const DocsAndChecklistsView: React.FC<DocsAndChecklistsViewProps> = ({
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>Documentação ({docs.length})</span>
+          </button>
+
+          <button
+            id="tab-security-checklists-btn"
+            type="button"
+            onClick={() => setActiveSection('checklists')}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all font-semibold ${
+              activeSection === 'checklists'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-zinc-400 hover:text-white hover:bg-[#141824]'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Checklists OWASP</span>
           </button>
 
           <button
@@ -169,8 +198,15 @@ export const DocsAndChecklistsView: React.FC<DocsAndChecklistsViewProps> = ({
         </div>
       </div>
 
-      {/* Render Payload Library */}
-      {activeSection === 'payloads' ? (
+      {/* Render Active Section */}
+      {activeSection === 'checklists' ? (
+        <SecurityChecklistLibrary
+          reports={reports}
+          onApplyChecklistToNewReport={onApplyChecklistToNewReport}
+          onApplyChecklistToExistingReport={onApplyChecklistToExistingReport}
+          onSaveDoc={onSaveDoc}
+        />
+      ) : activeSection === 'payloads' ? (
         <PayloadLibrary onInsertPayloadIntoDoc={handleInsertPayloadIntoDoc} />
       ) : (
         /* Render Technical Docs & Checklists Workspace */

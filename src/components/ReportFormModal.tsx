@@ -15,9 +15,10 @@ import {
   Tag,
   Hash,
   Copy,
-  AlertTriangle
+  AlertTriangle,
+  ShieldCheck
 } from 'lucide-react';
-import { VulnerabilityReport, Severity, ReportStatus, PlatformName, TargetProgram, TechnicalDoc, AutoTagSuggestion } from '../types';
+import { VulnerabilityReport, Severity, ReportStatus, PlatformName, TargetProgram, TechnicalDoc, AutoTagSuggestion, ValidationChecklistItem } from '../types';
 import { calculateCvssScore, parseCvssVector, CvssMetrics } from '../utils/cvss';
 import { getSeverityBadgeColor } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
@@ -106,6 +107,9 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
   const [proofOfConcept, setProofOfConcept] = useState(initialReport?.proofOfConcept || 'GET /api/v1/user/profile?id=1024 HTTP/1.1\nHost: api.target.com\nAuthorization: Bearer [TOKEN_A]');
   const [businessImpact, setBusinessImpact] = useState(initialReport?.businessImpact || '');
   const [remediation, setRemediation] = useState(initialReport?.remediation || '');
+  const [validationChecklist, setValidationChecklist] = useState<ValidationChecklistItem[]>(
+    initialReport?.validationChecklist || []
+  );
 
   // AI Assistant State
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -344,6 +348,7 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
       proofOfConcept: proofOfConcept.trim(),
       businessImpact: businessImpact.trim(),
       remediation: remediation.trim(),
+      validationChecklist,
       bountyAmount: Number(bountyAmount) || 0,
       currency: 'USD',
       createdAt: initialReport?.createdAt || new Date().toISOString().split('T')[0],
@@ -759,6 +764,58 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Attached Technical Verification Checklist */}
+          {validationChecklist.length > 0 && (
+            <div className="p-4 rounded-xl bg-[#0e141a] border border-emerald-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">
+                    Checklist de Verificação Técnica ({validationChecklist.filter(i => i.completed).length}/{validationChecklist.length} validados)
+                  </span>
+                </div>
+                <span className="text-[10px] text-emerald-400/80 font-mono">
+                  Vinculado ao Relatório
+                </span>
+              </div>
+
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {validationChecklist.map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    className="flex items-center justify-between gap-2 p-2 rounded-lg bg-[#080c10] border border-[#1e2338] text-xs font-mono"
+                  >
+                    <label className="flex items-center gap-2 text-zinc-300 cursor-pointer flex-1">
+                      <input
+                        type="checkbox"
+                        checked={item.completed}
+                        onChange={() => {
+                          setValidationChecklist(prev =>
+                            prev.map((c, i) => i === idx ? { ...c, completed: !c.completed } : c)
+                          );
+                        }}
+                        className="rounded border-[#1e2338] text-emerald-500 focus:ring-0 w-3.5 h-3.5"
+                      />
+                      <span className={item.completed ? 'line-through text-zinc-500' : ''}>
+                        {item.label}
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValidationChecklist(prev => prev.filter((_, i) => i !== idx));
+                      }}
+                      className="text-zinc-600 hover:text-rose-400 p-1"
+                      title="Remover este item do checklist deste relatório"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Steps To Reproduce */}
           <div className="space-y-2">

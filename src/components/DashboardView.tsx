@@ -33,6 +33,7 @@ import { ThreatDiscoveryTrend } from './ThreatDiscoveryTrend';
 import { FutureEarningsProjectionChart } from './FutureEarningsProjectionChart';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { CvssComparisonTool } from './CvssComparisonTool';
+import { BreachImpactSimulator } from './BreachImpactSimulator';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
 import { WeeklySummary } from './WeeklySummary';
 import { StatusBadge } from './StatusBadge';
@@ -586,6 +587,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Interactive CVSS v3.1 Differential Comparison Tool */}
       <CvssComparisonTool
         reports={reports}
+      />
+
+      {/* Breach Impact Simulator: Quantitative Financial & Reputational Cost Modeling (IBM/Ponemon & FAIR) */}
+      <BreachImpactSimulator
+        reports={reports}
+        onSelectReport={onSelectReport}
       />
 
       {/* Bug Bounty Platforms Directory, Tutorials & Monetization Playbook */}

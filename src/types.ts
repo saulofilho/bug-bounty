@@ -71,6 +71,35 @@ export interface ValidationChecklistItem {
   label: string;
   completed: boolean;
   completedAt?: string;
+  category?: string;
+  guidance?: string;
+}
+
+export interface SecurityChecklistItem {
+  id: string;
+  title: string;
+  description: string;
+  guidance?: string;
+  category?: string;
+  required?: boolean;
+}
+
+export interface SecurityChecklistTemplate {
+  id: string;
+  title: string;
+  category: string;
+  owaspReference: string; // e.g. 'OWASP A01:2021', 'OWASP API1:2023'
+  cwe: string; // e.g. 'CWE-639: Authorization Bypass Through User-Controlled Key'
+  defaultSeverity: Severity;
+  vulnerabilityType: string;
+  description: string;
+  recommendedCvssVector: string;
+  defaultStepsToReproduce: string[];
+  proofOfConceptTemplate: string;
+  businessImpactSummary: string;
+  remediationSummary: string;
+  tags: string[];
+  items: SecurityChecklistItem[];
 }
 
 export interface AutoTagSuggestion {
