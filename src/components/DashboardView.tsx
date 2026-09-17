@@ -29,6 +29,7 @@ import { SeverityBarChart } from './SeverityBarChart';
 import { SeverityPieChart } from './SeverityPieChart';
 import { ReportsTrendChart } from './ReportsTrendChart';
 import { SixMonthTrendLineChart } from './SixMonthTrendLineChart';
+import { ThreatDiscoveryTrend } from './ThreatDiscoveryTrend';
 import { FutureEarningsProjectionChart } from './FutureEarningsProjectionChart';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { CvssComparisonTool } from './CvssComparisonTool';
@@ -38,6 +39,7 @@ import { StatusBadge } from './StatusBadge';
 import { ReportNotificationPanel } from './ReportNotificationPanel';
 import { SmartAnomalyDetector } from './SmartAnomalyDetector';
 import { DashboardActivityTimeline } from './DashboardActivityTimeline';
+import { GlobalSecurityIncidentTimeline } from './GlobalSecurityIncidentTimeline';
 import { ReporterInteractionSentiment } from './ReporterInteractionSentiment';
 import { HourlyRateMetrics } from './HourlyRateMetrics';
 import { TriageEfficiencyCard } from './TriageEfficiencyCard';
@@ -45,6 +47,7 @@ import { GlobalThreatMap } from './GlobalThreatMap';
 import { RecentGlobalThreatIntelligence } from './RecentGlobalThreatIntelligence';
 import { VulnerabilityImpactScorecard } from './VulnerabilityImpactScorecard';
 import { VulnerabilityHeatmap } from './VulnerabilityHeatmap';
+import { RiskPriorityMatrix } from './RiskPriorityMatrix';
 import { RiskAssessmentMatrix } from './RiskAssessmentMatrix';
 import { BountyPayoutTracker } from './BountyPayoutTracker';
 import { TimelineEvent } from '../types';
@@ -431,6 +434,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNavigateToReports={() => onNavigateTab('reports')}
       />
 
+      {/* Global Security Incident Timeline: Aggregates and visualizes all timeline events from every report in chronological order to track vulnerability discovery trends */}
+      <GlobalSecurityIncidentTimeline
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+        onNewReport={onNewReport}
+      />
+
       {/* Dashboard Activity Timeline: Scrollable Unified History Feed of System-Wide Actions */}
       <DashboardActivityTimeline
         reports={reports}
@@ -467,6 +478,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNavigateToReports={() => onNavigateTab('reports')}
       />
 
+      {/* Recharts Line Chart: Threat Discovery Trend (Vulnerabilities discovered per month aggregated from createdAt to show discovery velocity) */}
+      <ThreatDiscoveryTrend
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
       {/* Recharts Line Chart: Tendência de Novos Relatórios Descobertos nos Últimos 6 Meses */}
       <SixMonthTrendLineChart
         reports={reports}
@@ -481,13 +500,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNewReport={onNewReport}
       />
 
-      {/* Target Programs Vulnerability Heatmap: Severity Distribution (Critical/High/Medium/Low) across Programs */}
+      {/* Vulnerability Density Heatmap: Color-coded grid matrix visualizing vulnerability density by platform and severity type */}
       <VulnerabilityHeatmap
         reports={reports}
         onSelectReport={onSelectReport}
         onSelectSeverity={onSelectSeverity}
         onNavigateToReports={() => onNavigateTab('reports')}
         onNewReport={onNewReport}
+      />
+
+      {/* Risk Priority Matrix: Maps CVSS scores against business impact assessments (Critical, High, Medium, Low quadrants) */}
+      <RiskPriorityMatrix
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
       />
 
       {/* 5x5 Likelihood vs. Impact Risk Assessment Matrix & Prioritization Queue */}

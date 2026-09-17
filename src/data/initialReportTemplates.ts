@@ -155,9 +155,9 @@ Content-Type: application/json
 
 {
   "Code": "Success",
-  "AccessKeyId": "ASIAIOSFODNN7EXAMPLE",
-  "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-  "Token": "AQoDYXdzEJr1...",
+  "AccessKeyId": "[REDACTED_AWS_TEMPORARY_ACCESS_KEY_ID]",
+  "SecretAccessKey": "[REDACTED_AWS_SECRET_ACCESS_KEY]",
+  "Token": "[REDACTED_AWS_SESSION_SECURITY_TOKEN]",
   "Expiration": "2026-09-15T22:00:00Z"
 }`,
     businessImpact: 'Exfiltração de credenciais temporárias do IAM da infraestrutura de nuvem, possibilitando assunção de papéis privilegiados no provedor cloud, movimentação lateral e acesso irrestrito a buckets S3 e bancos internos.',

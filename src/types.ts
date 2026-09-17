@@ -157,6 +157,34 @@ export interface SecurityIntelResult {
   error?: string;
 }
 
+export type PayloadVulnerabilityCategory =
+  | 'XSS'
+  | 'SQLi'
+  | 'SSRF'
+  | 'RCE'
+  | 'XXE'
+  | 'SSTI'
+  | 'IDOR'
+  | 'LFI'
+  | 'Open Redirect'
+  | 'CORS / CSRF'
+  | 'Other';
+
+export interface ExploitPayload {
+  id: string;
+  title: string;
+  category: PayloadVulnerabilityCategory;
+  payload: string;
+  description: string;
+  context?: string;
+  tags: string[];
+  isFavorite?: boolean;
+  isCustom?: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface ReportTemplate {
   id: string;
   name: string;
