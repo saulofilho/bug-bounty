@@ -50,13 +50,15 @@ import { VulnerabilityHeatmap } from './VulnerabilityHeatmap';
 import { RiskPriorityMatrix } from './RiskPriorityMatrix';
 import { RiskAssessmentMatrix } from './RiskAssessmentMatrix';
 import { BountyPayoutTracker } from './BountyPayoutTracker';
+import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
 import { TimelineEvent } from '../types';
 
 interface DashboardViewProps {
   reports: VulnerabilityReport[];
   onSelectReport: (report: VulnerabilityReport) => void;
   onNewReport: () => void;
-  onNavigateTab: (tab: 'reports' | 'cve' | 'targets' | 'docs' | 'platforms') => void;
+  onNewReportWithAdvisory?: (advisoryData: Partial<VulnerabilityReport>) => void;
+  onNavigateTab: (tab: 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel') => void;
   onOpenAbout?: () => void;
   onOpenCvssCalculator?: (vector?: string, reportId?: string) => void;
   onSelectSeverity?: (severity: Severity) => void;
@@ -67,6 +69,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   reports,
   onSelectReport,
   onNewReport,
+  onNewReportWithAdvisory,
   onNavigateTab,
   onOpenAbout,
   onOpenCvssCalculator,
@@ -461,6 +464,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <GlobalThreatMap
         reports={reports}
         onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
+      {/* Real-time Threat Intelligence Dashboard: Security Advisory Feeds with Google Search Grounding & Vulnerability Context */}
+      <ThreatIntelligenceDashboard
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReportWithAdvisory={onNewReportWithAdvisory}
         onNavigateToReports={() => onNavigateTab('reports')}
       />
 

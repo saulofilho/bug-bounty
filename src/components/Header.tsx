@@ -18,12 +18,13 @@ import {
   Check,
   Plus,
   Globe,
-  Calculator
+  Calculator,
+  Radio
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { UserAuthWidget } from './UserAuthWidget';
 
-export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms';
+export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel';
 
 export interface HeaderProps {
   currentTab: NavTab;
@@ -272,6 +273,22 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Sites<span className="hidden xl:inline"> & Ganhos</span></span>
                 <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">
                   14
+                </span>
+              </button>
+
+              <button
+                id="nav-threat-intel"
+                onClick={() => onTabChange('threat-intel')}
+                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                  currentTab === 'threat-intel'
+                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
+                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>Threat Intel</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
+                  LIVE
                 </span>
               </button>
             </nav>
@@ -529,6 +546,22 @@ export const Header: React.FC<HeaderProps> = ({
                         <span>Sites de Bug Bounty & Ganhos</span>
                       </div>
                       <span className="text-[9px] font-mono text-emerald-400">14 sites</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsQuickMenuOpen(false);
+                        onTabChange('threat-intel');
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors text-left"
+                      role="menuitem"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Radio className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Threat Intelligence Feeds</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1 py-0.2 rounded font-bold">LIVE</span>
                     </button>
 
                     {onOpenStorageIntegrity && (

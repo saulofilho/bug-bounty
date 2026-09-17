@@ -13,6 +13,7 @@ import { CveExplorerView } from './components/CveExplorerView';
 import { TargetsView } from './components/TargetsView';
 import { DocsAndChecklistsView } from './components/DocsAndChecklistsView';
 import { BugBountyDirectoryView } from './components/BugBountyDirectoryView';
+import { ThreatIntelligenceDashboard } from './components/ThreatIntelligenceDashboard';
 import { PgpSignerModal } from './components/PgpSignerModal';
 import { AboutHelpModal } from './components/AboutHelpModal';
 import { AddTargetModal } from './components/AddTargetModal';
@@ -426,6 +427,52 @@ function AppContent() {
     setIsFormModalOpen(true);
   };
 
+  // Link Security Advisory directly to report
+  const handleNewReportWithAdvisory = (advisoryData: Partial<VulnerabilityReport>) => {
+    if (!isAuthenticated) {
+      openLoginModal('create', () => handleNewReportWithAdvisory(advisoryData));
+      return;
+    }
+    const prefilledReport: VulnerabilityReport = {
+      id: `REP-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      title: advisoryData.title || 'Security Advisory Finding',
+      target: advisoryData.target || 'api.target.com',
+      platform: 'HackerOne',
+      vulnerabilityType: advisoryData.vulnerabilityType || 'Known Exploit',
+      severity: advisoryData.severity || 'HIGH',
+      status: 'DRAFT',
+      cvssVector: advisoryData.cvssVector || 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+      cvssScore: advisoryData.cvssScore || (advisoryData.severity === 'CRITICAL' ? 9.8 : 8.1),
+      cwe: advisoryData.cwe || 'CWE-20: Improper Input Validation',
+      cveIds: advisoryData.cveIds || [],
+      summary: advisoryData.summary || '',
+      stepsToReproduce: [
+        '1. Identifique o componente vulnerável no ambiente do alvo.',
+        '2. Reproduza a requisição de acordo com o Security Advisory oficial.',
+        '3. Valide o impacto e evidência sem comprometer dados de produção.'
+      ],
+      proofOfConcept: advisoryData.proofOfConcept || '# Prova de Conceito baseada no Advisory Oficial',
+      businessImpact: advisoryData.businessImpact || 'Impacto derivado de aviso de segurança em tempo real com exploração documentada.',
+      remediation: advisoryData.remediation || 'Aplicar as diretrizes oficiais de correção do fornecedor.',
+      bountyAmount: 0,
+      currency: 'USD',
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0],
+      timeline: [
+        {
+          id: `t-${Date.now()}`,
+          date: new Date().toISOString().split('T')[0],
+          title: 'Rascunho criado a partir de Threat Intelligence',
+          notes: 'Vulnerabilidade correlacionada com aviso de segurança em tempo real.',
+          type: 'creation'
+        }
+      ]
+    };
+
+    setReportForFormModal(prefilledReport);
+    setIsFormModalOpen(true);
+  };
+
   // Target quick report
   const handleNewReportForTarget = (domain: string, platform: PlatformName) => {
     if (!isAuthenticated) {
@@ -692,6 +739,7 @@ function AppContent() {
             reports={reports}
             onSelectReport={handleSelectReport}
             onNewReport={handleOpenNewReport}
+            onNewReportWithAdvisory={handleNewReportWithAdvisory}
             onNavigateTab={(tab) => setCurrentTab(tab)}
             onOpenAbout={() => setIsAboutModalOpen(true)}
             onOpenCvssCalculator={(vec, id) => handleOpenCvssCalculator(vec, id)}
@@ -701,6 +749,17 @@ function AppContent() {
             }}
             onAddTimelineEvent={handleAddTimelineEvent}
           />
+        )}
+
+        {currentTab === 'threat-intel' && (
+          <div className="space-y-6 animate-fadeIn">
+            <ThreatIntelligenceDashboard
+              reports={reports}
+              onSelectReport={handleSelectReport}
+              onNewReportWithAdvisory={handleNewReportWithAdvisory}
+              onNavigateToReports={() => setCurrentTab('reports')}
+            />
+          </div>
         )}
 
         {currentTab === 'reports' && (

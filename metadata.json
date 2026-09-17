@@ -1,6 +1,6 @@
 {
   "name": "Bug Bounty Manager & Vulnerability Tracker",
-  "description": "Plataforma para gerenciar relatórios de bug bounty, importação/exportação CSV de plataformas externas, assinatura criptográfica PGP, rastreio de envios, integração CVE e documentação técnica.",
+  "description": "Plataforma para gerenciar relatórios de bug bounty, importação/exportação CSV de plataformas externas, assinatura criptográfica PGP, rastreio de envios, integração CVE, Threat Intelligence com feeds de segurança em tempo real via Google Search e documentação técnica.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
