@@ -237,6 +237,8 @@ export interface ReportTemplate {
   updatedAt?: string;
 }
 
+export type GitHubSyncStatus = 'synced' | 'pending' | 'error' | 'unlinked';
+
 export interface GitHubSyncLog {
   id: string;
   timestamp: string;
@@ -258,4 +260,6 @@ export interface GitHubIntegrationData {
   autoSyncStatus?: boolean;
   selectedLabels?: string[];
   syncLogs?: GitHubSyncLog[];
+  syncStatus?: GitHubSyncStatus;
+  lastSyncError?: string;
 }

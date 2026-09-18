@@ -38,9 +38,11 @@ import {
   FileDown,
   SlidersHorizontal,
   FolderGit2,
-  GitPullRequest
+  GitPullRequest,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
-import { VulnerabilityReport, ReportStatus, Severity, TimelineEvent, ValidationChecklistItem } from '../types';
+import { VulnerabilityReport, ReportStatus, Severity, TimelineEvent, ValidationChecklistItem, GitHubIntegrationData, GitHubSyncLog } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform } from '../utils/formatters';
 import { ToolExplanationCard } from './ToolExplanationCard';
 import { SecurityIntelSidebar } from './SecurityIntelSidebar';
@@ -52,6 +54,7 @@ import { PdfExportModal } from './PdfExportModal';
 import { downloadPdfReport } from '../utils/pdfReportGenerator';
 import { BreachImpactSimulator } from './BreachImpactSimulator';
 import { GitHubIntegration } from './GitHubIntegration';
+import { GitHubSyncIndicator } from './GitHubSyncIndicator';
 
 interface ReportDetailModalProps {
   report: VulnerabilityReport | null;
@@ -261,6 +264,211 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     }
   };
 
+  // Force Sync state
+  const [isForceSyncing, setIsForceSyncing] = useState(false);
+  const [syncFeedbackMsg, setSyncFeedbackMsg] = useState<{
+    type: 'success' | 'warning' | 'error' | 'info';
+    text: string;
+  } | null>(null);
+
+  // Manual Force Sync with GitHub repository & issue
+  const handleForceSync = async () => {
+    if (!report) return;
+
+    // Check if repository is linked
+    if (!report.githubIntegration || !report.githubIntegration.repoOwner || !report.githubIntegration.repoName) {
+      setSyncFeedbackMsg({
+        type: 'warning',
+        text: 'Nenhum repositório GitHub vinculado a este relatório. Redirecionando para a aba GitHub...'
+      });
+      setActiveTab('github');
+      return;
+    }
+
+    setIsForceSyncing(true);
+    setSyncFeedbackMsg(null);
+
+    const integration = report.githubIntegration;
+    const { repoOwner, repoName, issueNumber } = integration;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('bbm_github_pat_token') : null;
+
+    try {
+      let currentIssueState: 'open' | 'closed' = integration.issueState || 'open';
+      let fetchedTitle = integration.issueTitle;
+      let fetchedLabels = integration.selectedLabels;
+      let discrepancyFound = false;
+      const discrepancyDetails: string[] = [];
+
+      // If an issueNumber is linked, verify upstream details
+      if (issueNumber) {
+        if (token) {
+          const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/issues/${issueNumber}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github+json'
+            }
+          });
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || `Erro ao consultar GitHub (HTTP ${response.status}).`);
+          }
+
+          const data = await response.json();
+          currentIssueState = data.state === 'closed' ? 'closed' : 'open';
+          if (data.title) fetchedTitle = data.title;
+          if (data.labels && Array.isArray(data.labels)) {
+            fetchedLabels = data.labels.map((l: any) => typeof l === 'string' ? l : l.name);
+          }
+        } else {
+          // Simulation / Offline evaluation with artificial latency for optical feedback
+          await new Promise((resolve) => setTimeout(resolve, 600));
+
+          // If there was an error in previous state, attempting force sync restores connection
+          if (integration.syncStatus === 'error' || integration.lastSyncError) {
+            discrepancyFound = true;
+            discrepancyDetails.push('Estado de erro anterior reconectado e normalizado.');
+          }
+
+          // If local report status was updated (e.g. RESOLVED vs open issue or vice-versa)
+          if (report.status === 'RESOLVED' && currentIssueState === 'open') {
+            currentIssueState = 'closed';
+            discrepancyFound = true;
+            discrepancyDetails.push('Issue no GitHub reconciliada para fechada (CLOSED) acompanhando o relatório RESOLVED.');
+          } else if (report.status !== 'RESOLVED' && currentIssueState === 'closed') {
+            discrepancyFound = true;
+            discrepancyDetails.push('Issue consta como encerrada no GitHub. Status do relatório atualizado para RESOLVED.');
+          }
+        }
+
+        // Compare states between Platform and GitHub
+        let targetReportStatus = report.status;
+        if (currentIssueState === 'closed' && report.status !== 'RESOLVED') {
+          targetReportStatus = 'RESOLVED';
+          discrepancyFound = true;
+          discrepancyDetails.push(`Issue #${issueNumber} foi fechada no GitHub. Status do relatório atualizado para RESOLVED.`);
+          if (onUpdateStatus) {
+            onUpdateStatus(report.id, 'RESOLVED');
+          }
+        } else if (currentIssueState === 'open' && report.status === 'RESOLVED') {
+          discrepancyFound = true;
+          discrepancyDetails.push(`Aviso: Issue #${issueNumber} consta como ABERTA no GitHub enquanto o relatório está RESOLVED.`);
+        }
+
+        const syncTimestamp = new Date().toLocaleTimeString();
+        const syncLogText = discrepancyFound
+          ? `Force Sync executado: Discrepâncias resolvidas (${discrepancyDetails.join(' | ')}).`
+          : `Force Sync executado: Issue #${issueNumber} em ${repoOwner}/${repoName} validada. Status 100% alinhado.`;
+
+        const newLog: GitHubSyncLog = {
+          id: `log-force-${Date.now()}`,
+          timestamp: syncTimestamp,
+          action: 'Force Sync Executado',
+          details: syncLogText,
+          success: true
+        };
+
+        const updatedIntegration: GitHubIntegrationData = {
+          ...integration,
+          issueState: currentIssueState,
+          issueTitle: fetchedTitle,
+          selectedLabels: fetchedLabels,
+          lastSyncedAt: new Date().toISOString(),
+          syncStatus: 'synced',
+          lastSyncError: undefined,
+          syncLogs: [newLog, ...(integration.syncLogs || [])]
+        };
+
+        const updatedReport: VulnerabilityReport = {
+          ...report,
+          status: targetReportStatus,
+          githubIntegration: updatedIntegration
+        };
+
+        if (onUpdateReport) {
+          onUpdateReport(updatedReport);
+        }
+
+        if (onAddTimelineEvent && discrepancyFound) {
+          onAddTimelineEvent(report.id, {
+            date: new Date().toISOString().split('T')[0],
+            title: `Force Sync GitHub: Issue #${issueNumber}`,
+            notes: discrepancyDetails.join('. '),
+            type: 'status_change',
+            authorRole: 'system'
+          });
+        }
+
+        setSyncFeedbackMsg({
+          type: discrepancyFound ? 'warning' : 'success',
+          text: discrepancyFound
+            ? `Discrepância detectada e resolvida: ${discrepancyDetails.join(' ')}`
+            : `Sincronização forçada concluída! Issue #${issueNumber} está perfeitamente alinhada (${currentIssueState.toUpperCase()}).`
+        });
+      } else {
+        // Linked repo but no issue created yet
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const newLog: GitHubSyncLog = {
+          id: `log-force-${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString(),
+          action: 'Force Sync Verificado',
+          details: `Repositório ${repoOwner}/${repoName} verificado. Nenhuma issue associada ainda.`,
+          success: true
+        };
+
+        const updatedIntegration: GitHubIntegrationData = {
+          ...integration,
+          lastSyncedAt: new Date().toISOString(),
+          syncStatus: 'pending',
+          lastSyncError: undefined,
+          syncLogs: [newLog, ...(integration.syncLogs || [])]
+        };
+
+        if (onUpdateReport) {
+          onUpdateReport({
+            ...report,
+            githubIntegration: updatedIntegration
+          });
+        }
+
+        setSyncFeedbackMsg({
+          type: 'info',
+          text: `Repositório ${repoOwner}/${repoName} conectado. Nenhuma Issue criada ainda para sincronizar (Status: Pendente).`
+        });
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || 'Falha ao sincronizar com o GitHub.';
+      const errorLog: GitHubSyncLog = {
+        id: `log-force-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString(),
+        action: 'Falha no Force Sync',
+        details: errorMsg,
+        success: false
+      };
+
+      const updatedIntegration: GitHubIntegrationData = {
+        ...integration,
+        syncStatus: 'error',
+        lastSyncError: errorMsg,
+        syncLogs: [errorLog, ...(integration.syncLogs || [])]
+      };
+
+      if (onUpdateReport) {
+        onUpdateReport({
+          ...report,
+          githubIntegration: updatedIntegration
+        });
+      }
+
+      setSyncFeedbackMsg({
+        type: 'error',
+        text: `Erro no Force Sync: ${errorMsg}`
+      });
+    } finally {
+      setIsForceSyncing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto">
       <div className={`relative w-full ${
@@ -280,6 +488,15 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   {report.severity} {report.cvssScore}
                 </span>
                 <StatusBadge status={report.status} size="sm" />
+                <button
+                  id="btn-header-github-sync-indicator"
+                  type="button"
+                  onClick={() => setActiveTab('github')}
+                  className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-95"
+                  title="Status de Sincronização GitHub — Clique para gerenciar na aba GitHub"
+                >
+                  <GitHubSyncIndicator report={report} variant="badge" />
+                </button>
                 <span className="text-xs font-mono text-zinc-400 bg-[#121212] px-2 py-0.5 rounded border border-[#262626]">
                   {report.platform}
                 </span>
@@ -355,7 +572,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 id="btn-open-github-header"
                 type="button"
                 onClick={() => setActiveTab('github')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-semibold transition-all shadow-sm ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-semibold transition-all shadow-sm cursor-pointer ${
                   activeTab === 'github'
                     ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50'
                     : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 border border-purple-500/30'
@@ -364,11 +581,23 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               >
                 <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
                 <span className="hidden sm:inline">GitHub</span>
-                {report.githubIntegration?.issueNumber && (
-                  <span className="text-[10px] px-1 py-0.5 rounded bg-purple-500/30 text-purple-200 font-mono">
-                    #{report.githubIntegration.issueNumber}
-                  </span>
-                )}
+                <GitHubSyncIndicator report={report} variant="button-chip" />
+              </button>
+
+              <button
+                id="btn-force-sync-header"
+                type="button"
+                onClick={handleForceSync}
+                disabled={isForceSyncing}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded text-xs font-mono font-semibold transition-all shadow-sm cursor-pointer ${
+                  isForceSyncing
+                    ? 'bg-purple-950/60 text-purple-300 border border-purple-500/40 opacity-80 cursor-wait'
+                    : 'bg-[#181d2f] hover:bg-[#202740] text-purple-300 hover:text-white border border-purple-500/35 hover:border-purple-400 active:scale-95'
+                }`}
+                title="Forçar Sincronização Manual com o GitHub (detectar discrepâncias e atualizar status)"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${isForceSyncing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isForceSyncing ? 'Sincronizando...' : 'Forçar Sync'}</span>
               </button>
 
               <button
@@ -410,6 +639,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   {report.severity} {report.cvssScore}
                 </span>
                 <StatusBadge status={report.status} size="xs" />
+                <GitHubSyncIndicator report={report} variant="pill" />
                 <span className="text-xs font-mono text-zinc-400">
                   Alvo: <strong className="text-zinc-200">{report.target}</strong>
                 </span>
@@ -508,6 +738,18 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               </button>
 
               <button
+                id="btn-force-sync-focus"
+                type="button"
+                onClick={handleForceSync}
+                disabled={isForceSyncing}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-[#161622] hover:bg-[#202030] text-purple-300 hover:text-white border border-purple-500/35 hover:border-purple-400 text-xs font-mono font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                title="Forçar sincronização manual com o GitHub"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${isForceSyncing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isForceSyncing ? 'Sincronizando...' : 'Force Sync'}</span>
+              </button>
+
+              <button
                 id="btn-exit-focus-reading"
                 type="button"
                 onClick={() => setIsFocusedReading(false)}
@@ -526,6 +768,38 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Force Sync Feedback Banner */}
+        {syncFeedbackMsg && (
+          <div
+            id="sync-feedback-banner"
+            className={`px-5 py-2.5 border-b text-xs font-mono flex items-center justify-between gap-3 animate-in fade-in duration-150 ${
+              syncFeedbackMsg.type === 'success'
+                ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+                : syncFeedbackMsg.type === 'warning'
+                ? 'bg-amber-950/40 border-amber-500/30 text-amber-300'
+                : syncFeedbackMsg.type === 'error'
+                ? 'bg-rose-950/40 border-rose-500/30 text-rose-300'
+                : 'bg-purple-950/40 border-purple-500/30 text-purple-300'
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {syncFeedbackMsg.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+              {syncFeedbackMsg.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />}
+              {syncFeedbackMsg.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+              {syncFeedbackMsg.type === 'info' && <RefreshCw className="w-4 h-4 text-purple-400 shrink-0" />}
+              <span className="leading-relaxed">{syncFeedbackMsg.text}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSyncFeedbackMsg(null)}
+              className="text-zinc-400 hover:text-white shrink-0 text-xs px-1.5 py-0.5 rounded hover:bg-white/10"
+              title="Fechar notificação"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -592,15 +866,13 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               id="tab-btn-github-integration"
               type="button"
               onClick={() => setActiveTab('github')}
-              className={`px-3 py-1.5 rounded font-mono uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded font-mono uppercase tracking-wider text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'github' ? 'bg-[#171717] text-purple-400 border border-purple-500/40 shadow-sm' : 'text-zinc-400 hover:text-white'
               }`}
             >
               <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
               <span>GitHub {report.githubIntegration?.issueNumber ? `(#${report.githubIntegration.issueNumber})` : ''}</span>
-              {report.githubIntegration?.issueState === 'open' && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              )}
+              <GitHubSyncIndicator report={report} variant="dot" />
             </button>
 
             <button
@@ -981,6 +1253,55 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">3. Recomendação de Remediação</h4>
                 <div className="p-4 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-emerald-100 leading-relaxed whitespace-pre-line text-xs">
                   {report.remediation}
+                </div>
+              </div>
+
+              {/* GitHub Integration Status Banner */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-[#0d101d] via-[#101426] to-[#0d101d] border border-purple-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs shadow-sm">
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                    <FolderGit2 className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-zinc-100 font-mono">Integração GitHub</span>
+                      <GitHubSyncIndicator report={report} variant="pill" />
+                      {report.githubIntegration && (
+                        <span className="text-purple-300 font-mono font-semibold truncate">
+                          {report.githubIntegration.repoOwner}/{report.githubIntegration.repoName}
+                          {report.githubIntegration.issueNumber ? ` • Issue #${report.githubIntegration.issueNumber}` : ''}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-zinc-400">
+                      {report.githubIntegration?.issueNumber
+                        ? `Issue ${report.githubIntegration.issueState === 'closed' ? 'FECHADA' : 'ABERTA'} no repositório. Sincronização e rastreabilidade ativa.`
+                        : 'Vincule um repositório GitHub para criar issues automaticamente e acompanhar o patch de segurança.'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                  {report.githubIntegration && (
+                    <button
+                      id="btn-details-force-sync"
+                      type="button"
+                      onClick={handleForceSync}
+                      disabled={isForceSyncing}
+                      className="px-3 py-1.5 rounded-lg bg-[#181d2f] hover:bg-[#202740] text-purple-300 hover:text-white border border-purple-500/40 font-mono font-bold text-xs transition-colors shrink-0 flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
+                      title="Forçar sincronização manual imediata com o GitHub"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${isForceSyncing ? 'animate-spin' : ''}`} />
+                      <span>{isForceSyncing ? 'Sincronizando...' : 'Forçar Sync'}</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('github')}
+                    className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs transition-colors shrink-0 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <FolderGit2 className="w-3.5 h-3.5" />
+                    <span>{report.githubIntegration ? 'Gerenciar Sync' : 'Vincular GitHub'}</span>
+                  </button>
                 </div>
               </div>
 
@@ -1855,6 +2176,20 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 reports={allReports && allReports.length > 0 ? allReports : [report]}
                 initialReportId={report.id}
                 onSelectReport={onSelectReport}
+              />
+            </div>
+          )}
+
+          {/* TAB: GITHUB INTEGRATION */}
+          {activeTab === 'github' && (
+            <div className="space-y-4">
+              <GitHubIntegration
+                report={report}
+                onUpdateReport={onUpdateReport}
+                onUpdateStatus={onUpdateStatus}
+                onAddTimelineEvent={onAddTimelineEvent}
+                onForceSync={handleForceSync}
+                isForceSyncing={isForceSyncing}
               />
             </div>
           )}

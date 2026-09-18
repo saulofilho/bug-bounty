@@ -259,6 +259,13 @@ function AppContent() {
     }));
   };
 
+  const handleUpdateReport = (updated: VulnerabilityReport) => {
+    setReports(prev => prev.map(r => r.id === updated.id ? updated : r));
+    if (selectedReportForDetail?.id === updated.id) {
+      setSelectedReportForDetail(updated);
+    }
+  };
+
   const handleOpenNewReport = () => {
     if (!isAuthenticated) {
       openLoginModal('create', () => {
@@ -909,6 +916,7 @@ function AppContent() {
           onOpenCvssCalculator={(vec, id) => handleOpenCvssCalculator(vec, id)}
           onUpdateChecklist={handleUpdateChecklist}
           onOpenPdfExport={(rep) => setReportForPdfExport(rep)}
+          onUpdateReport={handleUpdateReport}
         />
       )}
 

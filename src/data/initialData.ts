@@ -41,7 +41,37 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
       { id: "t2", date: getDaysAgoDate(24), title: "Triagem Confirmada", notes: "Triador do HackerOne reproduziu o achado com sucesso. Severidade ajustada para Crítica.", type: "status_change", hoursSpent: 1.0 },
       { id: "t3", date: getDaysAgoDate(18), title: "Recompensa Concedida", notes: "Equipe de segurança aprovou bounty de $3,500 USD.", type: "bounty", hoursSpent: 0.5 },
       { id: "t4", date: getDaysAgoDate(14), title: "Vulnerabilidade Mitigada", notes: "Hotfix em produção e relatório fechado como Resolvido.", type: "status_change", hoursSpent: 1.0 }
-    ]
+    ],
+    githubIntegration: {
+      repoOwner: "finpay-global",
+      repoName: "billing-api",
+      issueNumber: 89,
+      issueId: 7812903,
+      issueUrl: "https://github.com/finpay-global/billing-api/issues/89",
+      issueTitle: "[SECURITY] Broken Object Level Authorization (BOLA/IDOR) em Invoices API (CVSS 9.1)",
+      issueState: "closed",
+      linkedAt: getDaysAgoDate(24),
+      lastSyncedAt: getDaysAgoDate(14),
+      syncStatus: "synced",
+      autoSyncStatus: true,
+      selectedLabels: ["security", "vulnerability", "severity:critical", "idor"],
+      syncLogs: [
+        {
+          id: "log-finpay-1",
+          timestamp: "10:15:22",
+          action: "Issue Criada",
+          details: "Issue #89 criada em finpay-global/billing-api para engenharia de core banking.",
+          success: true
+        },
+        {
+          id: "log-finpay-2",
+          timestamp: "18:00:30",
+          action: "Issue Fechada",
+          details: "Pull Request #92 merged em main. Issue #89 fechada e status sincronizado para RESOLVED.",
+          success: true
+        }
+      ]
+    }
   },
   {
     id: "REP-2024-002",
@@ -75,7 +105,37 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     timeline: [
       { id: "t1", date: getDaysAgoDate(19), title: "Relatório Enviado no Bugcrowd", notes: "Aguardando triagem inicial da equipe.", type: "creation" },
       { id: "t2", date: getDaysAgoDate(16), title: "Triado como P2 (High)", notes: "Triador validou o SSRF e enviou para o time de engenharia do cliente.", type: "status_change" }
-    ]
+    ],
+    githubIntegration: {
+      repoOwner: "cloudmetrics",
+      repoName: "cloudmetrics-agent",
+      issueNumber: 142,
+      issueId: 9812401,
+      issueUrl: "https://github.com/cloudmetrics/cloudmetrics-agent/issues/142",
+      issueTitle: "[SECURITY] SSRF: Server-Side Request Forgery via Webhook URL Parser (CVSS 8.5)",
+      issueState: "open",
+      linkedAt: getDaysAgoDate(16),
+      lastSyncedAt: getDaysAgoDate(1),
+      syncStatus: "synced",
+      autoSyncStatus: true,
+      selectedLabels: ["security", "vulnerability", "severity:high", "ssrf"],
+      syncLogs: [
+        {
+          id: "log-init-1",
+          timestamp: "14:20:11",
+          action: "Issue Criada",
+          details: "Issue #142 criada no repositório cloudmetrics/cloudmetrics-agent com labels de segurança.",
+          success: true
+        },
+        {
+          id: "log-init-2",
+          timestamp: "16:45:00",
+          action: "Sincronização de Status",
+          details: "Status verificado: Issue #142 permanece aberta (OPEN) com o time de DevOps.",
+          success: true
+        }
+      ]
+    }
   },
   {
     id: "REP-2024-003",
@@ -110,7 +170,25 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
       { id: "t1", date: getDaysAgoDate(14), title: "Relatório Submetido", notes: "Enviado via Intigriti. Fuzzing no Markdown e teste de sanitização.", type: "creation", hoursSpent: 3.0 },
       { id: "t2", date: getDaysAgoDate(12), title: "Triagem Aprovada", notes: "Triador do Intigriti confirmou o XSS armazenado.", type: "status_change", hoursSpent: 0.75 },
       { id: "t3", date: getDaysAgoDate(6), title: "Recompensa Paga", notes: "Bounty de 750 EUR (~$815 USD) liberado para saque.", type: "bounty", hoursSpent: 0.25 }
-    ]
+    ],
+    githubIntegration: {
+      repoOwner: "devspace-org",
+      repoName: "markdown-core",
+      linkedAt: getDaysAgoDate(10),
+      lastSyncedAt: getDaysAgoDate(2),
+      syncStatus: "pending",
+      autoSyncStatus: true,
+      selectedLabels: ["security", "vulnerability", "xss", "needs-patch"],
+      syncLogs: [
+        {
+          id: "log-devspace-1",
+          timestamp: "11:04:18",
+          action: "Repositório Vinculado",
+          details: "Repositório github.com/devspace-org/markdown-core vinculado. Issue aguardando despacho.",
+          success: true
+        }
+      ]
+    }
   },
   {
     id: "REP-2024-004",
@@ -147,7 +225,38 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
       { id: "t2", date: getDaysAgoDate(7), title: "Triagem", notes: "Equipe de segurança do cliente confirmou o fluxo vulnerável.", type: "status_change", hoursSpent: 1.0 },
       { id: "t3", date: getDaysAgoDate(4), title: "Bounty Concedido", notes: "$1,800 USD creditados.", type: "bounty", hoursSpent: 0.25 },
       { id: "t4", date: getDaysAgoDate(3), title: "Correção em Produção", notes: "Email verification agora é mandatório.", type: "status_change", hoursSpent: 0.75 }
-    ]
+    ],
+    githubIntegration: {
+      repoOwner: "streamflow-security",
+      repoName: "oauth-sso-gateway",
+      issueNumber: 62,
+      issueId: 2294101,
+      issueUrl: "https://github.com/streamflow-security/oauth-sso-gateway/issues/62",
+      issueTitle: "[SECURITY] Pre-Account Creation ATO in OAuth Login (CVSS 8.1)",
+      issueState: "open",
+      linkedAt: getDaysAgoDate(7),
+      lastSyncedAt: getDaysAgoDate(1),
+      syncStatus: "error",
+      lastSyncError: "Falha de autenticação (HTTP 401/403): GitHub Personal Access Token inválido ou expirado.",
+      autoSyncStatus: true,
+      selectedLabels: ["security", "vulnerability", "oauth", "high"],
+      syncLogs: [
+        {
+          id: "log-stream-1",
+          timestamp: "09:30:12",
+          action: "Issue Criada",
+          details: "Issue #62 criada em streamflow-security/oauth-sso-gateway.",
+          success: true
+        },
+        {
+          id: "log-stream-2",
+          timestamp: "17:10:44",
+          action: "Erro de Sincronização",
+          details: "Falha ao consultar API: 401 Bad credentials. Token precisa ser renovado.",
+          success: false
+        }
+      ]
+    }
   },
   {
     id: "REP-2024-005",

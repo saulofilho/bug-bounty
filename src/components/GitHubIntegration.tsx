@@ -26,6 +26,7 @@ import {
   Layers
 } from 'lucide-react';
 import { VulnerabilityReport, ReportStatus, TimelineEvent, GitHubIntegrationData, GitHubSyncLog } from '../types';
+import { GitHubSyncIndicator } from './GitHubSyncIndicator';
 
 interface GitHubIntegrationProps {
   report: VulnerabilityReport;
@@ -33,6 +34,8 @@ interface GitHubIntegrationProps {
   onUpdateStatus?: (id: string, newStatus: ReportStatus, bountyAmount?: number) => void;
   onAddTimelineEvent?: (id: string, event: Omit<TimelineEvent, 'id'>) => void;
   className?: string;
+  onForceSync?: () => void;
+  isForceSyncing?: boolean;
 }
 
 const LOCAL_STORAGE_GITHUB_TOKEN_KEY = 'bbm_github_pat_token';
@@ -51,7 +54,9 @@ export const GitHubIntegration: React.FC<GitHubIntegrationProps> = ({
   onUpdateReport,
   onUpdateStatus,
   onAddTimelineEvent,
-  className = ''
+  className = '',
+  onForceSync,
+  isForceSyncing
 }) => {
   // Saved Token from localStorage (optional for real API calls)
   const [token, setToken] = useState<string>(() => {
@@ -209,6 +214,8 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada e atualizar dep
         issueState: integration?.issueState || 'open',
         linkedAt: integration?.linkedAt || new Date().toISOString(),
         lastSyncedAt: new Date().toISOString(),
+        syncStatus: integration?.issueNumber ? 'synced' : 'pending',
+        lastSyncError: undefined,
         autoSyncStatus: integration?.autoSyncStatus ?? true,
         selectedLabels: selectedLabels,
         syncLogs: [
@@ -349,6 +356,8 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada e atualizar dep
         issueTitle: issueTitle,
         issueState: 'open',
         lastSyncedAt: new Date().toISOString(),
+        syncStatus: 'synced',
+        lastSyncError: undefined,
         selectedLabels: selectedLabels,
         syncLogs: [newLog, ...(integration.syncLogs || [])]
       };
@@ -448,6 +457,8 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada e atualizar dep
         ...integration,
         issueState: currentIssueState,
         lastSyncedAt: new Date().toISOString(),
+        syncStatus: 'synced',
+        lastSyncError: undefined,
         syncLogs: [newLog, ...(integration.syncLogs || [])]
       };
 
@@ -471,7 +482,28 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada e atualizar dep
 
       setActionSuccessMsg(`Sincronização concluída! Issue #${issueNumber} está ${currentIssueState.toUpperCase()}.`);
     } catch (err: any) {
-      setActionErrorMsg(err.message || 'Erro ao sincronizar status com o GitHub.');
+      const errorMsg = err.message || 'Erro ao sincronizar status com o GitHub.';
+      const errorLog: GitHubSyncLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString(),
+        action: 'Erro de Sincronização',
+        details: errorMsg,
+        success: false
+      };
+
+      if (onUpdateReport && integration) {
+        onUpdateReport({
+          ...report,
+          githubIntegration: {
+            ...integration,
+            syncStatus: 'error',
+            lastSyncError: errorMsg,
+            syncLogs: [errorLog, ...(integration.syncLogs || [])]
+          }
+        });
+      }
+
+      setActionErrorMsg(errorMsg);
     } finally {
       setIsSyncing(false);
     }
@@ -519,6 +551,8 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada e atualizar dep
         ...integration,
         issueState: newState,
         lastSyncedAt: new Date().toISOString(),
+        syncStatus: 'synced',
+        lastSyncError: undefined,
         syncLogs: [newLog, ...(integration.syncLogs || [])]
       };
 
@@ -749,6 +783,14 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada e atualizar dep
       {/* Main Body Grid */}
       <div className="p-5 sm:p-6 space-y-6">
 
+        {/* Real-time GitHub Sync Status Overview */}
+        <GitHubSyncIndicator
+          report={report}
+          variant="detailed"
+          onSyncClick={onForceSync || (isLinked && integration?.issueNumber ? handleSyncStatus : undefined)}
+          isSyncing={isForceSyncing ?? isSyncing}
+        />
+
         {/* STEP 1: Repository Linking Form */}
         <div className="p-4 sm:p-5 rounded-xl bg-[#090b10] border border-[#1e2338] space-y-4">
           <div className="flex items-center justify-between">
@@ -877,13 +919,13 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada e atualizar dep
                 <div className="pt-3 border-t border-[#1e2338] flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={handleSyncStatus}
-                    disabled={isSyncing}
-                    className="px-3 py-1.5 rounded-lg bg-[#141824] hover:bg-[#1a2032] text-zinc-200 hover:text-white border border-[#22283e] text-xs font-mono transition-all flex items-center gap-1.5 disabled:opacity-50"
-                    title="Consultar status no GitHub e sincronizar com o relatório"
+                    onClick={onForceSync || handleSyncStatus}
+                    disabled={isForceSyncing || isSyncing}
+                    className="px-3.5 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 hover:text-white border border-purple-500/40 text-xs font-mono font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 shadow-sm cursor-pointer"
+                    title="Forçar re-sincronização imediata de detalhes e reconciliar status com o GitHub"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isSyncing ? 'animate-spin' : ''}`} />
-                    <span>Sincronizar Agora</span>
+                    <RefreshCw className={`w-3.5 h-3.5 text-purple-400 ${(isForceSyncing || isSyncing) ? 'animate-spin' : ''}`} />
+                    <span>{(isForceSyncing || isSyncing) ? 'Sincronizando...' : 'Forçar Sync'}</span>
                   </button>
 
                   {integration?.issueState === 'open' ? (
