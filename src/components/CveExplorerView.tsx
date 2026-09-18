@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Database, 
   Search, 
@@ -10,10 +10,18 @@ import {
   Calendar, 
   ArrowRight,
   Sparkles,
-  Layers
+  Layers,
+  History
 } from 'lucide-react';
-import { CVERecord, Severity } from '../types';
+import { CVERecord, Severity, CveHistoryItem } from '../types';
 import { getSeverityBadgeColor } from '../utils/formatters';
+import { CveHistoryWidget } from './CveHistoryWidget';
+import {
+  getCveHistory,
+  recordCveHistory,
+  clearCveHistory,
+  removeCveHistoryItem
+} from '../utils/cveHistoryManager';
 
 interface CveExplorerViewProps {
   onLinkToNewReport: (cve: CVERecord) => void;
@@ -25,8 +33,9 @@ export const CveExplorerView: React.FC<CveExplorerViewProps> = ({ onLinkToNewRep
   const [loading, setLoading] = useState(false);
   const [source, setSource] = useState<string>('curated');
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
+  const [history, setHistory] = useState<CveHistoryItem[]>(() => getCveHistory());
 
-  const searchCveApi = async (searchQuery: string) => {
+  const searchCveApi = useCallback(async (searchQuery: string, trackHistory: boolean = false) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/cve/search?q=${encodeURIComponent(searchQuery)}`);
@@ -34,21 +43,82 @@ export const CveExplorerView: React.FC<CveExplorerViewProps> = ({ onLinkToNewRep
       if (data.results) {
         setCves(data.results);
         setSource(data.source || 'live_cve_database');
+
+        // If tracking was requested or user searched for a specific CVE
+        if (trackHistory && data.results.length > 0) {
+          const queryClean = searchQuery.trim().toUpperCase();
+          const directMatch = data.results.find((c: CVERecord) => 
+            c.id.toUpperCase() === queryClean || c.id.toUpperCase().includes(queryClean)
+          ) || data.results[0];
+
+          if (directMatch) {
+            const updated = recordCveHistory(directMatch, 'searched');
+            setHistory(updated);
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching CVEs:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     searchCveApi('');
-  }, []);
+  }, [searchCveApi]);
 
+  // When user submits manual search
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    searchCveApi(query);
+    searchCveApi(query, true);
+  };
+
+  // When user clicks a quick filter
+  const handleQuickFilter = (filterQuery: string) => {
+    setQuery(filterQuery);
+    searchCveApi(filterQuery, !!filterQuery);
+  };
+
+  // When user links a CVE to a new report
+  const handleLinkToReport = (cve: CVERecord) => {
+    const updated = recordCveHistory(cve, 'linked');
+    setHistory(updated);
+    onLinkToNewReport(cve);
+  };
+
+  // When user selects a CVE from history to navigate
+  const handleSelectCveFromHistory = (cveId: string) => {
+    setQuery(cveId);
+    searchCveApi(cveId, false);
+    // Find record to refresh timestamp
+    const matched = cves.find(c => c.id.toLowerCase() === cveId.toLowerCase());
+    if (matched) {
+      const updated = recordCveHistory(matched, 'searched');
+      setHistory(updated);
+    }
+  };
+
+  // When user clicks on a CVE card to inspect
+  const handleInspectCve = (cve: CVERecord) => {
+    const updated = recordCveHistory(cve, 'searched');
+    setHistory(updated);
+  };
+
+  const handleClearHistory = () => {
+    clearCveHistory();
+    setHistory([]);
+  };
+
+  const handleRemoveHistoryItem = (cveId: string) => {
+    const updated = removeCveHistoryItem(cveId);
+    setHistory(updated);
+  };
+
+  const handleRestoreDefaults = () => {
+    clearCveHistory();
+    const seeded = getCveHistory();
+    setHistory(seeded);
   };
 
   const quickFilters = [
@@ -118,17 +188,24 @@ export const CveExplorerView: React.FC<CveExplorerViewProps> = ({ onLinkToNewRep
           {quickFilters.map(filter => (
             <button
               key={filter.label}
-              onClick={() => {
-                setQuery(filter.query);
-                searchCveApi(filter.query);
-              }}
-              className="px-2.5 py-1 rounded bg-[#121212] hover:bg-[#1a1a1a] border border-[#262626] text-zinc-400 hover:text-white text-xs font-mono transition-all whitespace-nowrap"
+              onClick={() => handleQuickFilter(filter.query)}
+              className="px-2.5 py-1 rounded bg-[#121212] hover:bg-[#1a1a1a] border border-[#262626] text-zinc-400 hover:text-white text-xs font-mono transition-all whitespace-nowrap cursor-pointer"
             >
               {filter.label}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Histórico de CVE - 5 Últimos Buscados ou Linkados */}
+      <CveHistoryWidget
+        history={history}
+        onSelectCveForSearch={handleSelectCveFromHistory}
+        onLinkToNewReport={handleLinkToReport}
+        onClearHistory={handleClearHistory}
+        onRemoveItem={handleRemoveHistoryItem}
+        onRestoreDefaults={handleRestoreDefaults}
+      />
 
       {/* CVE Records Grid */}
       <div className="space-y-3">
@@ -148,7 +225,8 @@ export const CveExplorerView: React.FC<CveExplorerViewProps> = ({ onLinkToNewRep
             return (
               <div
                 key={cve.id}
-                className="p-5 rounded-xl bg-[#0a0a0a] border border-[#262626] hover:border-zinc-700 transition-all space-y-3 shadow-sm"
+                onClick={() => handleInspectCve(cve)}
+                className="p-5 rounded-xl bg-[#0a0a0a] border border-[#262626] hover:border-zinc-700 transition-all space-y-3 shadow-sm cursor-pointer"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -171,15 +249,18 @@ export const CveExplorerView: React.FC<CveExplorerViewProps> = ({ onLinkToNewRep
                   </div>
 
                   <button
-                    onClick={() => onLinkToNewReport(cve)}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider transition-all shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLinkToReport(cve);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider transition-all shrink-0 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Criar Relatório Deste CVE</span>
                   </button>
                 </div>
 
-                <h3 className="text-sm font-semibold text-zinc-200">
+                <h3 className="text-sm font-semibold text-zinc-200 hover:text-white transition-colors">
                   {cve.title}
                 </h3>
 
@@ -188,7 +269,10 @@ export const CveExplorerView: React.FC<CveExplorerViewProps> = ({ onLinkToNewRep
                 </p>
 
                 {cve.references && cve.references.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-zinc-500 font-mono">
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-zinc-500 font-mono"
+                  >
                     <span className="text-zinc-400 font-medium">Fontes Oficiais:</span>
                     {cve.references.slice(0, 3).map((ref, idx) => (
                       <a

@@ -260,6 +260,118 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido (sem tags markdown de código ou t
   }
 });
 
+// Gemini AI endpoint to suggest CVSS Score and Severity based on Summary and Steps to Reproduce
+app.post("/api/gemini/analyze-cvss", async (req, res) => {
+  try {
+    const { summary, stepsToReproduce, title, vulnerabilityType } = req.body;
+
+    const formattedSteps = Array.isArray(stepsToReproduce)
+      ? stepsToReproduce.filter(s => typeof s === 'string' && s.trim().length > 0)
+      : (typeof stepsToReproduce === 'string' && stepsToReproduce.trim().length > 0 ? [stepsToReproduce.trim()] : []);
+
+    const hasSummary = typeof summary === 'string' && summary.trim().length > 0;
+    const hasSteps = formattedSteps.length > 0;
+
+    if (!hasSummary && !hasSteps) {
+      return res.status(400).json({ 
+        error: "Por favor, forneça o Resumo da Falha (Summary) ou os Passos para Reproduzir (Steps to Reproduce) para que a IA possa analisar o CVSS." 
+      });
+    }
+
+    const ai = getGeminiClient();
+
+    const stepsText = formattedSteps.map((s, idx) => `${idx + 1}. ${s}`).join("\n");
+
+    const prompt = `Você é um analista sênior de segurança da informação (AppSec & Red Team) e autoridade em triagem CVSS v3.1 (FIRST.org).
+Analise rigorosamente o resumo do relatório de vulnerabilidade e os passos para reproduzir a seguir para determinar a pontuação CVSS 3.1 exata, vetor e severidade.
+
+DADOS FORNECIDOS DO RELATÓRIO:
+${title ? `- Título: ${title}\n` : ''}${vulnerabilityType ? `- Categoria/Tipo: ${vulnerabilityType}\n` : ''}- Resumo Executivo / Descrição da Falha:
+${hasSummary ? summary.trim() : "(Não informado)"}
+
+- Passos para Reproduzir:
+${hasSteps ? stepsText : "(Não informado)"}
+
+DIRETRIZES TÉCNICAS DE CLASSIFICAÇÃO CVSS v3.1:
+1. Analise o vetor de ataque (AV): Network (N) para endpoints web/API remotos, Adjacent (A) para mesma sub-rede/Bluetooth, Local (L) para CLI/arquivos locais, Physical (P).
+2. Analise a complexidade (AC): Low (L) se a exploração for previsível e direta; High (H) se depender de race condition rara ou condições fora de controle do atacante.
+3. Analise privilégios requeridos (PR): None (N) se não exigir autenticação; Low (L) para usuário comum; High (H) para admin/operador.
+4. Analise interação do usuário (UI): None (N) se o atacante conseguir explorar sem ação da vítima; Required (R) para CSRF, Reflected/DOM XSS, phishing, etc.
+5. Analise escopo (S): Unchanged (U) se o impacto for restrito ao componente vulnerável; Changed (C) se violar contexto de segurança de outro componente (ex: Sandbox escape, Cross-Site Scripting, Cloud Metadata SSRF).
+6. Analise o impacto em Confidencialidade (C), Integridade (I) e Disponibilidade (A): None (N), Low (L), High (H).
+7. Calcule a pontuação CVSS Base (0.0 a 10.0) e classifique a severidade:
+   - 9.0 a 10.0: CRITICAL
+   - 7.0 a 8.9: HIGH
+   - 4.0 a 6.9: MEDIUM
+   - 0.1 a 3.9: LOW
+   - 0.0: NONE / INFO
+
+Retorne EXCLUSIVAMENTE um objeto JSON válido (sem qualquer bloco de código markdown, sem \`\`\`json ou texto adicional):
+{
+  "cvssScore": 7.5,
+  "severity": "HIGH",
+  "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+  "metrics": {
+    "av": "N",
+    "ac": "L",
+    "pr": "N",
+    "ui": "N",
+    "s": "U",
+    "c": "H",
+    "i": "N",
+    "a": "N"
+  },
+  "justification": "Explicação técnica detalhada justificando cada métrica principal com base no resumo e nos passos para reproduzir fornecidos."
+}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: prompt,
+      config: {
+        temperature: 0.1,
+      },
+    });
+
+    const responseText = response.text || "{}";
+    let cleaned = responseText.trim();
+    if (cleaned.startsWith("```json")) {
+      cleaned = cleaned.replace(/^```json/, "").replace(/```$/, "").trim();
+    } else if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```/, "").replace(/```$/, "").trim();
+    }
+
+    const parsed = JSON.parse(cleaned);
+
+    // Ensure valid severity
+    const validSeverities = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
+    let finalSeverity = String(parsed.severity || "").toUpperCase();
+    if (!validSeverities.includes(finalSeverity)) {
+      const score = Number(parsed.cvssScore) || 0;
+      if (score >= 9.0) finalSeverity = "CRITICAL";
+      else if (score >= 7.0) finalSeverity = "HIGH";
+      else if (score >= 4.0) finalSeverity = "MEDIUM";
+      else if (score > 0) finalSeverity = "LOW";
+      else finalSeverity = "INFO";
+    }
+
+    res.json({
+      success: true,
+      data: {
+        cvssScore: typeof parsed.cvssScore === 'number' ? parsed.cvssScore : parseFloat(parsed.cvssScore) || 7.5,
+        severity: finalSeverity,
+        cvssVector: parsed.cvssVector || "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        metrics: parsed.metrics || null,
+        justification: parsed.justification || "Avaliação baseada no resumo e passos de reprodução fornecidos."
+      }
+    });
+  } catch (error: any) {
+    console.error("Gemini analyze CVSS error:", error);
+    res.status(500).json({
+      error: "Erro ao analisar CVSS com o Gemini: " + (error?.message || "Verifique a configuração da chave de API.")
+    });
+  }
+});
+
 // Automated Tagging & CWE/CVE Suggestion Engine
 app.post("/api/reports/auto-tag", async (req, res) => {
   try {

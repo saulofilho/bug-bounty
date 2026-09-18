@@ -144,6 +144,19 @@ export interface CVERecord {
   references: string[];
 }
 
+export type CveHistoryAction = 'searched' | 'linked';
+
+export interface CveHistoryItem {
+  cveId: string;
+  title: string;
+  cvss: number;
+  severity: Severity;
+  cwe?: string;
+  action: CveHistoryAction;
+  timestamp: number;
+  cveRecord: CVERecord;
+}
+
 export interface TargetProgram {
   id: string;
   name: string;

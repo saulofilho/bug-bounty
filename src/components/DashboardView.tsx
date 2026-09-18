@@ -20,12 +20,14 @@ import {
   Timer,
   MessageSquareWarning,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
 import { calculateTriageEfficiency } from '../utils/triageEfficiencyEngine';
+import { BountySparklineChart, BountyCompactSparkline } from './BountySparklineChart';
 import { SeverityBarChart } from './SeverityBarChart';
 import { SeverityPieChart } from './SeverityPieChart';
 import { ReportsTrendChart } from './ReportsTrendChart';
@@ -35,6 +37,7 @@ import { FutureEarningsProjectionChart } from './FutureEarningsProjectionChart';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { CvssComparisonTool } from './CvssComparisonTool';
 import { BreachImpactSimulator } from './BreachImpactSimulator';
+import { FairImpactSimulator } from './FairImpactSimulator';
 import { TargetRateLimitMonitor } from './TargetRateLimitMonitor';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
 import { WeeklySummary } from './WeeklySummary';
@@ -335,19 +338,41 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Primary KPI Metrics Grid - Sophisticated Dark Architecture */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
-        {/* Total Bounties / Earnings */}
-        <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg">
-          <p className="text-xs text-zinc-500 uppercase mb-1">Total Bounties</p>
-          <h3 className="text-3xl font-light text-white font-mono">
-            {formatCurrency(totalEarnedUSD, 'USD')}
-          </h3>
-          <div className="mt-2 h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
-            <div 
-              className="bg-emerald-500 h-full transition-all duration-700" 
-              style={{ width: `${Math.min(100, Math.max(25, (totalEarnedUSD / 25000) * 100))}%` }} 
+        {/* Total Bounties / Earnings with 30-Day Sparkline */}
+        <div 
+          className="bg-[#121212] border border-[#262626] hover:border-emerald-500/40 transition-colors p-4 rounded-lg flex flex-col justify-between"
+          id="kpi-card-total-bounties"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-zinc-500 uppercase flex items-center gap-1">
+                <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Total Bounties</span>
+              </p>
+              <button
+                type="button"
+                id="btn-kpi-view-30d-trend"
+                onClick={() => document.getElementById('bounty-30day-sparkline-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="text-[9px] font-mono uppercase text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-0.5 cursor-pointer"
+                title="Visualizar gráfico de tendência em sparkline dos últimos 30 dias"
+              >
+                <span>30D Trend</span>
+                <ChevronRight className="w-2.5 h-2.5" />
+              </button>
+            </div>
+            <h3 className="text-3xl font-light text-white font-mono">
+              {formatCurrency(totalEarnedUSD, 'USD')}
+            </h3>
+            <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">{formatCurrency(totalEarnedBRL, 'BRL')} estimado</p>
+          </div>
+
+          {/* Embedded 30-Day Bounty Sparkline Visualization */}
+          <div className="mt-2.5 pt-2 border-t border-[#1e1e1e]">
+            <BountyCompactSparkline
+              reports={reports}
+              onOpenDetailedView={() => document.getElementById('bounty-30day-sparkline-section')?.scrollIntoView({ behavior: 'smooth' })}
             />
           </div>
-          <p className="mt-1.5 text-[10px] text-zinc-400 font-mono">{formatCurrency(totalEarnedBRL, 'BRL')} estimado</p>
         </div>
 
         {/* Critical Findings */}
@@ -460,6 +485,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
       </section>
+
+      {/* 30-Day Bounty Sparkline & Financial Velocity Intelligence Panel */}
+      <BountySparklineChart
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
 
       {/* Triage Efficiency & Response Turnaround Module (DRAFT -> TRIAGED / CLOSED from Timeline) */}
       <TriageEfficiencyCard
@@ -642,6 +674,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Breach Impact Simulator: Quantitative Financial & Reputational Cost Modeling (IBM/Ponemon & FAIR) */}
       <BreachImpactSimulator
+        reports={reports}
+        onSelectReport={onSelectReport}
+      />
+
+      {/* FAIR Impact Simulator: Quantitative Annual Loss Expectancy (ALE = ARO x SLE) Risk Modeling */}
+      <FairImpactSimulator
         reports={reports}
         onSelectReport={onSelectReport}
       />
