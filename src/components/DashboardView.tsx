@@ -19,7 +19,8 @@ import {
   Flame,
   Timer,
   MessageSquareWarning,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
@@ -63,6 +64,7 @@ interface DashboardViewProps {
   onNavigateTab: (tab: 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel') => void;
   onOpenAbout?: () => void;
   onOpenCvssCalculator?: (vector?: string, reportId?: string) => void;
+  onOpenWelcomeModal?: () => void;
   onSelectSeverity?: (severity: Severity) => void;
   onAddTimelineEvent?: (reportId: string, event: Omit<TimelineEvent, 'id'>) => void;
 }
@@ -75,6 +77,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigateTab,
   onOpenAbout,
   onOpenCvssCalculator,
+  onOpenWelcomeModal,
   onSelectSeverity,
   onAddTimelineEvent
 }) => {
@@ -242,6 +245,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Zero State Alert Banner when Mock is Cleared */}
+      {reports.length === 0 && (
+        <div 
+          id="banner-clean-environment" 
+          className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 via-[#0c1612] to-[#0a0a0f] border border-emerald-500/35 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs shadow-lg animate-fadeIn"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white text-sm">Plataforma Zerada (Ambiente Limpo)</span>
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-semibold border border-emerald-500/30">
+                  0 Achados
+                </span>
+              </div>
+              <p className="text-zinc-400 text-xs mt-0.5 leading-relaxed">
+                Você está no ambiente sem dados simulados. Comece criando seu primeiro relatório ou carregue os dados de demonstração (mock) para ver dashboards, gráficos e históricos preenchidos.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {onOpenWelcomeModal && (
+              <button
+                type="button"
+                id="btn-dashboard-load-mock"
+                onClick={onOpenWelcomeModal}
+                className="px-3.5 py-2 rounded-lg bg-[#141d24] hover:bg-[#1b2b36] text-cyan-300 hover:text-white border border-cyan-500/40 font-mono font-semibold text-xs tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+              >
+                <Database className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Opções de Mock</span>
+              </button>
+            )}
+            <button
+              type="button"
+              id="btn-dashboard-create-first-report"
+              onClick={onNewReport}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold font-mono text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 cursor-pointer active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Criar Relatório</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Firebase Auth Quick Warning Bar if unauthenticated */}
       {!isAuthenticated && (

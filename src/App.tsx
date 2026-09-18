@@ -22,8 +22,9 @@ import { FirebaseAuthModal } from './components/FirebaseAuthModal';
 import { PdfExportModal } from './components/PdfExportModal';
 import { CsvImportModal } from './components/CsvImportModal';
 import { StorageIntegrityModal } from './components/StorageIntegrityModal';
+import { WelcomePlatformModal } from './components/WelcomePlatformModal';
 import { validateAndRepairStorageIntegrity, StorageIntegrityResult } from './utils/storageIntegrityValidator';
-import { ShieldCheck, X as CloseIcon } from 'lucide-react';
+import { ShieldCheck, X as CloseIcon, Sparkles } from 'lucide-react';
 import { exportReportsToCsv } from './utils/csvReportParser';
 import { Toaster } from 'react-hot-toast';
 import { notifyCriticalVulnerability, showSuccessToast, showInfoToast } from './utils/toastNotifications';
@@ -77,18 +78,53 @@ function AppContent() {
   const [selectedSeverityFilter, setSelectedSeverityFilter] = useState<string>('ALL');
   const [reportForPdfExport, setReportForPdfExport] = useState<VulnerabilityReport | null>(null);
   const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
 
-  const handleResetToSeedData = () => {
-    setReports(INITIAL_REPORTS);
-    setTargets(INITIAL_TARGETS);
-    setDocs(INITIAL_DOCS);
+  const handleExploreWithMock = () => {
     try {
+      localStorage.removeItem('bounty_mock_cleared');
       localStorage.setItem('bounty_reports_v2', JSON.stringify(INITIAL_REPORTS));
       localStorage.setItem('bounty_targets_v2', JSON.stringify(INITIAL_TARGETS));
       localStorage.setItem('bounty_docs_v2', JSON.stringify(INITIAL_DOCS));
     } catch (e) {
       console.error(e);
     }
+    setReports(INITIAL_REPORTS);
+    setTargets(INITIAL_TARGETS);
+    setDocs(INITIAL_DOCS);
+    setIsWelcomeModalOpen(false);
+    showSuccessToast('Modo Demonstração ativo! Relatórios e alvos de teste carregados.');
+  };
+
+  const handleClearMockAndStartFresh = () => {
+    try {
+      localStorage.setItem('bounty_mock_cleared', 'true');
+      localStorage.setItem('bounty_reports_v2', JSON.stringify([]));
+      localStorage.setItem('bounty_targets_v2', JSON.stringify([]));
+      localStorage.setItem('bounty_docs_v2', JSON.stringify([]));
+    } catch (e) {
+      console.error(e);
+    }
+    setReports([]);
+    setTargets([]);
+    setDocs([]);
+    setIsWelcomeModalOpen(false);
+    showSuccessToast('Plataforma 100% zerada! Todos os mocks foram limpos.');
+  };
+
+  const handleResetToSeedData = () => {
+    try {
+      localStorage.removeItem('bounty_mock_cleared');
+      localStorage.setItem('bounty_reports_v2', JSON.stringify(INITIAL_REPORTS));
+      localStorage.setItem('bounty_targets_v2', JSON.stringify(INITIAL_TARGETS));
+      localStorage.setItem('bounty_docs_v2', JSON.stringify(INITIAL_DOCS));
+    } catch (e) {
+      console.error(e);
+    }
+    setReports(INITIAL_REPORTS);
+    setTargets(INITIAL_TARGETS);
+    setDocs(INITIAL_DOCS);
+    showSuccessToast('Dados padrão restaurados com sucesso!');
   };
 
   // Sync to localStorage
@@ -772,6 +808,8 @@ function AppContent() {
         onOpenCvssCalculator={() => handleOpenCvssCalculator()}
         onOpenAbout={() => setIsAboutModalOpen(true)}
         onOpenStorageIntegrity={() => setIsIntegrityModalOpen(true)}
+        onOpenWelcomeModal={() => setIsWelcomeModalOpen(true)}
+        isMockActive={reports.length > 0 || targets.length > 0}
         isStorageRepaired={integrityResult.totalRepairs > 0}
         totalRewardedUSD={totalRewardedUSD}
         activeReportsCount={activeReportsCount}
@@ -826,6 +864,7 @@ function AppContent() {
             onNavigateTab={(tab) => setCurrentTab(tab)}
             onOpenAbout={() => setIsAboutModalOpen(true)}
             onOpenCvssCalculator={(vec, id) => handleOpenCvssCalculator(vec, id)}
+            onOpenWelcomeModal={() => setIsWelcomeModalOpen(true)}
             onSelectSeverity={(sev) => {
               setSelectedSeverityFilter(sev);
               setCurrentTab('reports');
@@ -1003,6 +1042,17 @@ function AppContent() {
         onResetToSeedData={handleResetToSeedData}
       />
 
+      {/* Welcome & Platform Onboarding / Mock Selection Modal */}
+      <WelcomePlatformModal
+        isOpen={isWelcomeModalOpen}
+        onClose={() => setIsWelcomeModalOpen(false)}
+        onExploreWithMock={handleExploreWithMock}
+        onClearMockAndStartFresh={handleClearMockAndStartFresh}
+        isMockActive={reports.length > 0 || targets.length > 0}
+        reportsCount={reports.length}
+        targetsCount={targets.length}
+      />
+
       {/* Sophisticated Dark Global Status Footer */}
       <footer className="border-t border-[#262626] bg-[#0a0a0a] text-[10px] uppercase tracking-tighter text-zinc-500 mt-12 py-3.5 px-3 sm:px-4 lg:px-6 xl:px-8">
         <div className="w-full max-w-[1800px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -1011,7 +1061,7 @@ function AppContent() {
             <button
               type="button"
               onClick={() => setIsIntegrityModalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors cursor-pointer"
               title="Clique para auditar a integridade do localStorage"
             >
               <span>Storage:</span>
@@ -1032,8 +1082,19 @@ function AppContent() {
           <div className="flex items-center gap-4 text-right font-mono text-zinc-500">
             <button
               type="button"
+              id="btn-footer-welcome-modal"
+              onClick={() => setIsWelcomeModalOpen(true)}
+              className="text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-wider underline underline-offset-2 flex items-center gap-1 cursor-pointer font-semibold"
+              title="Abrir introdução da plataforma e opções de mock"
+            >
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span>Conhecer Plataforma / Mock</span>
+            </button>
+            <span>•</span>
+            <button
+              type="button"
               onClick={() => setIsAboutModalOpen(true)}
-              className="text-zinc-400 hover:text-emerald-400 transition-colors uppercase tracking-wider underline underline-offset-2"
+              className="text-zinc-400 hover:text-emerald-400 transition-colors uppercase tracking-wider underline underline-offset-2 cursor-pointer"
             >
               Sobre o Sistema & Mock Data
             </button>

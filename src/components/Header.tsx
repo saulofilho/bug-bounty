@@ -19,7 +19,8 @@ import {
   Plus,
   Globe,
   Calculator,
-  Radio
+  Radio,
+  Sparkles
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { UserAuthWidget } from './UserAuthWidget';
@@ -35,6 +36,8 @@ export interface HeaderProps {
   onOpenCvssCalculator?: () => void;
   onOpenAbout?: () => void;
   onOpenStorageIntegrity?: () => void;
+  onOpenWelcomeModal?: () => void;
+  isMockActive?: boolean;
   isStorageRepaired?: boolean;
   totalRewardedUSD: number;
   activeReportsCount: number;
@@ -52,6 +55,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCvssCalculator,
   onOpenAbout,
   onOpenStorageIntegrity,
+  onOpenWelcomeModal,
+  isMockActive = true,
   isStorageRepaired,
   totalRewardedUSD,
   activeReportsCount,
@@ -399,6 +404,25 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
 
+              {/* Quick Action: Welcome / Mock Mode */}
+              {onOpenWelcomeModal && (
+                <button
+                  id="btn-header-welcome-modal"
+                  type="button"
+                  onClick={onOpenWelcomeModal}
+                  title="Conhecer a plataforma ou alternar entre dados de demonstração (mock) e ambiente zerado"
+                  aria-label="Conhecer a Plataforma e Dados Mock"
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border whitespace-nowrap cursor-pointer ${
+                    isMockActive
+                      ? 'bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 border-cyan-500/40 hover:border-cyan-400'
+                      : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-500/40 hover:border-emerald-400'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
+                  <span className="hidden xl:inline">{isMockActive ? 'Mock Ativo' : 'Plataforma Zerada'}</span>
+                </button>
+              )}
+
               {/* Quick Actions Dropdown Menu Toggle */}
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -602,6 +626,27 @@ export const Header: React.FC<HeaderProps> = ({
                           <HelpCircle className="w-3.5 h-3.5 text-zinc-400" />
                           <span>Central de Ajuda & Guia</span>
                         </div>
+                      </button>
+                    )}
+
+                    {onOpenWelcomeModal && (
+                      <button
+                        type="button"
+                        id="btn-menu-welcome-modal"
+                        onClick={() => {
+                          setIsQuickMenuOpen(false);
+                          onOpenWelcomeModal();
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-cyan-300 hover:text-white hover:bg-cyan-950/40 transition-colors text-left border-t border-[#222226] mt-1 pt-2"
+                        role="menuitem"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Conhecer Plataforma / Mock</span>
+                        </div>
+                        <span className="text-[9px] font-mono text-cyan-400 font-semibold">
+                          {isMockActive ? 'Mock ON' : 'Zerado'}
+                        </span>
                       </button>
                     )}
                   </div>

@@ -491,6 +491,8 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
   let docsRepaired = 0;
   let auxiliaryRepaired = 0;
 
+  const isMockExplicitlyCleared = typeof window !== 'undefined' && localStorage.getItem('bounty_mock_cleared') === 'true';
+
   // -------------------------------------------------------------
   // 1. Validate & Repair bounty_reports_v2
   // -------------------------------------------------------------
@@ -498,8 +500,8 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
   const rawReportsStr = localStorage.getItem('bounty_reports_v2');
 
   if (!rawReportsStr) {
-    // Fresh initialization from seed
-    repairedReports = [...INITIAL_REPORTS];
+    // Fresh initialization from seed (or empty if mock was explicitly cleared)
+    repairedReports = isMockExplicitlyCleared ? [] : [...INITIAL_REPORTS];
     try {
       localStorage.setItem('bounty_reports_v2', JSON.stringify(repairedReports));
     } catch (e) {
@@ -517,10 +519,12 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
         storageKey: 'bounty_reports_v2',
         issueType: 'SYNTAX_ERROR',
         description: `JSON corrompido em 'bounty_reports_v2': ${err?.message || 'Erro de sintaxe'}`,
-        actionTaken: 'Conjunto restaurado com base nos relatórios padrão do sistema para restabelecer renderização.'
+        actionTaken: isMockExplicitlyCleared 
+          ? 'Conjunto limpo redefinido para array vazio.' 
+          : 'Conjunto restaurado com base nos relatórios padrão do sistema para restabelecer renderização.'
       });
       reportsRepaired++;
-      parsed = [...INITIAL_REPORTS];
+      parsed = isMockExplicitlyCleared ? [] : [...INITIAL_REPORTS];
     }
 
     if (!Array.isArray(parsed)) {
@@ -531,7 +535,7 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
         actionTaken: 'Convertido para Array e validado.'
       });
       reportsRepaired++;
-      parsed = Array.isArray(parsed?.reports) ? parsed.reports : [...INITIAL_REPORTS];
+      parsed = Array.isArray(parsed?.reports) ? parsed.reports : (isMockExplicitlyCleared ? [] : [...INITIAL_REPORTS]);
     }
 
     const seenReportIds = new Set<string>();
@@ -546,10 +550,14 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
       }
     }
 
-    // Merge any missing initial reports if empty or all lost
+    // Merge any missing initial reports if empty or all lost, UNLESS mock was cleared by user
     if (sanitizedReportsList.length === 0) {
-      repairedReports = [...INITIAL_REPORTS];
-      reportsRepaired++;
+      if (isMockExplicitlyCleared) {
+        repairedReports = [];
+      } else {
+        repairedReports = [...INITIAL_REPORTS];
+        reportsRepaired++;
+      }
     } else {
       repairedReports = sanitizedReportsList;
     }
@@ -571,7 +579,7 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
   const rawTargetsStr = localStorage.getItem('bounty_targets_v2');
 
   if (!rawTargetsStr) {
-    repairedTargets = [...INITIAL_TARGETS];
+    repairedTargets = isMockExplicitlyCleared ? [] : [...INITIAL_TARGETS];
     try {
       localStorage.setItem('bounty_targets_v2', JSON.stringify(repairedTargets));
     } catch (e) {
@@ -589,10 +597,10 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
         storageKey: 'bounty_targets_v2',
         issueType: 'SYNTAX_ERROR',
         description: `JSON corrompido em 'bounty_targets_v2': ${err?.message || 'Erro de sintaxe'}`,
-        actionTaken: 'Alvos restaurados a partir dos dados padrão.'
+        actionTaken: isMockExplicitlyCleared ? 'Alvos limpos para array vazio.' : 'Alvos restaurados a partir dos dados padrão.'
       });
       targetsRepaired++;
-      parsedTargets = [...INITIAL_TARGETS];
+      parsedTargets = isMockExplicitlyCleared ? [] : [...INITIAL_TARGETS];
     }
 
     if (!Array.isArray(parsedTargets)) {
@@ -603,7 +611,7 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
         actionTaken: 'Estrutura restaurada.'
       });
       targetsRepaired++;
-      parsedTargets = [...INITIAL_TARGETS];
+      parsedTargets = isMockExplicitlyCleared ? [] : [...INITIAL_TARGETS];
     }
 
     const seenTargetIds = new Set<string>();
@@ -618,7 +626,13 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
       }
     }
 
-    repairedTargets = sanitizedTargetsList.length > 0 ? sanitizedTargetsList : [...INITIAL_TARGETS];
+    if (sanitizedTargetsList.length > 0) {
+      repairedTargets = sanitizedTargetsList;
+    } else if (isMockExplicitlyCleared) {
+      repairedTargets = [];
+    } else {
+      repairedTargets = [...INITIAL_TARGETS];
+    }
 
     if (targetsRepaired > 0 || targetsParseFailed) {
       try {
@@ -636,7 +650,7 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
   const rawDocsStr = localStorage.getItem('bounty_docs_v2');
 
   if (!rawDocsStr) {
-    repairedDocs = [...INITIAL_DOCS];
+    repairedDocs = isMockExplicitlyCleared ? [] : [...INITIAL_DOCS];
     try {
       localStorage.setItem('bounty_docs_v2', JSON.stringify(repairedDocs));
     } catch (e) {
@@ -654,10 +668,10 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
         storageKey: 'bounty_docs_v2',
         issueType: 'SYNTAX_ERROR',
         description: `JSON corrompido em 'bounty_docs_v2': ${err?.message || 'Erro de sintaxe'}`,
-        actionTaken: 'Documentos restaurados a partir dos dados padrão.'
+        actionTaken: isMockExplicitlyCleared ? 'Documentos limpos para array vazio.' : 'Documentos restaurados a partir dos dados padrão.'
       });
       docsRepaired++;
-      parsedDocs = [...INITIAL_DOCS];
+      parsedDocs = isMockExplicitlyCleared ? [] : [...INITIAL_DOCS];
     }
 
     if (!Array.isArray(parsedDocs)) {
@@ -668,7 +682,7 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
         actionTaken: 'Estrutura restaurada.'
       });
       docsRepaired++;
-      parsedDocs = [...INITIAL_DOCS];
+      parsedDocs = isMockExplicitlyCleared ? [] : [...INITIAL_DOCS];
     }
 
     const seenDocIds = new Set<string>();
@@ -683,7 +697,13 @@ export function validateAndRepairStorageIntegrity(): StorageIntegrityResult {
       }
     }
 
-    repairedDocs = sanitizedDocsList.length > 0 ? sanitizedDocsList : [...INITIAL_DOCS];
+    if (sanitizedDocsList.length > 0) {
+      repairedDocs = sanitizedDocsList;
+    } else if (isMockExplicitlyCleared) {
+      repairedDocs = [];
+    } else {
+      repairedDocs = [...INITIAL_DOCS];
+    }
 
     if (docsRepaired > 0 || docsParseFailed) {
       try {
