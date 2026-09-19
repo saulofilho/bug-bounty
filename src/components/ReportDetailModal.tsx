@@ -40,7 +40,8 @@ import {
   FolderGit2,
   GitPullRequest,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Settings
 } from 'lucide-react';
 import { VulnerabilityReport, ReportStatus, Severity, TimelineEvent, ValidationChecklistItem, GitHubIntegrationData, GitHubSyncLog } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform } from '../utils/formatters';
@@ -55,6 +56,8 @@ import { downloadPdfReport } from '../utils/pdfReportGenerator';
 import { BreachImpactSimulator } from './BreachImpactSimulator';
 import { GitHubIntegration } from './GitHubIntegration';
 import { GitHubSyncIndicator } from './GitHubSyncIndicator';
+import { SyncToGitHubModal } from './SyncToGitHubModal';
+import { SettingsModal } from './SettingsModal';
 
 interface ReportDetailModalProps {
   report: VulnerabilityReport | null;
@@ -70,6 +73,7 @@ interface ReportDetailModalProps {
   allReports?: VulnerabilityReport[];
   onSelectReport?: (report: VulnerabilityReport) => void;
   onUpdateReport?: (updatedReport: VulnerabilityReport) => void;
+  onOpenSettings?: () => void;
 }
 
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
@@ -85,7 +89,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onOpenPdfExport,
   allReports,
   onSelectReport,
-  onUpdateReport
+  onUpdateReport,
+  onOpenSettings
 }) => {
   const { isAuthenticated, canEditReports, canDeleteReports, openLoginModal } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'poc' | 'checklist' | 'timeline' | 'export' | 'impact' | 'github'>('details');
@@ -98,6 +103,10 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
   // PDF Export Modal state
   const [showPdfModal, setShowPdfModal] = useState(false);
+
+  // GitHub Issue Sync & Settings Modals states
+  const [isSyncToGitHubOpen, setIsSyncToGitHubOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Focused Reading Mode & Tool Guide state
   const [isFocusedReading, setIsFocusedReading] = useState(false);
@@ -601,6 +610,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               </button>
 
               <button
+                id="btn-sync-github-issue-header"
+                type="button"
+                onClick={() => setIsSyncToGitHubOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded text-xs font-mono font-semibold transition-all shadow-sm cursor-pointer bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-950/40"
+                title="Sincronizar este relatório como nova Issue no GitHub via GitHub API"
+              >
+                <GitPullRequest className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sync Issue</span>
+              </button>
+
+              <button
                 id="btn-open-pdf-modal-normal"
                 type="button"
                 onClick={() => {
@@ -735,6 +755,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               >
                 <FileDown className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Exportar PDF</span>
+              </button>
+
+              <button
+                id="btn-sync-github-issue-focus"
+                type="button"
+                onClick={() => setIsSyncToGitHubOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-mono font-semibold transition-all shadow-sm cursor-pointer shadow-purple-950/40"
+                title="Sincronizar este relatório como nova Issue no GitHub via GitHub API"
+              >
+                <GitPullRequest className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sync Issue</span>
               </button>
 
               <button
@@ -2077,6 +2108,36 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                 </button>
               </div>
 
+              {/* GitHub Issue API Direct Sync Action */}
+              <div className="p-4 rounded-lg bg-[#0e1220] border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <FolderGit2 className="w-4 h-4 text-purple-400" />
+                    <span className="text-xs font-bold text-purple-300 uppercase tracking-wider font-mono">
+                      Sincronização Direta GitHub API (Nova Issue)
+                    </span>
+                    {report.githubIntegration?.issueNumber && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono">
+                        Issue #{report.githubIntegration.issueNumber}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Envie este relatório diretamente para um repositório GitHub como uma nova Issue através da API REST oficial com Markdown estruturado. Requer configuração do Personal Access Token (PAT) nas opções.
+                  </p>
+                </div>
+
+                <button
+                  id="btn-export-sync-github-issue"
+                  type="button"
+                  onClick={() => setIsSyncToGitHubOpen(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-purple-950/40 shrink-0 cursor-pointer"
+                >
+                  <GitPullRequest className="w-4 h-4" />
+                  <span>{report.githubIntegration?.issueNumber ? 'Re-sincronizar Issue' : 'Sincronizar no GitHub'}</span>
+                </button>
+              </div>
+
               {/* Receipt if dispatched */}
               {dispatchReceipt && (
                 <div className="p-4 rounded-lg bg-[#121212] border border-emerald-500/40 space-y-2">
@@ -2297,6 +2358,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  id="btn-footer-sync-github-issue"
+                  onClick={() => setIsSyncToGitHubOpen(true)}
+                  className="flex items-center gap-1.5 bg-purple-950/40 hover:bg-purple-900/50 text-purple-300 hover:text-white border border-purple-500/40 hover:border-purple-400 font-semibold px-3 py-1.5 rounded uppercase tracking-wider text-xs transition-all cursor-pointer shadow-sm"
+                  title="Sincronizar este relatório diretamente como uma nova Issue no GitHub via GitHub API"
+                >
+                  <GitPullRequest className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Sync GitHub Issue</span>
+                </button>
+
+                <button
+                  type="button"
                   id="btn-footer-export-pdf"
                   onClick={() => {
                     if (onOpenPdfExport) {
@@ -2347,6 +2419,29 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         report={report}
         isOpen={showPdfModal}
         onClose={() => setShowPdfModal(false)}
+      />
+
+      {/* Sync Directly to GitHub as Issue Modal */}
+      <SyncToGitHubModal
+        report={report}
+        isOpen={isSyncToGitHubOpen}
+        onClose={() => setIsSyncToGitHubOpen(false)}
+        onOpenSettings={() => {
+          if (onOpenSettings) {
+            onOpenSettings();
+          } else {
+            setIsSettingsOpen(true);
+          }
+        }}
+        onUpdateReport={onUpdateReport}
+        onAddTimelineEvent={onAddTimelineEvent}
+      />
+
+      {/* Settings Modal (Fallback / Direct from Report Details) */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        initialTab="github"
       />
     </div>
   );

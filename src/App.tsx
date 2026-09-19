@@ -23,6 +23,9 @@ import { PdfExportModal } from './components/PdfExportModal';
 import { CsvImportModal } from './components/CsvImportModal';
 import { StorageIntegrityModal } from './components/StorageIntegrityModal';
 import { WelcomePlatformModal } from './components/WelcomePlatformModal';
+import { SettingsModal } from './components/SettingsModal';
+import { Notifications } from './components/Notifications';
+import { getStoredMockEmails, checkReportsStateChanges } from './utils/notificationEngine';
 import { validateAndRepairStorageIntegrity, StorageIntegrityResult } from './utils/storageIntegrityValidator';
 import { ShieldCheck, X as CloseIcon, Sparkles } from 'lucide-react';
 import { exportReportsToCsv } from './utils/csvReportParser';
@@ -79,6 +82,35 @@ function AppContent() {
   const [reportForPdfExport, setReportForPdfExport] = useState<VulnerabilityReport | null>(null);
   const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(() => {
+    try {
+      return getStoredMockEmails().filter(e => !e.read).length;
+    } catch {
+      return 0;
+    }
+  });
+
+  // Track status transitions and bounty updates across reports to dispatch mock emails
+  useEffect(() => {
+    if (!reports || reports.length === 0) return;
+    try {
+      const { newEmails } = checkReportsStateChanges(reports);
+      if (newEmails && newEmails.length > 0) {
+        setUnreadNotificationsCount(getStoredMockEmails().filter(e => !e.read).length);
+        newEmails.forEach(email => {
+          if (email.type === 'critical_validated') {
+            showSuccessToast(`📧 E-mail mock enviado para ${email.recipientEmail}: Achado Crítico Validado (${email.reportId})`);
+          } else if (email.type === 'bounty_updated') {
+            showSuccessToast(`💰 E-mail mock enviado para ${email.recipientEmail}: Recompensa de Bounty Atualizada!`);
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Error tracking report changes for notifications:', e);
+    }
+  }, [reports]);
 
   const handleExploreWithMock = () => {
     try {
@@ -809,6 +841,9 @@ function AppContent() {
         onOpenAbout={() => setIsAboutModalOpen(true)}
         onOpenStorageIntegrity={() => setIsIntegrityModalOpen(true)}
         onOpenWelcomeModal={() => setIsWelcomeModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenNotifications={() => setIsNotificationsModalOpen(true)}
+        unreadNotificationsCount={unreadNotificationsCount}
         isMockActive={reports.length > 0 || targets.length > 0}
         isStorageRepaired={integrityResult.totalRepairs > 0}
         totalRewardedUSD={totalRewardedUSD}
@@ -935,6 +970,16 @@ function AppContent() {
             onNavigateToReports={() => setCurrentTab('reports')}
           />
         )}
+
+        {currentTab === 'notifications' && (
+          <div className="space-y-6 animate-fadeIn pb-12">
+            <Notifications
+              reports={reports}
+              onSelectReport={handleSelectReport}
+              onUpdateReport={handleSaveReport}
+            />
+          </div>
+        )}
       </main>
 
       {/* Modals */}
@@ -956,6 +1001,7 @@ function AppContent() {
           onUpdateChecklist={handleUpdateChecklist}
           onOpenPdfExport={(rep) => setReportForPdfExport(rep)}
           onUpdateReport={handleUpdateReport}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
         />
       )}
 
@@ -1052,6 +1098,31 @@ function AppContent() {
         reportsCount={reports.length}
         targetsCount={targets.length}
       />
+
+      {/* Global Settings & API Tokens Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        initialTab="github"
+      />
+
+      {/* Notifications Hub Modal */}
+      {isNotificationsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+          <div className="w-full max-w-6xl max-h-[92vh] flex flex-col">
+            <Notifications
+              reports={reports}
+              onSelectReport={handleSelectReport}
+              onUpdateReport={handleSaveReport}
+              onClose={() => {
+                setIsNotificationsModalOpen(false);
+                setUnreadNotificationsCount(getStoredMockEmails().filter(e => !e.read).length);
+              }}
+              isModal={true}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Sophisticated Dark Global Status Footer */}
       <footer className="border-t border-[#262626] bg-[#0a0a0a] text-[10px] uppercase tracking-tighter text-zinc-500 mt-12 py-3.5 px-3 sm:px-4 lg:px-6 xl:px-8">

@@ -65,6 +65,35 @@ export interface VulnerabilityReport {
   };
   validationChecklist?: ValidationChecklistItem[];
   githubIntegration?: GitHubIntegrationData;
+  reportOwnerEmail?: string;
+  reportOwnerName?: string;
+}
+
+export type NotificationTriggerType = 'critical_validated' | 'bounty_updated' | 'status_change';
+
+export interface MockEmailNotification {
+  id: string;
+  reportId: string;
+  reportTitle: string;
+  reportTarget: string;
+  reportSeverity: Severity;
+  reportCvss: number;
+  reportStatus: ReportStatus;
+  type: NotificationTriggerType;
+  recipientEmail: string;
+  recipientName: string;
+  sender: string;
+  subject: string;
+  previewText: string;
+  sentAt: string;
+  read: boolean;
+  statusFrom?: ReportStatus;
+  statusTo?: ReportStatus;
+  bountyOld?: number;
+  bountyNew?: number;
+  currency?: 'USD' | 'BRL';
+  emailHtml: string;
+  emailPlaintext: string;
 }
 
 export interface ValidationChecklistItem {

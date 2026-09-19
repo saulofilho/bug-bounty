@@ -1,4 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -21,7 +31,9 @@ import {
   MessageSquareWarning,
   ShieldAlert,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Calendar,
+  Scale
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
@@ -30,6 +42,7 @@ import { calculateTriageEfficiency } from '../utils/triageEfficiencyEngine';
 import { BountySparklineChart, BountyCompactSparkline } from './BountySparklineChart';
 import { SeverityBarChart } from './SeverityBarChart';
 import { SeverityPieChart } from './SeverityPieChart';
+import { SeverityDoughnutChart } from './SeverityDoughnutChart';
 import { ReportsTrendChart } from './ReportsTrendChart';
 import { SixMonthTrendLineChart } from './SixMonthTrendLineChart';
 import { ThreatDiscoveryTrend } from './ThreatDiscoveryTrend';
@@ -38,6 +51,7 @@ import { ActivityHeatmap } from './ActivityHeatmap';
 import { CvssComparisonTool } from './CvssComparisonTool';
 import { BreachImpactSimulator } from './BreachImpactSimulator';
 import { FairImpactSimulator } from './FairImpactSimulator';
+import { RiskSimulatorView } from './RiskSimulatorView';
 import { TargetRateLimitMonitor } from './TargetRateLimitMonitor';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
 import { WeeklySummary } from './WeeklySummary';
@@ -53,18 +67,20 @@ import { GlobalThreatMap } from './GlobalThreatMap';
 import { RecentGlobalThreatIntelligence } from './RecentGlobalThreatIntelligence';
 import { VulnerabilityImpactScorecard } from './VulnerabilityImpactScorecard';
 import { VulnerabilityHeatmap } from './VulnerabilityHeatmap';
+import { TargetVulnerabilityHeatmap } from './TargetVulnerabilityHeatmap';
 import { RiskPriorityMatrix } from './RiskPriorityMatrix';
 import { RiskAssessmentMatrix } from './RiskAssessmentMatrix';
 import { BountyPayoutTracker } from './BountyPayoutTracker';
 import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
 import { TimelineEvent } from '../types';
+import { NavTab } from './Header';
 
 interface DashboardViewProps {
   reports: VulnerabilityReport[];
   onSelectReport: (report: VulnerabilityReport) => void;
   onNewReport: () => void;
   onNewReportWithAdvisory?: (advisoryData: Partial<VulnerabilityReport>) => void;
-  onNavigateTab: (tab: 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel') => void;
+  onNavigateTab: (tab: NavTab) => void;
   onOpenAbout?: () => void;
   onOpenCvssCalculator?: (vector?: string, reportId?: string) => void;
   onOpenWelcomeModal?: () => void;
@@ -166,6 +182,156 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
+  // Trend of discovered vulnerabilities per month based on the 'createdAt' date field of the reports
+  const [trendTimeframe, setTrendTimeframe] = useState<'6M' | '12M' | 'ALL'>('12M');
+  const [trendViewMode, setTrendViewMode] = useState<'total' | 'severity' | 'cumulative'>('total');
+
+  const { monthlyTrendData, monthlyTrendMetrics } = useMemo(() => {
+    if (!reports || reports.length === 0) {
+      return {
+        monthlyTrendData: [],
+        monthlyTrendMetrics: {
+          totalDiscovered: 0,
+          avgPerMonth: 0,
+          peakMonth: 'N/A',
+          peakCount: 0,
+          latestMonthCount: 0,
+          trendChangePercent: 0,
+          criticalTotal: 0,
+          highTotal: 0
+        }
+      };
+    }
+
+    // Extract reports with valid createdAt timestamps
+    const reportsWithDates = reports.map((report) => {
+      let dateObj: Date;
+      if (report.createdAt) {
+        const parsed = new Date(report.createdAt);
+        dateObj = isNaN(parsed.getTime()) ? new Date() : parsed;
+      } else {
+        dateObj = new Date();
+      }
+      return { report, date: dateObj };
+    }).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    const now = new Date();
+    const earliestDate = reportsWithDates[0]?.date || now;
+    const latestDate = reportsWithDates[reportsWithDates.length - 1]?.date || now;
+    const maxDate = latestDate > now ? latestDate : now;
+
+    // Build chronological month sequence (minimum 6 months)
+    const minStart = new Date(maxDate.getFullYear(), maxDate.getMonth() - 5, 1);
+    const actualStart = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
+    const startDate = actualStart < minStart ? actualStart : minStart;
+    const endBoundary = new Date(maxDate.getFullYear(), maxDate.getMonth() + 1, 1);
+
+    const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const MONTH_FULL = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+
+    const allMonths: { year: number; month: number; key: string; label: string; fullMonth: string }[] = [];
+    const iter = new Date(startDate);
+    while (iter < endBoundary) {
+      const y = iter.getFullYear();
+      const m = iter.getMonth();
+      const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+      const label = `${MONTH_LABELS[m]}/${String(y).slice(-2)}`;
+      const fullMonth = `${MONTH_FULL[m]} de ${y}`;
+      allMonths.push({ year: y, month: m, key, label, fullMonth });
+      iter.setMonth(iter.getMonth() + 1);
+    }
+
+    let runningCumulative = 0;
+    let peakMonth = 'N/A';
+    let peakCount = 0;
+    let criticalTotal = 0;
+    let highTotal = 0;
+
+    const fullData = allMonths.map((mObj) => {
+      // Find all reports created in this specific month based on 'createdAt'
+      const monthReports = reports.filter((r) => {
+        if (!r.createdAt) return false;
+        const d = new Date(r.createdAt);
+        if (isNaN(d.getTime())) return false;
+        return d.getFullYear() === mObj.year && d.getMonth() === mObj.month;
+      });
+
+      const count = monthReports.length;
+      runningCumulative += count;
+
+      if (count > peakCount) {
+        peakCount = count;
+        peakMonth = `${mObj.label} (${count})`;
+      }
+
+      const critical = monthReports.filter((r) => r.severity === 'CRITICAL').length;
+      const high = monthReports.filter((r) => r.severity === 'HIGH').length;
+      const medium = monthReports.filter((r) => r.severity === 'MEDIUM').length;
+      const low = monthReports.filter((r) => r.severity === 'LOW' || r.severity === 'INFO').length;
+
+      criticalTotal += critical;
+      highTotal += high;
+
+      return {
+        month: mObj.label,
+        monthKey: mObj.key,
+        fullMonth: mObj.fullMonth,
+        vulnerabilities: count,
+        discovered: count, // explicit naming for recharts line chart
+        critical,
+        high,
+        medium,
+        low,
+        cumulative: runningCumulative,
+        movingAverage: 0,
+        reports: monthReports
+      };
+    });
+
+    // Compute moving average (3-month rolling)
+    fullData.forEach((pt, i) => {
+      const window = fullData.slice(Math.max(0, i - 2), i + 1);
+      const avg = window.reduce((sum, item) => sum + item.discovered, 0) / window.length;
+      pt.movingAverage = Number(avg.toFixed(1));
+    });
+
+    const totalDiscovered = reports.length;
+    const avgPerMonth = fullData.length > 0 ? Number((totalDiscovered / fullData.length).toFixed(1)) : 0;
+    const latestMonthCount = fullData[fullData.length - 1]?.discovered || 0;
+    const prevMonthCount = fullData[fullData.length - 2]?.discovered || 0;
+    const trendChangePercent = prevMonthCount > 0
+      ? Math.round(((latestMonthCount - prevMonthCount) / prevMonthCount) * 100)
+      : (latestMonthCount > 0 ? 100 : 0);
+
+    return {
+      monthlyTrendData: fullData,
+      monthlyTrendMetrics: {
+        totalDiscovered,
+        avgPerMonth,
+        peakMonth,
+        peakCount,
+        latestMonthCount,
+        trendChangePercent,
+        criticalTotal,
+        highTotal
+      }
+    };
+  }, [reports]);
+
+  // Sliced according to timeframe selection
+  const displayedMonthlyData = useMemo(() => {
+    if (trendTimeframe === '6M') {
+      return monthlyTrendData.slice(-6);
+    }
+    if (trendTimeframe === '12M') {
+      return monthlyTrendData.slice(-12);
+    }
+    return monthlyTrendData;
+  }, [monthlyTrendData, trendTimeframe]);
+
   return (
     <div className="space-y-6 pb-12">
       
@@ -218,6 +384,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           >
             <MessageSquareWarning className="w-3.5 h-3.5 text-red-400" />
             <span>Sentiment Tracker</span>
+          </button>
+
+          <button
+            id="btn-dashboard-fair-simulator"
+            onClick={() => document.getElementById('fair-risk-simulator-view')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-emerald-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ir para Simulador de Risco FAIR (Frequência x Magnitude)"
+          >
+            <Scale className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Simulador FAIR</span>
           </button>
 
           {onOpenAbout && (
@@ -486,6 +662,268 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       </section>
 
+      {/* Recharts Line Chart: Monthly Trend of Discovered Vulnerabilities based on createdAt */}
+      <section
+        id="monthly-vulnerabilities-trend-section"
+        className="bg-[#121212] border border-[#262626] rounded-xl overflow-hidden shadow-lg p-5 sm:p-6"
+      >
+        {/* Header with Title, Description, and Interactive Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-[#262626]">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-semibold text-zinc-100">
+                  Tendência Mensal de Vulnerabilidades Descobertas
+                </h3>
+                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono text-[10px] border border-emerald-500/20 font-bold">
+                  recharts • createdAt
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
+                Evolução temporal da taxa de descoberta de vulnerabilidades por mês baseada na data de registro (<code className="text-emerald-400 font-mono">createdAt</code>) dos relatórios.
+              </p>
+            </div>
+          </div>
+
+          {/* Controls: Mode & Timeframe */}
+          <div className="flex items-center flex-wrap gap-2">
+            {/* View Mode Buttons */}
+            <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg p-1 flex items-center gap-1">
+              <button
+                type="button"
+                id="btn-trend-mode-total"
+                onClick={() => setTrendViewMode('total')}
+                className={`px-3 py-1 text-xs rounded font-medium transition-colors cursor-pointer ${
+                  trendViewMode === 'total'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Total
+              </button>
+              <button
+                type="button"
+                id="btn-trend-mode-severity"
+                onClick={() => setTrendViewMode('severity')}
+                className={`px-3 py-1 text-xs rounded font-medium transition-colors cursor-pointer ${
+                  trendViewMode === 'severity'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Por Severidade
+              </button>
+              <button
+                type="button"
+                id="btn-trend-mode-cumulative"
+                onClick={() => setTrendViewMode('cumulative')}
+                className={`px-3 py-1 text-xs rounded font-medium transition-colors cursor-pointer ${
+                  trendViewMode === 'cumulative'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Acumulado
+              </button>
+            </div>
+
+            {/* Timeframe Selector */}
+            <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg p-1 flex items-center gap-1 text-xs font-mono">
+              {(['6M', '12M', 'ALL'] as const).map((tf) => (
+                <button
+                  key={tf}
+                  type="button"
+                  id={`btn-trend-tf-${tf.toLowerCase()}`}
+                  onClick={() => setTrendTimeframe(tf)}
+                  className={`px-2.5 py-1 rounded font-bold transition-colors cursor-pointer ${
+                    trendTimeframe === tf
+                      ? 'bg-zinc-700 text-white shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  {tf === '6M' ? '6 Meses' : tf === '12M' ? '12 Meses' : 'Tudo'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Highlight KPI Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-4 border-b border-[#262626]">
+          <div className="bg-[#181818] border border-[#282828] p-3 rounded-lg">
+            <span className="text-[10px] text-zinc-500 uppercase font-mono block">Média Mensal</span>
+            <div className="text-xl font-light font-mono text-emerald-400 mt-0.5 flex items-baseline gap-1">
+              <span>{monthlyTrendMetrics.avgPerMonth}</span>
+              <span className="text-xs text-zinc-500 font-sans">achados/mês</span>
+            </div>
+          </div>
+          <div className="bg-[#181818] border border-[#282828] p-3 rounded-lg">
+            <span className="text-[10px] text-zinc-500 uppercase font-mono block">Mês de Pico</span>
+            <div className="text-xl font-light font-mono text-zinc-100 mt-0.5">
+              {monthlyTrendMetrics.peakMonth}
+            </div>
+          </div>
+          <div className="bg-[#181818] border border-[#282828] p-3 rounded-lg">
+            <span className="text-[10px] text-zinc-500 uppercase font-mono block">Último Mês</span>
+            <div className="text-xl font-light font-mono text-cyan-400 mt-0.5 flex items-baseline gap-1.5">
+              <span>{monthlyTrendMetrics.latestMonthCount}</span>
+              <span className={`text-xs ${monthlyTrendMetrics.trendChangePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {monthlyTrendMetrics.trendChangePercent >= 0 ? `+${monthlyTrendMetrics.trendChangePercent}%` : `${monthlyTrendMetrics.trendChangePercent}%`}
+              </span>
+            </div>
+          </div>
+          <div className="bg-[#181818] border border-[#282828] p-3 rounded-lg">
+            <span className="text-[10px] text-zinc-500 uppercase font-mono block">Críticos + Altos</span>
+            <div className="text-xl font-light font-mono text-red-400 mt-0.5">
+              {monthlyTrendMetrics.criticalTotal + monthlyTrendMetrics.highTotal}
+              <span className="text-xs text-zinc-500 font-sans ml-1.5">impacto elevado</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recharts Line Chart Visualization */}
+        <div className="pt-5">
+          <div className="h-72 sm:h-80 w-full" id="vulnerability-trend-line-chart-container">
+            {displayedMonthlyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={displayedMonthlyData}
+                  margin={{ top: 10, right: 25, left: -20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    stroke="#52525b"
+                    tick={{ fill: '#a1a1aa', fontSize: 11, fontFamily: 'monospace' }}
+                    tickLine={{ stroke: '#3f3f46' }}
+                  />
+                  <YAxis
+                    stroke="#52525b"
+                    tick={{ fill: '#a1a1aa', fontSize: 11, fontFamily: 'monospace' }}
+                    tickLine={{ stroke: '#3f3f46' }}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload || payload.length === 0) return null;
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-[#181818] border border-[#333333] rounded-lg p-3 shadow-xl text-xs font-mono">
+                          <div className="flex items-center justify-between gap-3 pb-2 mb-2 border-b border-[#2a2a2a]">
+                            <span className="font-bold text-zinc-100">{data.fullMonth}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                              {data.discovered} {data.discovered === 1 ? 'vulnerabilidade' : 'vulnerabilidades'}
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-zinc-300">
+                            <div className="flex justify-between gap-4">
+                              <span className="text-zinc-500">Descobertas no mês:</span>
+                              <span className="font-bold text-emerald-400">{data.discovered}</span>
+                            </div>
+                            <div className="flex justify-between gap-4">
+                              <span className="text-zinc-500">Acumulado total:</span>
+                              <span className="font-bold text-cyan-400">{data.cumulative}</span>
+                            </div>
+                            <div className="pt-1.5 mt-1 border-t border-[#2a2a2a] flex items-center gap-2 text-[10px]">
+                              <span className="text-red-400">{data.critical} Críticos</span>
+                              <span className="text-orange-400">{data.high} Altos</span>
+                              <span className="text-amber-400">{data.medium} Médios</span>
+                              <span className="text-blue-400">{data.low} Baixos</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{ paddingTop: '16px', fontSize: '11px', fontFamily: 'monospace' }}
+                  />
+
+                  {trendViewMode === 'total' && (
+                    <>
+                      <Line
+                        type="monotone"
+                        dataKey="discovered"
+                        name="Vulnerabilidades Descobertas"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#10b981', stroke: '#121212', strokeWidth: 2 }}
+                        activeDot={{ r: 6, fill: '#34d399', stroke: '#ffffff', strokeWidth: 2 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="movingAverage"
+                        name="Média Móvel (3m)"
+                        stroke="#06b6d4"
+                        strokeWidth={2}
+                        strokeDasharray="4 4"
+                        dot={false}
+                      />
+                    </>
+                  )}
+
+                  {trendViewMode === 'severity' && (
+                    <>
+                      <Line
+                        type="monotone"
+                        dataKey="critical"
+                        name="Crítico"
+                        stroke="#ef4444"
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: '#ef4444' }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="high"
+                        name="Alto"
+                        stroke="#f97316"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: '#f97316' }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="medium"
+                        name="Médio"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: '#f59e0b' }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="low"
+                        name="Baixo / Info"
+                        stroke="#3b82f6"
+                        strokeWidth={1.5}
+                        dot={{ r: 3, fill: '#3b82f6' }}
+                      />
+                    </>
+                  )}
+
+                  {trendViewMode === 'cumulative' && (
+                    <Line
+                      type="monotone"
+                      dataKey="cumulative"
+                      name="Acumulado Histórico"
+                      stroke="#8b5cf6"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#8b5cf6', stroke: '#121212', strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: '#a78bfa', stroke: '#ffffff', strokeWidth: 2 }}
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-zinc-500 text-xs font-mono">
+                <span>Nenhum dado temporal disponível para exibir o gráfico.</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* 30-Day Bounty Sparkline & Financial Velocity Intelligence Panel */}
       <BountySparklineChart
         reports={reports}
@@ -595,6 +1033,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNewReport={onNewReport}
       />
 
+      {/* Target Vulnerability Density Heatmap: Displays vulnerability density per target domain and identifies attack-prone surfaces */}
+      <TargetVulnerabilityHeatmap
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+        onNewReport={onNewReport}
+      />
+
       {/* Vulnerability Density Heatmap: Color-coded grid matrix visualizing vulnerability density by platform and severity type */}
       <VulnerabilityHeatmap
         reports={reports}
@@ -641,6 +1087,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNewReport={onNewReport}
       />
 
+      {/* Recharts Doughnut Chart: Vulnerability Distribution by Severity (CRITICAL, HIGH, MEDIUM, LOW) */}
+      <SeverityDoughnutChart
+        reports={reports}
+        onSeverityClick={(sev) => {
+          if (onSelectSeverity) {
+            onSelectSeverity(sev);
+          } else {
+            onNavigateTab('reports');
+          }
+        }}
+        onNewReport={onNewReport}
+      />
+
       {/* Recharts Pie Chart: Vulnerability Distribution by Severity (Critical, High, Medium, Low) */}
       <SeverityPieChart
         reports={reports}
@@ -670,6 +1129,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Interactive CVSS v3.1 Differential Comparison Tool */}
       <CvssComparisonTool
         reports={reports}
+      />
+
+      {/* FAIR Risk Simulator: Factor Analysis of Information Risk (Loss Frequency & Loss Magnitude) */}
+      <RiskSimulatorView
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
       />
 
       {/* Breach Impact Simulator: Quantitative Financial & Reputational Cost Modeling (IBM/Ponemon & FAIR) */}

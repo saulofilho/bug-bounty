@@ -20,12 +20,14 @@ import {
   Globe,
   Calculator,
   Radio,
-  Sparkles
+  Sparkles,
+  Settings,
+  Bell
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { UserAuthWidget } from './UserAuthWidget';
 
-export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel';
+export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel' | 'notifications';
 
 export interface HeaderProps {
   currentTab: NavTab;
@@ -37,6 +39,9 @@ export interface HeaderProps {
   onOpenAbout?: () => void;
   onOpenStorageIntegrity?: () => void;
   onOpenWelcomeModal?: () => void;
+  onOpenSettings?: () => void;
+  onOpenNotifications?: () => void;
+  unreadNotificationsCount?: number;
   isMockActive?: boolean;
   isStorageRepaired?: boolean;
   totalRewardedUSD: number;
@@ -56,6 +61,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAbout,
   onOpenStorageIntegrity,
   onOpenWelcomeModal,
+  onOpenSettings,
+  onOpenNotifications,
+  unreadNotificationsCount = 0,
   isMockActive = true,
   isStorageRepaired,
   totalRewardedUSD,
@@ -296,6 +304,24 @@ export const Header: React.FC<HeaderProps> = ({
                   LIVE
                 </span>
               </button>
+
+              <button
+                id="nav-notifications"
+                onClick={() => onTabChange('notifications')}
+                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                  currentTab === 'notifications'
+                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
+                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                }`}
+              >
+                <Bell className="w-3.5 h-3.5" />
+                <span>Notificações</span>
+                {unreadNotificationsCount > 0 && (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-mono font-bold animate-pulse">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
+              </button>
             </nav>
           </div>
 
@@ -423,6 +449,49 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
 
+              {/* Quick Action: Settings / GitHub Token */}
+              {onOpenSettings && (
+                <button
+                  id="btn-header-settings-modal"
+                  type="button"
+                  onClick={onOpenSettings}
+                  title="Configurações & Token GitHub (PAT)"
+                  aria-label="Configurações do Sistema"
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
+                >
+                  <Settings className="w-3.5 h-3.5 text-purple-400 group-hover:rotate-45 transition-transform" />
+                  <span className="hidden xl:inline">Configurações</span>
+                </button>
+              )}
+
+              {/* Quick Action: Notifications Hub */}
+              <button
+                id="btn-header-notifications"
+                type="button"
+                onClick={() => {
+                  if (onOpenNotifications) {
+                    onOpenNotifications();
+                  } else {
+                    onTabChange('notifications');
+                  }
+                }}
+                title={`Central de Notificações & E-mails Mock (${unreadNotificationsCount} não lidos)`}
+                aria-label="Central de Notificações"
+                className={`relative flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border whitespace-nowrap cursor-pointer ${
+                  unreadNotificationsCount > 0
+                    ? 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border-rose-500/40 hover:border-rose-400'
+                    : 'hover:bg-[#1e1e22] text-zinc-300 hover:text-white border-transparent hover:border-[#333338]'
+                }`}
+              >
+                <Bell className={`w-3.5 h-3.5 ${unreadNotificationsCount > 0 ? 'text-rose-400 animate-bounce' : 'text-indigo-400 group-hover:scale-110 transition-transform'}`} />
+                <span className="hidden xl:inline">Notificações</span>
+                {unreadNotificationsCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-mono font-bold">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
+              </button>
+
               {/* Quick Actions Dropdown Menu Toggle */}
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -522,6 +591,30 @@ export const Header: React.FC<HeaderProps> = ({
                         <span>Novo Relatório</span>
                       </div>
                       <kbd className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">Alt+N</kbd>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsQuickMenuOpen(false);
+                        if (onOpenNotifications) {
+                          onOpenNotifications();
+                        } else {
+                          onTabChange('notifications');
+                        }
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/70 transition-colors text-left group"
+                      role="menuitem"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                        <span>Central de Notificações</span>
+                      </div>
+                      {unreadNotificationsCount > 0 && (
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-600 text-white font-bold">
+                          {unreadNotificationsCount}
+                        </span>
+                      )}
                     </button>
 
                     <div className="border-t border-[#222226] my-1" />
@@ -647,6 +740,25 @@ export const Header: React.FC<HeaderProps> = ({
                         <span className="text-[9px] font-mono text-cyan-400 font-semibold">
                           {isMockActive ? 'Mock ON' : 'Zerado'}
                         </span>
+                      </button>
+                    )}
+
+                    {onOpenSettings && (
+                      <button
+                        type="button"
+                        id="btn-menu-settings"
+                        onClick={() => {
+                          setIsQuickMenuOpen(false);
+                          onOpenSettings();
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-purple-300 hover:text-white hover:bg-purple-950/40 transition-colors text-left border-t border-[#222226] mt-1 pt-2"
+                        role="menuitem"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Settings className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Configurações & Token GitHub</span>
+                        </div>
+                        <span className="text-[9px] font-mono text-purple-400">PAT API</span>
                       </button>
                     )}
                   </div>

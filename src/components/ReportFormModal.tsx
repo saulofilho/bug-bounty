@@ -30,6 +30,7 @@ import { CvssCalculatorModal } from './CvssCalculatorModal';
 import { DuplicateReportDetectorCard } from './DuplicateReportDetectorCard';
 import { detectPotentialDuplicates } from '../utils/duplicateDetector';
 import { INITIAL_REPORTS } from '../data/initialData';
+import { showSuccessToast, showErrorToast } from '../utils/toastNotifications';
 
 interface ReportFormModalProps {
   initialReport?: VulnerabilityReport | null;
@@ -115,6 +116,16 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
+
+  // AI CVSS Analysis State
+  const [isAiAnalyzingCvss, setIsAiAnalyzingCvss] = useState(false);
+  const [aiCvssJustification, setAiCvssJustification] = useState<{
+    score: number;
+    severity: Severity;
+    vector: string;
+    justification: string;
+  } | null>(null);
+  const [aiCvssError, setAiCvssError] = useState<string | null>(null);
 
   // Potential Duplicate Detection Analysis (Live across targets & vuln types)
   const duplicateSummary = useMemo(() => {
@@ -241,6 +252,75 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
       setAiError(err.message || 'Erro ao conectar ao assistente Gemini.');
     } finally {
       setIsAiLoading(false);
+    }
+  };
+
+  // AI CVSS Analyzer Trigger (uses summary and steps to reproduce)
+  const handleAiAnalyzeCvss = async () => {
+    const validSteps = steps.filter(s => s && s.trim().length > 0);
+    const hasSummary = summary && summary.trim().length > 0;
+    const hasSteps = validSteps.length > 0;
+
+    if (!hasSummary && !hasSteps) {
+      const msg = 'Preencha o Resumo da Falha ou os Passos para Reproduzir para que a IA possa analisar o CVSS.';
+      setAiCvssError(msg);
+      showErrorToast(msg);
+      return;
+    }
+
+    setIsAiAnalyzingCvss(true);
+    setAiCvssError(null);
+
+    try {
+      const response = await fetch('/api/gemini/analyze-cvss', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          summary,
+          stepsToReproduce: validSteps,
+          title,
+          vulnerabilityType
+        })
+      });
+
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.error || 'Falha ao analisar CVSS com o Gemini.');
+      }
+
+      const { cvssScore: suggestedScore, severity: suggestedSeverity, cvssVector: suggestedVector, justification } = resData.data;
+
+      if (suggestedVector) {
+        try {
+          const parsed = parseCvssVector(suggestedVector);
+          setCvssMetrics(parsed);
+          const calculated = calculateCvssScore(parsed);
+          setCvssScore(suggestedScore || calculated.score);
+          setCvssVector(suggestedVector || calculated.vector);
+        } catch (err) {
+          console.error('Error parsing AI suggested vector:', err);
+          setCvssScore(suggestedScore);
+          setCvssVector(suggestedVector);
+        }
+      } else {
+        setCvssScore(suggestedScore);
+      }
+
+      setAiCvssJustification({
+        score: suggestedScore,
+        severity: suggestedSeverity,
+        vector: suggestedVector,
+        justification: justification || 'Avaliação heurística fundamentada no escopo e nos impactos reportados.'
+      });
+
+      showSuccessToast(`CVSS ${suggestedScore.toFixed(1)} (${suggestedSeverity}) sugerido pela IA!`);
+    } catch (err: any) {
+      console.error('AI CVSS analysis error:', err);
+      const errMsg = err.message || 'Erro ao conectar ao serviço de IA.';
+      setAiCvssError(errMsg);
+      showErrorToast(errMsg);
+    } finally {
+      setIsAiAnalyzingCvss(false);
     }
   };
 
@@ -582,7 +662,7 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
 
           {/* Row 3: Mini CVSS 3.1 Calculator */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
                   <Calculator className="w-3.5 h-3.5 text-emerald-400" />
@@ -594,6 +674,18 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-ai-analyze-cvss"
+                  onClick={handleAiAnalyzeCvss}
+                  disabled={isAiAnalyzingCvss}
+                  className="text-[10px] text-purple-300 hover:text-purple-200 font-mono font-semibold flex items-center gap-1.5 transition-all px-2.5 py-1 rounded bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/40 hover:border-purple-400/70 shadow-sm active:scale-95 disabled:opacity-50"
+                  title="Sugerir Score CVSS 3.1 e Severidade com base no Resumo e Passos para Reproduzir usando a API Gemini"
+                >
+                  <Sparkles className={`w-3 h-3 text-purple-400 ${isAiAnalyzingCvss ? 'animate-spin' : ''}`} />
+                  <span>{isAiAnalyzingCvss ? 'Analisando...' : 'AI Analyze'}</span>
+                </button>
+
                 <button
                   type="button"
                   id="btn-open-cvss-calculator-modal-from-form"
@@ -616,6 +708,49 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* AI CVSS Analysis Feedback Callout */}
+            {aiCvssJustification && (
+              <div className="p-3 rounded-lg bg-purple-950/30 border border-purple-500/40 space-y-1.5 text-xs font-mono">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="font-bold text-purple-200">
+                      Sugestão da IA (Gemini): {aiCvssJustification.severity} — Score {aiCvssJustification.score.toFixed(1)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAiCvssJustification(null)}
+                    className="text-purple-400/70 hover:text-purple-200 text-[11px]"
+                  >
+                    Dispensar
+                  </button>
+                </div>
+                <p className="text-zinc-300 text-[11px] leading-relaxed">
+                  {aiCvssJustification.justification}
+                </p>
+                <div className="text-[10px] text-purple-400/90 break-all font-mono">
+                  Vetor sugerido: <span className="text-zinc-300 font-bold">{aiCvssJustification.vector}</span>
+                </div>
+              </div>
+            )}
+
+            {aiCvssError && (
+              <div className="p-2.5 rounded-lg bg-rose-950/30 border border-rose-800/50 flex items-center justify-between text-xs font-mono text-rose-300">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <span>{aiCvssError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAiCvssError(null)}
+                  className="text-rose-400 hover:text-rose-200 text-xs ml-2"
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
             {/* Mini CVSS 3.1 Calculator with synchronized cvssScore and cvssVector */}
             <MiniCvssCalculator
@@ -677,15 +812,27 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Resumo Executivo da Falha (Descrição)</label>
-              <button
-                type="button"
-                onClick={handleRunAutoTagging}
-                disabled={isTaggingLoading || (!summary && !title)}
-                className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono flex items-center gap-1 uppercase tracking-wider"
-              >
-                <Tag className="w-3 h-3" />
-                <span>{isTaggingLoading ? 'Analisando...' : 'Sugerir Tags & CWE/CVE'}</span>
-              </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleAiAnalyzeCvss}
+                  disabled={isAiAnalyzingCvss}
+                  className="text-[10px] text-purple-400 hover:text-purple-300 font-mono flex items-center gap-1 transition-colors"
+                  title="Sugerir CVSS & Severidade com base no resumo e passos para reproduzir"
+                >
+                  <Sparkles className={`w-3 h-3 ${isAiAnalyzingCvss ? 'animate-spin' : ''}`} />
+                  <span>{isAiAnalyzingCvss ? 'Analisando...' : 'AI Analyze (CVSS)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRunAutoTagging}
+                  disabled={isTaggingLoading || (!summary && !title)}
+                  className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono flex items-center gap-1 uppercase tracking-wider"
+                >
+                  <Tag className="w-3 h-3" />
+                  <span>{isTaggingLoading ? 'Analisando...' : 'Sugerir Tags & CWE/CVE'}</span>
+                </button>
+              </div>
             </div>
             <textarea
               rows={3}
@@ -821,14 +968,26 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Passos para Reproduzir (Determinísticos)</label>
-              <button
-                type="button"
-                onClick={handleAddStep}
-                className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-mono text-xs uppercase tracking-wider"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Adicionar Passo</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleAiAnalyzeCvss}
+                  disabled={isAiAnalyzingCvss}
+                  className="flex items-center gap-1 text-purple-400 hover:text-purple-300 font-mono text-[11px] transition-colors"
+                  title="Sugerir pontuação CVSS e severidade com base nos passos"
+                >
+                  <Sparkles className={`w-3 h-3 ${isAiAnalyzingCvss ? 'animate-spin' : ''}`} />
+                  <span>AI Analyze CVSS</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddStep}
+                  className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-mono text-xs uppercase tracking-wider"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Adicionar Passo</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
