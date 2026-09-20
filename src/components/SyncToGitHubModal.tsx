@@ -25,6 +25,7 @@ import {
   LOCAL_STORAGE_GITHUB_DEFAULT_REPO,
   LOCAL_STORAGE_GITHUB_DEFAULT_LABELS
 } from './SettingsModal';
+import { recordPlatformApiCall } from '../utils/apiRateLimiter';
 
 export interface SyncToGitHubModalProps {
   report: VulnerabilityReport;
@@ -235,6 +236,7 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada, princípio de 
     }
 
     setIsSyncing(true);
+    const requestStartTime = performance.now();
 
     try {
       // POST https://api.github.com/repos/{owner}/{repo}/issues
@@ -250,6 +252,23 @@ ${report.remediation || 'Aplicar validação rigorosa de entrada, princípio de 
           body: issueMarkdown,
           labels: selectedLabels
         })
+      });
+
+      const latencyMs = Math.round(performance.now() - requestStartTime);
+
+      recordPlatformApiCall({
+        serviceId: 'github',
+        serviceName: 'GitHub REST API',
+        endpoint: `/repos/${owner}/${repo}/issues`,
+        method: 'POST',
+        status: response.status,
+        latencyMs,
+        cost: 1,
+        responseSummary: response.ok
+          ? `Issue criada no repositório ${owner}/${repo}`
+          : `Erro HTTP ${response.status} ao criar issue em ${owner}/${repo}`,
+        isError: !response.ok,
+        isThrottled: response.status === 429
       });
 
       if (!response.ok) {

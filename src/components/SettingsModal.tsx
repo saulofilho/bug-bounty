@@ -17,6 +17,7 @@ import {
   Sliders,
   Info
 } from 'lucide-react';
+import { recordPlatformApiCall } from '../utils/apiRateLimiter';
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -87,6 +88,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     setIsTestingToken(true);
     setTestResult(null);
+    const requestStartTime = performance.now();
 
     try {
       const response = await fetch('https://api.github.com/user', {
@@ -96,7 +98,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         }
       });
 
+      const latencyMs = Math.round(performance.now() - requestStartTime);
       const scopesHeader = response.headers.get('x-oauth-scopes') || 'Nenhum escopo especificado';
+
+      recordPlatformApiCall({
+        serviceId: 'github',
+        serviceName: 'GitHub REST API',
+        endpoint: '/user',
+        method: 'GET',
+        status: response.status,
+        latencyMs,
+        cost: 1,
+        responseSummary: response.ok
+          ? 'Autenticação de token PAT validada com sucesso via /user'
+          : `Falha de autenticação (HTTP ${response.status}) ao testar token`,
+        isError: !response.ok,
+        isThrottled: response.status === 429
+      });
 
       if (!response.ok) {
         if (response.status === 401) {

@@ -62,13 +62,15 @@ interface DashboardActivityTimelineProps {
   onSelectReport: (report: VulnerabilityReport) => void;
   onNavigateToReports?: () => void;
   onNewReport?: () => void;
+  onUpdateStatus?: (id: string, newStatus: ReportStatus, bountyAmount?: number) => void;
 }
 
 export const DashboardActivityTimeline: React.FC<DashboardActivityTimelineProps> = ({
   reports,
   onSelectReport,
   onNavigateToReports,
-  onNewReport
+  onNewReport,
+  onUpdateStatus
 }) => {
   // Filters
   const [selectedType, setSelectedType] = useState<SystemActionType>('all');
@@ -572,6 +574,23 @@ export const DashboardActivityTimeline: React.FC<DashboardActivityTimelineProps>
                             {action.reportSeverity}
                           </span>
                           <StatusBadge status={action.reportStatus} size="xs" />
+
+                          {/* Inline Quick Triage Badge Button */}
+                          {action.reportSeverity === 'CRITICAL' && onUpdateStatus && action.reportStatus !== 'TRIAGED' && (
+                            <button
+                              id={`btn-quick-triage-timeline-tag-${action.reportId}`}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateStatus(action.report.id, 'TRIAGED');
+                              }}
+                              className="px-2 py-0.5 rounded bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 text-[10px] font-mono font-bold flex items-center gap-1 transition-all shadow-sm cursor-pointer ml-1"
+                              title="Transição rápida para TRIAGED com 1 clique"
+                            >
+                              <CheckCircle2 className="w-2.5 h-2.5 text-blue-400" />
+                              <span>Quick Triage</span>
+                            </button>
+                          )}
                         </div>
 
                         {/* Date & Time */}
@@ -650,6 +669,23 @@ export const DashboardActivityTimeline: React.FC<DashboardActivityTimelineProps>
                               <Clock className="w-3 h-3 text-zinc-500" />
                               <span>{action.hoursSpent}h dedicadas</span>
                             </span>
+                          )}
+
+                          {/* Quick Triage Button for Critical Reports */}
+                          {action.reportSeverity === 'CRITICAL' && onUpdateStatus && action.reportStatus !== 'TRIAGED' && (
+                            <button
+                              id={`btn-quick-triage-timeline-action-${action.reportId}`}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateStatus(action.report.id, 'TRIAGED');
+                              }}
+                              className="px-2.5 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 hover:border-blue-400 text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-[0_0_8px_rgba(59,130,246,0.3)] cursor-pointer mb-1"
+                              title="Transição rápida de status para TRIAGED com um clique"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                              <span>Quick Triage</span>
+                            </button>
                           )}
 
                           {/* Inspect Button */}

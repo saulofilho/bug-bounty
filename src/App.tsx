@@ -905,6 +905,9 @@ function AppContent() {
               setCurrentTab('reports');
             }}
             onAddTimelineEvent={handleAddTimelineEvent}
+            onOpenSettings={() => setIsSettingsModalOpen(true)}
+            onUpdateStatus={handleUpdateStatus}
+            onUpdateReport={handleUpdateReport}
           />
         )}
 

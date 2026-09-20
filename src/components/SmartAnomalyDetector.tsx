@@ -49,12 +49,14 @@ interface SmartAnomalyDetectorProps {
   reports: VulnerabilityReport[];
   onSelectReport?: (report: VulnerabilityReport) => void;
   onNavigateToReports?: () => void;
+  onUpdateStatus?: (id: string, newStatus: ReportStatus, bountyAmount?: number) => void;
 }
 
 export const SmartAnomalyDetector: React.FC<SmartAnomalyDetectorProps> = ({
   reports,
   onSelectReport,
-  onNavigateToReports
+  onNavigateToReports,
+  onUpdateStatus
 }) => {
   // Dismissed anomalies state stored in localStorage
   const [dismissedAlerts, setDismissedAlerts] = useState<Record<string, boolean>>(() => {
@@ -707,11 +709,24 @@ export const SmartAnomalyDetector: React.FC<SmartAnomalyDetectorProps> = ({
 
                     {/* Right Action Buttons */}
                     <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#1a1e32]">
+                      {isCritical && onUpdateStatus && anomaly.report.status !== 'TRIAGED' && (
+                        <button
+                          id={`btn-quick-triage-anomaly-${anomaly.id}`}
+                          type="button"
+                          onClick={() => onUpdateStatus(anomaly.report.id, 'TRIAGED')}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 hover:border-blue-400 font-mono text-xs font-bold flex items-center gap-1.5 transition-all shadow-[0_0_8px_rgba(59,130,246,0.3)] cursor-pointer"
+                          title="Transição rápida de status para TRIAGED com 1 clique"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Quick Triage</span>
+                        </button>
+                      )}
+
                       {onSelectReport && (
                         <button
                           type="button"
                           onClick={() => onSelectReport(anomaly.report)}
-                          className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+                          className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
                           title="Abrir detalhes e timeline do relatório"
                         >
                           <span>Inspecionar</span>

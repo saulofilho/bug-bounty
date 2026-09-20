@@ -40,12 +40,14 @@ interface ReportNotificationPanelProps {
   reports: VulnerabilityReport[];
   onSelectReport: (report: VulnerabilityReport) => void;
   onNewReport?: () => void;
+  onUpdateStatus?: (id: string, newStatus: ReportStatus, bountyAmount?: number) => void;
 }
 
 export const ReportNotificationPanel: React.FC<ReportNotificationPanelProps> = ({
   reports,
   onSelectReport,
-  onNewReport
+  onNewReport,
+  onUpdateStatus
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'drafts' | 'triage' | 'milestones' | 'sla'>('ALL');
@@ -492,17 +494,35 @@ export const ReportNotificationPanel: React.FC<ReportNotificationPanelProps> = (
                       {item.metricInfo}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectReport(item.report);
-                      }}
-                      className="inline-flex items-center gap-1 font-semibold text-emerald-400 hover:text-emerald-300 text-[11px] group-hover:translate-x-0.5 transition-transform"
-                    >
-                      <span>{item.actionText}</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {isSeverityCritical && onUpdateStatus && item.report.status !== 'TRIAGED' && (
+                        <button
+                          id={`btn-quick-triage-notif-${item.reportId}`}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateStatus(item.report.id, 'TRIAGED');
+                          }}
+                          className="px-2 py-0.5 rounded bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 hover:border-blue-400 text-[10px] font-mono font-bold flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(59,130,246,0.3)] cursor-pointer"
+                          title="Transição rápida de status para TRIAGED com um clique"
+                        >
+                          <CheckCircle2 className="w-2.5 h-2.5 text-blue-400" />
+                          <span>Quick Triage</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectReport(item.report);
+                        }}
+                        className="inline-flex items-center gap-1 font-semibold text-emerald-400 hover:text-emerald-300 text-[11px] group-hover:translate-x-0.5 transition-transform cursor-pointer"
+                      >
+                        <span>{item.actionText}</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

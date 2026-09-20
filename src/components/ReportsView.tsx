@@ -28,7 +28,8 @@ import {
   Flame,
   FileDown,
   Upload,
-  Download
+  Download,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, ReportStatus, Severity, PlatformName } from '../types';
@@ -1170,6 +1171,20 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     {/* Quick action buttons */}
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                       
+                      {/* One-click Quick Triage for Critical Vulnerabilities */}
+                      {isCritical && onUpdateStatus && report.status !== 'TRIAGED' && (
+                        <button
+                          id={`btn-quick-triage-report-${report.id}`}
+                          type="button"
+                          title="Quick Triage: Transição imediata para status TRIAGED com 1 clique"
+                          onClick={() => onUpdateStatus(report.id, 'TRIAGED')}
+                          className="px-2.5 py-1.5 rounded bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 hover:border-blue-400 font-mono text-xs font-bold flex items-center gap-1.5 transition-all shadow-[0_0_8px_rgba(59,130,246,0.3)] cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Quick Triage</span>
+                        </button>
+                      )}
+
                       {/* Calculate / Recalibrate CVSS */}
                       {onOpenCvssCalculator && (
                         <button

@@ -53,6 +53,7 @@ import { BreachImpactSimulator } from './BreachImpactSimulator';
 import { FairImpactSimulator } from './FairImpactSimulator';
 import { RiskSimulatorView } from './RiskSimulatorView';
 import { TargetRateLimitMonitor } from './TargetRateLimitMonitor';
+import { RateLimitMonitor } from './RateLimitMonitor';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
 import { WeeklySummary } from './WeeklySummary';
 import { StatusBadge } from './StatusBadge';
@@ -86,6 +87,9 @@ interface DashboardViewProps {
   onOpenWelcomeModal?: () => void;
   onSelectSeverity?: (severity: Severity) => void;
   onAddTimelineEvent?: (reportId: string, event: Omit<TimelineEvent, 'id'>) => void;
+  onOpenSettings?: () => void;
+  onUpdateStatus?: (id: string, newStatus: ReportStatus, bountyAmount?: number) => void;
+  onUpdateReport?: (updatedReport: VulnerabilityReport) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -98,7 +102,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenCvssCalculator,
   onOpenWelcomeModal,
   onSelectSeverity,
-  onAddTimelineEvent
+  onAddTimelineEvent,
+  onOpenSettings,
+  onUpdateStatus,
+  onUpdateReport
 }) => {
   const { isAuthenticated, openLoginModal } = useAuth();
   const usdToBrl = 5.45;
@@ -396,6 +403,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span>Simulador FAIR</span>
           </button>
 
+          <button
+            id="btn-dashboard-rate-limit-monitor"
+            onClick={() => document.getElementById('rate-limit-monitor-view')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-cyan-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ir para Rate Limit Monitor (GitHub, Gemini e Serviços Cloud)"
+          >
+            <Activity className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Rate Limits API</span>
+          </button>
+
           {onOpenAbout && (
             <button
               id="btn-dashboard-about-help"
@@ -556,6 +573,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           const criticalCount = severityStats.find(s => s.severity === 'CRITICAL')?.count || 0;
           const criticalEarned = severityStats.find(s => s.severity === 'CRITICAL')?.earned || 0;
           const isCriticalActive = criticalCount > 0;
+          const untriagedCriticalReports = reports.filter(r => r.severity === 'CRITICAL' && r.status !== 'TRIAGED');
+          const untriagedPendingCount = untriagedCriticalReports.length;
 
           return (
             <div 
@@ -599,6 +618,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span>{triagedReports.length} pending validation</span>
                 <span className="text-red-400 font-mono font-bold">{formatCurrency(criticalEarned, 'USD')}</span>
               </div>
+
+              {/* Quick Triage One-Click Action */}
+              {isCriticalActive && onUpdateStatus && (
+                <div className="mt-3 pt-2.5 border-t border-red-500/20">
+                  {untriagedPendingCount > 0 ? (
+                    <button
+                      id="btn-quick-triage-critical-card"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const nextUntriaged = untriagedCriticalReports[0];
+                        if (nextUntriaged) {
+                          onUpdateStatus(nextUntriaged.id, 'TRIAGED');
+                        }
+                      }}
+                      className="w-full py-1.5 px-2.5 rounded bg-blue-600/25 hover:bg-blue-600/40 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/40 hover:border-blue-400 text-[11px] font-mono font-bold flex items-center justify-center gap-1.5 transition-all shadow-[0_0_10px_rgba(59,130,246,0.25)] cursor-pointer"
+                      title={`Triar com 1 clique o relatório crítico pendente (${untriagedCriticalReports[0]?.id || ''})`}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Quick Triage ({untriagedPendingCount} pendente{untriagedPendingCount > 1 ? 's' : ''})</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono text-blue-400/90 bg-blue-950/30 border border-blue-500/30 py-1 px-2 rounded">
+                      <CheckCircle2 className="w-3 h-3 text-blue-400" />
+                      <span>Todos os críticos triados</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })()}
@@ -950,6 +998,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         reports={reports}
         onSelectReport={onSelectReport}
         onNewReport={onNewReport}
+        onUpdateStatus={onUpdateStatus}
       />
 
       {/* Smart Anomaly Detector: Timeline & Documentation Analysis */}
@@ -957,6 +1006,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         reports={reports}
         onSelectReport={onSelectReport}
         onNavigateToReports={() => onNavigateTab('reports')}
+        onUpdateStatus={onUpdateStatus}
       />
 
       {/* Global Security Incident Timeline: Aggregates and visualizes all timeline events from every report in chronological order to track vulnerability discovery trends */}
@@ -973,6 +1023,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onSelectReport={onSelectReport}
         onNavigateToReports={() => onNavigateTab('reports')}
         onNewReport={onNewReport}
+        onUpdateStatus={onUpdateStatus}
       />
 
       {/* Reporter Interaction Sentiment: Timeline Tone & Program Manager Friction Tracker */}
@@ -1064,6 +1115,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onSelectReport={onSelectReport}
         onNewReport={onNewReport}
         onNavigateToReports={() => onNavigateTab('reports')}
+        onUpdateStatus={onUpdateStatus}
       />
 
       {/* Bounty Payout Tracker: Monthly Earnings Trends & Projected Future Bounties */}
@@ -1154,6 +1206,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <TargetRateLimitMonitor
         reports={reports}
         onNavigateToTargets={() => onNavigateTab('targets')}
+      />
+
+      {/* Outbound Platform Rate Limit Monitor: GitHub, Gemini & External Cloud Services Tracker */}
+      <RateLimitMonitor
+        onNavigateToSettings={onOpenSettings}
       />
 
       {/* Bug Bounty Platforms Directory, Tutorials & Monetization Playbook */}
@@ -1324,9 +1381,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </div>
                         </div>
 
-                        <span className="text-[10px] font-mono text-zinc-500 shrink-0 whitespace-nowrap pt-0.5">
-                          {evt.date}
-                        </span>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className="text-[10px] font-mono text-zinc-500 whitespace-nowrap pt-0.5">
+                            {evt.date}
+                          </span>
+
+                          {/* Quick Triage button for Critical vulnerability card */}
+                          {isCritical && onUpdateStatus && evt.report.status !== 'TRIAGED' && (
+                            <button
+                              id={`btn-quick-triage-recent-${evt.reportId}`}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateStatus(evt.report.id, 'TRIAGED');
+                              }}
+                              className="px-2 py-0.5 rounded bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 hover:border-blue-400 text-[10px] font-mono font-bold flex items-center gap-1 transition-all shadow-[0_0_8px_rgba(59,130,246,0.3)] cursor-pointer"
+                              title={`Triar imediatamente relatório ${evt.reportId} para TRIAGED com 1 clique`}
+                            >
+                              <CheckCircle2 className="w-2.5 h-2.5 text-blue-400" />
+                              <span>Quick Triage</span>
+                            </button>
+                          )}
+                          {isCritical && evt.report.status === 'TRIAGED' && (
+                            <span className="px-1.5 py-0.2 rounded bg-blue-950/40 text-blue-400 border border-blue-500/30 text-[9px] font-mono flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-blue-400" />
+                              <span>Triaged</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );

@@ -26,6 +26,7 @@ interface RiskAssessmentMatrixProps {
   onSelectReport?: (report: VulnerabilityReport) => void;
   onNewReport?: () => void;
   onNavigateToReports?: () => void;
+  onUpdateStatus?: (id: string, newStatus: ReportStatus, bountyAmount?: number) => void;
 }
 
 export interface EvaluatedRiskReport {
@@ -238,7 +239,8 @@ export const RiskAssessmentMatrix: React.FC<RiskAssessmentMatrixProps> = ({
   reports,
   onSelectReport,
   onNewReport,
-  onNavigateToReports
+  onNavigateToReports,
+  onUpdateStatus
 }) => {
   // State for interactive filters & selection
   const [selectedCell, setSelectedCell] = useState<{ likelihood: number; impact: number } | null>(null);
@@ -927,16 +929,34 @@ export const RiskAssessmentMatrix: React.FC<RiskAssessmentMatrixProps> = ({
                           ) : null}
                         </div>
 
-                        {onSelectReport && (
-                          <button
-                            type="button"
-                            onClick={() => onSelectReport(item.report)}
-                            className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-bold transition-colors"
-                          >
-                            <span>Detalhes</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {isCritical && onUpdateStatus && item.report.status !== 'TRIAGED' && (
+                            <button
+                              id={`btn-quick-triage-risk-matrix-${item.report.id}`}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateStatus(item.report.id, 'TRIAGED');
+                              }}
+                              className="px-2 py-0.5 rounded bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 hover:border-blue-400 text-[10px] font-mono font-bold flex items-center gap-1 transition-all shadow-sm cursor-pointer"
+                              title="Transição rápida para TRIAGED com 1 clique"
+                            >
+                              <CheckCircle2 className="w-2.5 h-2.5 text-blue-400" />
+                              <span>Quick Triage</span>
+                            </button>
+                          )}
+
+                          {onSelectReport && (
+                            <button
+                              type="button"
+                              onClick={() => onSelectReport(item.report)}
+                              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-bold transition-colors cursor-pointer"
+                            >
+                              <span>Detalhes</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
