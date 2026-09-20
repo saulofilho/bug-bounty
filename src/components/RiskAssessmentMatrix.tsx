@@ -16,10 +16,11 @@ import {
   HelpCircle,
   Activity,
   ArrowRight,
-  Search
+  Search,
+  Clock
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
-import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo } from '../utils/formatters';
 
 interface RiskAssessmentMatrixProps {
   reports: VulnerabilityReport[];
@@ -855,11 +856,16 @@ export const RiskAssessmentMatrix: React.FC<RiskAssessmentMatrixProps> = ({
                       }`}
                     >
                       {isCritical && (
-                        <div className="absolute top-2 right-2 flex items-center gap-1">
-                          <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                          </span>
+                        <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                          <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                            </span>
+                            <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
+                              CRITICAL
+                            </span>
+                          </div>
                         </div>
                       )}
                       <div className="flex items-start justify-between gap-2">
@@ -880,10 +886,22 @@ export const RiskAssessmentMatrix: React.FC<RiskAssessmentMatrixProps> = ({
                             >
                               {item.report.title}
                             </h4>
-                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-400">
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-400 flex-wrap">
                               <span className="text-zinc-300 font-medium">{item.report.target}</span>
                               <span>•</span>
                               <span>{item.report.platform}</span>
+                              {isCritical && (
+                                <>
+                                  <span>•</span>
+                                  <span 
+                                    className="px-1.5 py-0.2 rounded bg-red-950/70 text-red-300 border border-red-500/40 text-[9px] font-mono font-medium inline-flex items-center gap-1 shadow-sm"
+                                    title={`Criado em: ${item.report.createdAt}`}
+                                  >
+                                    <Clock className="w-2.5 h-2.5 text-red-400 shrink-0" />
+                                    <span>{formatRelativeTimeAgo(item.report.createdAt)}</span>
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>

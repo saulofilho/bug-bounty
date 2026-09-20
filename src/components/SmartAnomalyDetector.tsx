@@ -21,7 +21,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { VulnerabilityReport, ReportStatus, Severity } from '../types';
-import { formatCurrency, getSeverityBadgeColor } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, formatRelativeTimeAgo } from '../utils/formatters';
 
 export type AnomalyType = 
   | 'STATUS_JUMP' 
@@ -652,11 +652,16 @@ export const SmartAnomalyDetector: React.FC<SmartAnomalyDetectorProps> = ({
                   } border border-l-4 ${sevStyle.borderLeft} rounded-r-xl rounded-l-sm p-4 transition-all duration-200 hover:border-zinc-500/40 shadow-sm relative overflow-hidden`}
                 >
                   {isCritical && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 pointer-events-none">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                      </span>
+                    <div className="absolute top-2 right-2 flex items-center gap-1 pointer-events-none z-10">
+                      <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                        </span>
+                        <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
+                          CRITICAL
+                        </span>
+                      </div>
                     </div>
                   )}
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -684,6 +689,15 @@ export const SmartAnomalyDetector: React.FC<SmartAnomalyDetectorProps> = ({
                           <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[9px]">
                             {anomaly.report.status}
                           </span>
+                          {isCritical && (
+                            <span 
+                              className="px-1.5 py-0.5 rounded bg-red-950/70 text-red-300 border border-red-500/40 text-[9px] font-mono font-medium inline-flex items-center gap-1 shadow-sm"
+                              title={`Criado em: ${anomaly.report.createdAt}`}
+                            >
+                              <Clock className="w-2.5 h-2.5 text-red-400 shrink-0" />
+                              <span>{formatRelativeTimeAgo(anomaly.report.createdAt)}</span>
+                            </span>
+                          )}
                         </div>
 
                         {/* Anomaly Title */}
@@ -713,7 +727,10 @@ export const SmartAnomalyDetector: React.FC<SmartAnomalyDetectorProps> = ({
                         <button
                           id={`btn-quick-triage-anomaly-${anomaly.id}`}
                           type="button"
-                          onClick={() => onUpdateStatus(anomaly.report.id, 'TRIAGED')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateStatus(anomaly.report.id, 'TRIAGED');
+                          }}
                           className="px-3 py-1.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 hover:border-blue-400 font-mono text-xs font-bold flex items-center gap-1.5 transition-all shadow-[0_0_8px_rgba(59,130,246,0.3)] cursor-pointer"
                           title="Transição rápida de status para TRIAGED com 1 clique"
                         >

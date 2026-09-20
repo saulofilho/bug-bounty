@@ -24,7 +24,7 @@ import {
   Send
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus, TimelineEvent } from '../types';
-import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
 
 export type SystemActionType = 
@@ -538,11 +538,16 @@ export const DashboardActivityTimeline: React.FC<DashboardActivityTimelineProps>
                       title="Clique para inspecionar os detalhes deste relatório"
                     >
                       {action.reportSeverity === 'CRITICAL' && (
-                        <div className="absolute top-2 right-2 flex items-center gap-1">
-                          <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                          </span>
+                        <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                          <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                            </span>
+                            <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
+                              CRITICAL
+                            </span>
+                          </div>
                         </div>
                       )}
                       {/* Top Header Row */}
@@ -574,6 +579,16 @@ export const DashboardActivityTimeline: React.FC<DashboardActivityTimelineProps>
                             {action.reportSeverity}
                           </span>
                           <StatusBadge status={action.reportStatus} size="xs" />
+
+                          {action.reportSeverity === 'CRITICAL' && (
+                            <span 
+                              className="px-1.5 py-0.5 rounded bg-red-950/70 text-red-300 border border-red-500/40 text-[9px] font-mono font-medium inline-flex items-center gap-1 shadow-sm"
+                              title={`Criado em: ${action.report.createdAt}`}
+                            >
+                              <Clock className="w-2.5 h-2.5 text-red-400 shrink-0" />
+                              <span>{formatRelativeTimeAgo(action.report.createdAt)}</span>
+                            </span>
+                          )}
 
                           {/* Inline Quick Triage Badge Button */}
                           {action.reportSeverity === 'CRITICAL' && onUpdateStatus && action.reportStatus !== 'TRIAGED' && (

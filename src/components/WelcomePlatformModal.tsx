@@ -13,7 +13,9 @@ import {
   ArrowRight, 
   X,
   HelpCircle,
-  Database
+  Database,
+  Terminal,
+  Radio
 } from 'lucide-react';
 
 interface WelcomePlatformModalProps {
@@ -102,44 +104,64 @@ export const WelcomePlatformModal: React.FC<WelcomePlatformModalProps> = ({
             </div>
 
             {/* Quick Feature Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-4 border-t border-[#1f243b]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-[#1f243b]">
               <div className="p-2.5 rounded-lg bg-[#0c0e18] border border-[#1d2238] space-y-1">
                 <div className="flex items-center gap-1.5 text-emerald-400 font-mono text-[11px] font-semibold">
                   <Calculator className="w-3.5 h-3.5" />
-                  <span>CVSS v3.1 & CWE</span>
+                  <span>CVSS v4.0 & v3.1</span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-tight">
-                  Calculadora interativa oficial (FIRST.org) e catalogação detalhada de falhas.
+                  Calculadoras oficiais (FIRST.org) e correlação completa com CWE e OWASP Top 10.
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-[#0c0e18] border border-[#1d2238] space-y-1">
+                <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[11px] font-semibold">
+                  <Terminal className="w-3.5 h-3.5" />
+                  <span>Suíte AppSec (10 Módulos)</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-tight">
+                  PoC Builder (cURL/Python), DLP Sanitizer, SLA Tracker, Macros e Detector de Duplicatas.
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-[#0c0e18] border border-[#1d2238] space-y-1">
+                <div className="flex items-center gap-1.5 text-rose-400 font-mono text-[11px] font-semibold">
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>Threat Intel Global</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-tight">
+                  Feed de ciberameaças em tempo real, mapa mundi de incidentes e análise FAIR.
                 </p>
               </div>
 
               <div className="p-2.5 rounded-lg bg-[#0c0e18] border border-[#1d2238] space-y-1">
                 <div className="flex items-center gap-1.5 text-purple-400 font-mono text-[11px] font-semibold">
                   <GitBranch className="w-3.5 h-3.5" />
-                  <span>GitHub Sync & Force</span>
+                  <span>GitHub Sync & Exporter</span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-tight">
-                  Vínculo com repositórios e issues com detecção de discrepâncias e reconciliação.
+                  Vínculo com repositórios e exportação de chamados prontos para Jira, GitHub e GitLab.
                 </p>
               </div>
 
               <div className="p-2.5 rounded-lg bg-[#0c0e18] border border-[#1d2238] space-y-1">
                 <div className="flex items-center gap-1.5 text-cyan-400 font-mono text-[11px] font-semibold">
                   <Target className="w-3.5 h-3.5" />
-                  <span>Alvos & Escopos</span>
+                  <span>Alvos & 14 Plataformas</span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-tight">
-                  Gestão de escopos in-scope/out-of-scope para HackerOne, Bugcrowd e VDPs.
+                  Gestão de escopos in-scope/out-of-scope e diretório de 14 plataformas com tutoriais.
                 </p>
               </div>
 
               <div className="p-2.5 rounded-lg bg-[#0c0e18] border border-[#1d2238] space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[11px] font-semibold">
+                <div className="flex items-center gap-1.5 text-emerald-400 font-mono text-[11px] font-semibold">
                   <FileText className="w-3.5 h-3.5" />
-                  <span>PDF & Cripto PGP</span>
+                  <span>PDF Executivo & PGP</span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-tight">
-                  Geração de relatórios executivos com assinatura criptográfica verificável.
+                  Relatórios formais para auditoria, assinatura criptográfica e integridade local.
                 </p>
               </div>
             </div>

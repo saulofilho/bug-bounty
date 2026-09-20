@@ -27,7 +27,7 @@ import {
 import { formatCurrency } from '../utils/formatters';
 import { UserAuthWidget } from './UserAuthWidget';
 
-export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel' | 'notifications';
+export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel' | 'notifications' | 'tools';
 
 export interface HeaderProps {
   currentTab: NavTab;
@@ -75,8 +75,20 @@ export const Header: React.FC<HeaderProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
+  const activeMobileTabRef = useRef<HTMLButtonElement>(null);
   const usdToBrlRate = 5.45;
   const totalBRL = totalRewardedUSD * usdToBrlRate;
+
+  // Auto-scroll the active mobile tab into view smoothly on tab switch
+  useEffect(() => {
+    if (activeMobileTabRef.current) {
+      activeMobileTabRef.current.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest'
+      });
+    }
+  }, [currentTab]);
 
   // Global keyboard shortcuts:
   // - '/' or 'Ctrl+K' -> Focus search
@@ -321,6 +333,22 @@ export const Header: React.FC<HeaderProps> = ({
                     {unreadNotificationsCount}
                   </span>
                 )}
+              </button>
+
+              <button
+                id="nav-tools"
+                onClick={() => onTabChange('tools')}
+                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                  currentTab === 'tools'
+                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
+                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Ferramentas AppSec</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
+                  10
+                </span>
               </button>
             </nav>
           </div>
@@ -681,6 +709,22 @@ export const Header: React.FC<HeaderProps> = ({
                       <span className="text-[9px] font-mono text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1 py-0.2 rounded font-bold">LIVE</span>
                     </button>
 
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsQuickMenuOpen(false);
+                        onTabChange('tools');
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors text-left"
+                      role="menuitem"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Central de Ferramentas AppSec</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1 py-0.2 rounded font-bold">10 TOOLS</span>
+                    </button>
+
                     {onOpenStorageIntegrity && (
                       <button
                         type="button"
@@ -814,82 +858,201 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Mobile & Tablet Navigation bar (visible on screens < 1024px) */}
-        <div className="flex lg:hidden items-center justify-between sm:justify-around py-2 border-t border-[#1e1e22] text-[10px] font-medium uppercase tracking-wider text-zinc-400 overflow-x-auto no-scrollbar gap-1 px-1.5">
+        <div 
+          id="mobile-nav-bar"
+          role="tablist"
+          aria-label="Navegação móvel principal"
+          className="flex lg:hidden items-center py-2 px-1.5 sm:px-2 border-t border-[#1e1e24] bg-[#0c0c0f]/95 backdrop-blur-md overflow-x-auto touch-pan-x scroll-smooth no-scrollbar gap-1.5 md:gap-2 select-none"
+        >
+          {/* Dashboard Tab */}
           <button 
+            ref={currentTab === 'dashboard' ? activeMobileTabRef : null}
+            id="mobile-nav-dashboard"
+            role="tab"
+            aria-selected={currentTab === 'dashboard'}
             onClick={() => onTabChange('dashboard')} 
-            className={`flex flex-col items-center px-1.5 sm:px-2 py-1 rounded-md transition-colors shrink-0 ${
+            title="Ir para o Dashboard"
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
               currentTab === 'dashboard' 
-                ? 'text-emerald-400 font-bold bg-emerald-500/10' 
-                : 'hover:text-zinc-200'
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
             }`}
           >
-            <LayoutDashboard className="w-4 h-4 mb-0.5" />
+            <LayoutDashboard className={`w-4 h-4 shrink-0 ${currentTab === 'dashboard' ? 'text-emerald-400' : 'text-zinc-400'}`} />
             <span>Dashboard</span>
           </button>
+
+          {/* Reports Tab */}
           <button 
+            ref={currentTab === 'reports' ? activeMobileTabRef : null}
+            id="mobile-nav-reports"
+            role="tab"
+            aria-selected={currentTab === 'reports'}
             onClick={() => onTabChange('reports')} 
-            className={`flex flex-col items-center px-1.5 sm:px-2 py-1 rounded-md transition-colors relative shrink-0 ${
+            title="Relatórios de Vulnerabilidade"
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
               currentTab === 'reports' 
-                ? 'text-emerald-400 font-bold bg-emerald-500/10' 
-                : 'hover:text-zinc-200'
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
             }`}
           >
-            <FileText className="w-4 h-4 mb-0.5" />
-            <span className="flex items-center gap-1">
-              <span>Reports</span>
-              {activeReportsCount > 0 && (
-                <span className="text-[9px] px-1 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">
-                  {activeReportsCount}
-                </span>
-              )}
-            </span>
+            <FileText className={`w-4 h-4 shrink-0 ${currentTab === 'reports' ? 'text-emerald-400' : 'text-zinc-400'}`} />
+            <span>Reports</span>
+            {searchQuery ? (
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold border ${
+                  (reportsMatchingCount ?? 0) > 0
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                    : 'bg-red-950/80 text-red-300 border-red-500/40'
+                }`}
+              >
+                {reportsMatchingCount}
+              </span>
+            ) : activeReportsCount > 0 ? (
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
+                {activeReportsCount}
+              </span>
+            ) : null}
           </button>
+
+          {/* CVE-DB Tab */}
           <button 
+            ref={currentTab === 'cve' ? activeMobileTabRef : null}
+            id="mobile-nav-cve"
+            role="tab"
+            aria-selected={currentTab === 'cve'}
             onClick={() => onTabChange('cve')} 
-            className={`flex flex-col items-center px-1.5 sm:px-2 py-1 rounded-md transition-colors shrink-0 ${
+            title="Base de Dados de CVEs e Exploits"
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
               currentTab === 'cve' 
-                ? 'text-emerald-400 font-bold bg-emerald-500/10' 
-                : 'hover:text-zinc-200'
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
             }`}
           >
-            <Database className="w-4 h-4 mb-0.5" />
+            <Database className={`w-4 h-4 shrink-0 ${currentTab === 'cve' ? 'text-emerald-400' : 'text-zinc-400'}`} />
             <span>CVE-DB</span>
           </button>
+
+          {/* Programs / Targets Tab */}
           <button 
+            ref={currentTab === 'targets' ? activeMobileTabRef : null}
+            id="mobile-nav-targets"
+            role="tab"
+            aria-selected={currentTab === 'targets'}
             onClick={() => onTabChange('targets')} 
-            className={`flex flex-col items-center px-1.5 sm:px-2 py-1 rounded-md transition-colors shrink-0 ${
+            title="Programas e Alvos Bug Bounty"
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
               currentTab === 'targets' 
-                ? 'text-emerald-400 font-bold bg-emerald-500/10' 
-                : 'hover:text-zinc-200'
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
             }`}
           >
-            <Target className="w-4 h-4 mb-0.5" />
+            <Target className={`w-4 h-4 shrink-0 ${currentTab === 'targets' ? 'text-emerald-400' : 'text-zinc-400'}`} />
             <span>Programs</span>
           </button>
+
+          {/* AppSec Tools Tab */}
           <button 
-            onClick={() => onTabChange('docs')} 
-            className={`flex flex-col items-center px-1.5 sm:px-2 py-1 rounded-md transition-colors shrink-0 ${
-              currentTab === 'docs' 
-                ? 'text-emerald-400 font-bold bg-emerald-500/10' 
-                : 'hover:text-zinc-200'
+            ref={currentTab === 'tools' ? activeMobileTabRef : null}
+            id="mobile-nav-tools"
+            role="tab"
+            aria-selected={currentTab === 'tools'}
+            onClick={() => onTabChange('tools')} 
+            title="Central de Ferramentas AppSec & DevSecOps (10 Módulos)"
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
+              currentTab === 'tools' 
+                ? 'text-amber-300 font-bold bg-amber-500/15 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
             }`}
           >
-            <BookOpen className="w-4 h-4 mb-0.5" />
-            <span>Library</span>
-          </button>
-          <button 
-            onClick={() => onTabChange('platforms')} 
-            className={`flex flex-col items-center px-1.5 sm:px-2 py-1 rounded-md transition-colors relative shrink-0 ${
-              currentTab === 'platforms' 
-                ? 'text-emerald-400 font-bold bg-emerald-500/10' 
-                : 'hover:text-zinc-200'
-            }`}
-          >
-            <Globe className="w-4 h-4 mb-0.5" />
-            <span className="flex items-center gap-1">
-              <span>Sites</span>
-              <span className="text-[9px] px-1 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">14</span>
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>AppSec</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
+              10
             </span>
+          </button>
+
+          {/* Threat Intel Tab */}
+          <button 
+            ref={currentTab === 'threat-intel' ? activeMobileTabRef : null}
+            id="mobile-nav-threat-intel"
+            role="tab"
+            aria-selected={currentTab === 'threat-intel'}
+            onClick={() => onTabChange('threat-intel')} 
+            title="Threat Intelligence em Tempo Real"
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
+              currentTab === 'threat-intel' 
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
+            }`}
+          >
+            <Radio className={`w-4 h-4 shrink-0 ${currentTab === 'threat-intel' ? 'text-emerald-400 animate-pulse' : 'text-zinc-400'}`} />
+            <span>Intel</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
+              LIVE
+            </span>
+          </button>
+
+          {/* Notifications Tab */}
+          <button 
+            ref={currentTab === 'notifications' ? activeMobileTabRef : null}
+            id="mobile-nav-notifications"
+            role="tab"
+            aria-selected={currentTab === 'notifications'}
+            onClick={() => onTabChange('notifications')} 
+            title={`Notificações do Sistema (${unreadNotificationsCount} não lidas)`}
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
+              currentTab === 'notifications' 
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
+            }`}
+          >
+            <Bell className={`w-4 h-4 shrink-0 ${unreadNotificationsCount > 0 ? 'text-rose-400' : currentTab === 'notifications' ? 'text-emerald-400' : 'text-zinc-400'}`} />
+            <span>Alertas</span>
+            {unreadNotificationsCount > 0 && (
+              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-mono font-bold animate-pulse">
+                {unreadNotificationsCount}
+              </span>
+            )}
+          </button>
+
+          {/* Sites & Platforms Tab */}
+          <button 
+            ref={currentTab === 'platforms' ? activeMobileTabRef : null}
+            id="mobile-nav-platforms"
+            role="tab"
+            aria-selected={currentTab === 'platforms'}
+            onClick={() => onTabChange('platforms')} 
+            title="Plataformas de Bug Bounty & Ganhos"
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
+              currentTab === 'platforms' 
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
+            }`}
+          >
+            <Globe className={`w-4 h-4 shrink-0 ${currentTab === 'platforms' ? 'text-emerald-400' : 'text-zinc-400'}`} />
+            <span>Sites</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">
+              14
+            </span>
+          </button>
+
+          {/* Library / Docs Tab */}
+          <button 
+            ref={currentTab === 'docs' ? activeMobileTabRef : null}
+            id="mobile-nav-docs"
+            role="tab"
+            aria-selected={currentTab === 'docs'}
+            onClick={() => onTabChange('docs')} 
+            title="Biblioteca de Segurança, Guias e Metodologias"
+            className={`min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 ${
+              currentTab === 'docs' 
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
+            }`}
+          >
+            <BookOpen className={`w-4 h-4 shrink-0 ${currentTab === 'docs' ? 'text-emerald-400' : 'text-zinc-400'}`} />
+            <span>Library</span>
           </button>
         </div>
 

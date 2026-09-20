@@ -16,7 +16,19 @@ import {
   Zap,
   Lock,
   ShieldAlert,
-  BellRing
+  BellRing,
+  Calculator,
+  Terminal,
+  Clock,
+  MessageSquareCode,
+  Sparkles,
+  Sliders,
+  Layers,
+  Radio,
+  Copy,
+  EyeOff,
+  DollarSign,
+  Share2
 } from 'lucide-react';
 
 interface AboutHelpModalProps {
@@ -32,7 +44,7 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
   onResetToSeedData,
   onTestCriticalToast
 }) => {
-  const [activeSection, setActiveSection] = useState<'overview' | 'guide' | 'storage'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'guide' | 'tools' | 'storage'>('overview');
   const [resetConfirmed, setResetConfirmed] = useState(false);
 
   if (!isOpen) return null;
@@ -83,32 +95,46 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
         </div>
 
         {/* Section Tabs */}
-        <div className="flex border-b border-[#222] bg-[#0f0f0f] px-5 gap-4 text-xs font-mono">
+        <div className="flex border-b border-[#222] bg-[#0f0f0f] px-3 sm:px-5 gap-2 sm:gap-4 text-xs font-mono overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveSection('overview')}
-            className={`py-3 flex items-center gap-2 border-b-2 transition-all ${
+            className={`py-3 flex items-center gap-2 border-b-2 transition-all whitespace-nowrap shrink-0 ${
               activeSection === 'overview'
                 ? 'border-emerald-400 text-emerald-400 font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Info className="w-3.5 h-3.5" />
-            <span>Dados Mock & Persistência</span>
+            <span>Visão Geral</span>
           </button>
           <button
             onClick={() => setActiveSection('guide')}
-            className={`py-3 flex items-center gap-2 border-b-2 transition-all ${
+            className={`py-3 flex items-center gap-2 border-b-2 transition-all whitespace-nowrap shrink-0 ${
               activeSection === 'guide'
                 ? 'border-emerald-400 text-emerald-400 font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>Como Usar o Sistema</span>
+            <span>Guia Passo a Passo</span>
+          </button>
+          <button
+            onClick={() => setActiveSection('tools')}
+            className={`py-3 flex items-center gap-2 border-b-2 transition-all whitespace-nowrap shrink-0 ${
+              activeSection === 'tools'
+                ? 'border-emerald-400 text-emerald-400 font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Ferramentas AppSec</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+              10 Módulos
+            </span>
           </button>
           <button
             onClick={() => setActiveSection('storage')}
-            className={`py-3 flex items-center gap-2 border-b-2 transition-all ${
+            className={`py-3 flex items-center gap-2 border-b-2 transition-all whitespace-nowrap shrink-0 ${
               activeSection === 'storage'
                 ? 'border-emerald-400 text-emerald-400 font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -304,6 +330,255 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                     <p className="text-zinc-400 font-sans text-xs">
                       No <strong>Dashboard</strong>, atualize o status dos relatórios para <em>TRIAGED</em>, <em>RESOLVED</em> ou <em>REWARDED</em> (inserindo o valor do bounty em USD/BRL). O gráfico visual Recharts e o painel de <strong>Recent Activity</strong> atualizam automaticamente!
                     </p>
+                  </div>
+                </div>
+
+                {/* Step 6 */}
+                <div className="p-3 rounded-lg bg-[#141414] border border-[#262626] flex gap-3">
+                  <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">6</span>
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-white uppercase flex items-center gap-1.5">
+                      <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Sanitize Segredos (DLP) & Gere PoCs em Código (AppSec)</span>
+                    </h4>
+                    <p className="text-zinc-400 font-sans text-xs">
+                      Na aba <strong>AppSec</strong>, utilize o <em>DLP Sanitizer</em> para ofuscar chaves AWS e tokens confidenciais antes de submeter o achado, e o <em>PoC Builder</em> para gerar comandos cURL e scripts Python 100% reproduzíveis.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 7 */}
+                <div className="p-3 rounded-lg bg-[#141414] border border-[#262626] flex gap-3">
+                  <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">7</span>
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-white uppercase flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Acompanhe Threat Intel & Simule Riscos Financeiros (FAIR)</span>
+                    </h4>
+                    <p className="text-zinc-400 font-sans text-xs">
+                      Consulte a aba <strong>Intel</strong> para monitorar ciberameaças ativas no mapa mundial e utilize os simuladores quantitativos de risco (FAIR e Violação de Dados) para quantificar o prejuízo financeiro evitado em dólares e reais.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* SECTION: APPSEC TOOLS (10 MÓDULOS) */}
+          {activeSection === 'tools' && (
+            <div className="space-y-5">
+              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 flex items-start gap-3.5">
+                <Sparkles className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-300 font-mono flex items-center gap-2">
+                    <span>Central de Ferramentas AppSec & DevSecOps — 10 Módulos Integrados</span>
+                  </h3>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    A aba <strong>AppSec</strong> foi desenvolvida para unificar as tarefas essenciais de engenheiros de segurança e pesquisadores. Abaixo você confere o funcionamento e as instruções de uso de cada módulo:
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 font-sans">
+                
+                {/* Tool 1 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-emerald-400">
+                      <Calculator className="w-4 h-4" />
+                      <span>1. Calculadora CVSS v4.0</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      FIRST Official
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Calcula a severidade segundo a nova especificação internacional CVSS v4.0. Separa o impacto no sistema vulnerável (VC/VI/VA) do impacto subsequente (SC/SI/SA).
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Selecione o relatório para carregar o contexto.<br />2. Alterne as métricas Base, Threat e Environmental.<br />3. Copie o vetor gerado (ex: CVSS:4.0/AV:N/...).</span>
+                  </div>
+                </div>
+
+                {/* Tool 2 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-sky-400">
+                      <Layers className="w-4 h-4" />
+                      <span>2. Mapeador CWE / OWASP</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                      Taxonomia
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Mapeia as 25 vulnerabilidades mais críticas (Top CWEs 2023/2024) e as 10 categorias do OWASP Top 10 (2021) com snippets de código vulnerável e correção.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Filtre por palavra-chave (ex: SQLi, SSRF, XSS).<br />2. Inspecione o impacto técnico e recomendações.<br />3. Clique em vincular ao relatório ativo.</span>
+                  </div>
+                </div>
+
+                {/* Tool 3 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-amber-400">
+                      <Terminal className="w-4 h-4" />
+                      <span>3. Construtor de PoC & HTTP</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      cURL / Python
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Gera instantaneamente scripts reproduzíveis em comando cURL, código Python (requests) e formato Raw HTTP/1.1 para colar no Burp Suite Repeater.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Digite a URL, método (GET/POST) e payload.<br />2. Adicione cabeçalhos de autenticação/cookies.<br />3. Copie o script pronto para seu PoC.</span>
+                  </div>
+                </div>
+
+                {/* Tool 4 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-rose-400">
+                      <Clock className="w-4 h-4" />
+                      <span>4. Monitor de SLA de Triagem</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      MTTA / MTTR
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Acompanha o cumprimento de prazos de primeira resposta e remediação por criticidade (Crítico: 24h, Alto: 48h), emitindo alertas de estouro de SLA.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Monitore a lista de relatórios com contagem regressiva.<br />2. Identifique itens marcados em vermelho (*Breach*).<br />3. Priorize follow-up com a plataforma.</span>
+                  </div>
+                </div>
+
+                {/* Tool 5 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-purple-400">
+                      <MessageSquareCode className="w-4 h-4" />
+                      <span>5. Macros de Resposta Rápida</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      Templates
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Biblioteca de mensagens profissionais padrão (solicitação de detalhes, aviso de triagem, duplicatas) com preenchimento dinâmico de variáveis.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Escolha o template (ex: Pedido de PoC Adicional).<br />2. O sistema injeta o nome do hunter e título do bug.<br />3. Copie e envie para o analista ou pesquisador.</span>
+                  </div>
+                </div>
+
+                {/* Tool 6 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-orange-400">
+                      <Sliders className="w-4 h-4" />
+                      <span>6. Detector de Duplicatas</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                      Similaridade
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Calcula o índice de sobreposição textual e técnica (Jaccard + Levenshtein) para alertar se um novo achado já foi reportado anteriormente no mesmo endpoint.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Selecione o relatório a ser analisado.<br />2. Veja a barra de pontuação percentual de similaridade.<br />3. Revise as sobreposições para evitar duplicações.</span>
+                  </div>
+                </div>
+
+                {/* Tool 7 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-emerald-400">
+                      <DollarSign className="w-4 h-4" />
+                      <span>7. Matriz de Bounties & Budget</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Simulação
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Calcula o valor sugerido de recompensa ponderando a Criticidade do Ativo (Tier 1 Core, Tier 2 API, Tier 3 Auxiliar) e o consumo do orçamento anual.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Ajuste a severidade do achado e o tier do alvo.<br />2. Veja a faixa recomendada de pagamento (USD).<br />3. Simule o impacto percentual na reserva financeira.</span>
+                  </div>
+                </div>
+
+                {/* Tool 8 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-blue-400">
+                      <Share2 className="w-4 h-4" />
+                      <span>8. Exportador para Issue Trackers</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      Jira / GitHub
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Converte relatórios de vulnerabilidade em chamados estruturados prontos para engenharia no Jira, GitHub Issues e GitLab com Markdown técnico.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Selecione o relatório e a plataforma de destino.<br />2. Revise o corpo do chamado com steps e remediação.<br />3. Copie para a área de transferência ou baixe o arquivo.</span>
+                  </div>
+                </div>
+
+                {/* Tool 9 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-rose-400">
+                      <EyeOff className="w-4 h-4" />
+                      <span>9. Sanitizador DLP (Anti-Vazamento)</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      Segurança
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Inspeciona o relatório antes da submissão para detectar e mascarar credenciais confidenciais: chaves AWS, tokens GitHub, JWTs, senhas e emails.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Cole seu rascunho de relatório ou PoC.<br />2. Veja os segredos em destaque no painel de alertas.<br />3. Clique em Sanitizar Texto para ofuscamento automático.</span>
+                  </div>
+                </div>
+
+                {/* Tool 10 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-cyan-400">
+                      <Radio className="w-4 h-4" />
+                      <span>10. Simulador de Webhooks</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      Slack / Teams
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Gera e dispara payloads formatados de notificação de segurança para canais do Slack, servidores do Discord e canais do Microsoft Teams.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Escolha a plataforma (Slack, Discord, Teams).<br />2. Insira o Webhook URL do seu canal de segurança.<br />3. Clique em Disparar Teste para validar o recebimento.</span>
                   </div>
                 </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "Bug Bounty Manager & Vulnerability Tracker",
-  "description": "Plataforma para gerenciar relatórios de bug bounty, matriz de prioridade de risco (CVSS × Impacto no Negócio), monitor de rate limit, simulador de incidentes (IBM/FAIR), integração com repositórios GitHub para criação/sincronização de issues, checklists OWASP, assinatura PGP e Threat Intelligence.",
+  "description": "Plataforma completa para caçadores de recompensa e AppSec: gestão de vulnerabilidades, suíte de 10 ferramentas AppSec (CVSS v4.0, DLP Sanitizer, PoC Builder, SLA Tracker, Macros, Detector de Duplicatas, Issue Exporter), Threat Intelligence global, simulador quantitativo FAIR, checklists OWASP e assinatura PGP.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

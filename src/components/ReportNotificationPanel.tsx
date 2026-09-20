@@ -18,7 +18,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
-import { formatCurrency, getSeverityBadgeColor } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, formatRelativeTimeAgo } from '../utils/formatters';
 
 export interface NotificationItem {
   id: string;
@@ -432,6 +432,19 @@ export const ReportNotificationPanel: React.FC<ReportNotificationPanelProps> = (
                         : 'bg-[#111111] hover:bg-[#171717] border border-[#242424] hover:border-[#383838]'
                     }`}
                   >
+                    {isSeverityCritical && (
+                      <div className="absolute top-2.5 right-8 flex items-center gap-1 pointer-events-none z-10">
+                        <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                          </span>
+                          <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
+                            CRITICAL
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <div>
                       {/* Top Row: Badges & Dismiss */}
                       <div className="flex items-center justify-between gap-2 mb-2">
@@ -463,6 +476,15 @@ export const ReportNotificationPanel: React.FC<ReportNotificationPanelProps> = (
                         {item.report.status === 'SUBMITTED' && (
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
                             SUBMITTED
+                          </span>
+                        )}
+                        {isSeverityCritical && (
+                          <span 
+                            className="px-1.5 py-0.5 rounded bg-red-950/70 text-red-300 border border-red-500/40 text-[9px] font-mono font-medium flex items-center gap-1 shadow-sm"
+                            title={`Criado em: ${item.report.createdAt}`}
+                          >
+                            <Clock className="w-2.5 h-2.5 text-red-400 shrink-0" />
+                            <span>{formatRelativeTimeAgo(item.report.createdAt)}</span>
                           </span>
                         )}
                       </div>

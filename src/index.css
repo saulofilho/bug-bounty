@@ -64,3 +64,18 @@
 .critical-radar-ping {
   animation: criticalBadgePing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+@keyframes criticalPulsingBadge {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.7), 0 0 4px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.95), 0 0 8px rgba(255, 255, 255, 0.6);
+  }
+}
+
+.critical-corner-badge {
+  animation: criticalPulsingBadge 1.8s ease-in-out infinite;
+}

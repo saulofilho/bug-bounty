@@ -179,3 +179,173 @@ ${report.businessImpact}
 ${report.remediation}
 `;
 }
+
+/**
+ * Formats a report timestamp into a relative timestamp counter
+ * e.g., 'Created 2h ago', 'Created 15m ago', 'Created 3d ago', 'Created just now'
+ */
+export function formatRelativeTimeAgo(dateInput?: string | number | Date | null): string {
+  if (!dateInput) return 'Created recently';
+
+  let timestamp: number;
+  if (typeof dateInput === 'number') {
+    timestamp = dateInput;
+  } else if (dateInput instanceof Date) {
+    timestamp = dateInput.getTime();
+  } else {
+    const parsed = Date.parse(dateInput);
+    if (isNaN(parsed)) return 'Created recently';
+    timestamp = parsed;
+  }
+
+  const now = Date.now();
+  const elapsedMs = now - timestamp;
+
+  // Clock skew or less than 1 minute
+  if (elapsedMs < 60 * 1000) {
+    return 'Created just now';
+  }
+
+  const minutes = Math.floor(elapsedMs / (60 * 1000));
+  if (minutes < 60) {
+    return `Created ${minutes}m ago`;
+  }
+
+  const hours = Math.floor(elapsedMs / (60 * 60 * 1000));
+  if (hours < 24) {
+    return `Created ${hours}h ago`;
+  }
+
+  const days = Math.floor(elapsedMs / (24 * 60 * 60 * 1000));
+  if (days < 30) {
+    return `Created ${days}d ago`;
+  }
+
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `Created ${months}mo ago`;
+  }
+
+  const years = Math.floor(days / 365);
+  return `Created ${years}y ago`;
+}
+
+export interface ImpactCategoryTag {
+  label: 'Remote' | 'Auth' | 'Physical' | 'Local' | 'Cloud';
+  bg: string;
+  text: string;
+  border: string;
+  dotColor: string;
+}
+
+/**
+ * Derives a standardized, color-coded impact category tag (e.g. Remote, Auth, Physical, Local, Cloud)
+ * from CVSS Attack Vector and vulnerability classification.
+ */
+export function getImpactCategoryTag(data?: {
+  cvssVector?: string;
+  vulnerabilityType?: string;
+  title?: string;
+  cwe?: string;
+  tags?: string[];
+  businessImpact?: string;
+}): ImpactCategoryTag {
+  if (!data) {
+    return {
+      label: 'Remote',
+      bg: 'bg-cyan-950/80',
+      text: 'text-cyan-300',
+      border: 'border-cyan-500/40',
+      dotColor: 'bg-cyan-400'
+    };
+  }
+
+  const cvss = (data.cvssVector || '').toUpperCase();
+  const text = `${data.vulnerabilityType || ''} ${data.title || ''} ${data.cwe || ''} ${(data.tags || []).join(' ')} ${data.businessImpact || ''}`.toLowerCase();
+
+  // 1. Physical Vector
+  if (
+    cvss.includes('AV:P') || 
+    text.includes('physical') || 
+    text.includes('hardware') || 
+    text.includes('kiosk') || 
+    text.includes('usb') || 
+    text.includes('smartcard') || 
+    text.includes('tamper')
+  ) {
+    return {
+      label: 'Physical',
+      bg: 'bg-orange-950/80',
+      text: 'text-orange-300',
+      border: 'border-orange-500/40',
+      dotColor: 'bg-orange-400'
+    };
+  }
+
+  // 2. Auth / Access Control / Authorization
+  if (
+    text.includes('auth') ||
+    text.includes('idor') ||
+    text.includes('bola') ||
+    text.includes('bypass') ||
+    text.includes('permission') ||
+    text.includes('privilege') ||
+    text.includes('session') ||
+    text.includes('token') ||
+    text.includes('jwt') ||
+    text.includes('credential') ||
+    text.includes('broken access') ||
+    text.includes('cwe-287') ||
+    text.includes('cwe-306') ||
+    text.includes('cwe-862') ||
+    text.includes('cwe-863') ||
+    text.includes('cwe-639')
+  ) {
+    return {
+      label: 'Auth',
+      bg: 'bg-amber-950/80',
+      text: 'text-amber-300',
+      border: 'border-amber-500/40',
+      dotColor: 'bg-amber-400'
+    };
+  }
+
+  // 3. Local Vector
+  if (cvss.includes('AV:L') || text.includes('local privilege') || text.includes('local file')) {
+    return {
+      label: 'Local',
+      bg: 'bg-indigo-950/80',
+      text: 'text-indigo-300',
+      border: 'border-indigo-500/40',
+      dotColor: 'bg-indigo-400'
+    };
+  }
+
+  // 4. Cloud Vector
+  if (
+    text.includes('cloud') || 
+    text.includes('aws') || 
+    text.includes('s3') || 
+    text.includes('gcp') || 
+    text.includes('azure') || 
+    text.includes('imds') || 
+    text.includes('kubernetes')
+  ) {
+    return {
+      label: 'Cloud',
+      bg: 'bg-sky-950/80',
+      text: 'text-sky-300',
+      border: 'border-sky-500/40',
+      dotColor: 'bg-sky-400'
+    };
+  }
+
+  // 5. Default / Remote / Network Vector
+  return {
+    label: 'Remote',
+    bg: 'bg-cyan-950/80',
+    text: 'text-cyan-300',
+    border: 'border-cyan-500/40',
+    dotColor: 'bg-cyan-400'
+  };
+}

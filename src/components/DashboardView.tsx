@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
-import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo } from '../utils/formatters';
 import { calculateTriageEfficiency } from '../utils/triageEfficiencyEngine';
 import { BountySparklineChart, BountyCompactSparkline } from './BountySparklineChart';
 import { SeverityBarChart } from './SeverityBarChart';
@@ -528,6 +528,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNavigateTab={onNavigateTab}
       />
 
+      {/* DevSecOps & AppSec Tools Suite Quick Launch Card */}
+      <div className="bg-gradient-to-r from-[#14141e] via-[#111119] to-[#161624] border border-[#262638] rounded-xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg hover:border-emerald-500/40 transition-all">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-inner">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-bold text-white">Central de Ferramentas AppSec & DevSecOps</span>
+              <span className="px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30">
+                10 MÓDULOS ATIVOS
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400">
+              CVSS v4.0, Mapeador CWE/OWASP Top 10, Construtor PoC cURL/Python, Monitor SLA MTTR/MTTT, Macros de Triagem, Sanitizador DLP e Jira/GitHub Exporter.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onNavigateTab('tools')}
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-mono text-xs font-bold flex items-center gap-2 shadow-md transition-all shrink-0 cursor-pointer"
+        >
+          <span>Abrir Ferramentas AppSec</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
       {/* Primary KPI Metrics Grid - Sophisticated Dark Architecture */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
@@ -575,6 +604,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           const isCriticalActive = criticalCount > 0;
           const untriagedCriticalReports = reports.filter(r => r.severity === 'CRITICAL' && r.status !== 'TRIAGED');
           const untriagedPendingCount = untriagedCriticalReports.length;
+          const latestCriticalReport = reports.filter(r => r.severity === 'CRITICAL').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
           return (
             <div 
@@ -590,20 +620,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               title="Clique para filtrar apenas vulnerabilidades CRITICAL"
             >
               {isCriticalActive && (
-                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 critical-radar-ping" />
-                  </span>
-                  <span className="text-[9px] font-mono font-bold text-red-300 uppercase tracking-wider bg-red-950/80 border border-red-500/50 px-1.5 py-0.2 rounded shadow-[0_0_8px_rgba(239,68,68,0.5)]">
-                    ALERTA P1
-                  </span>
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+                  {latestCriticalReport && (
+                    <span 
+                      className="text-[9px] font-mono text-red-300 bg-red-950/90 border border-red-500/40 px-1.5 py-0.2 rounded shadow-[0_0_8px_rgba(239,68,68,0.3)] hidden sm:inline-flex items-center gap-1"
+                      title={`Mais recente: ${latestCriticalReport.title} (${latestCriticalReport.createdAt})`}
+                    >
+                      <Clock className="w-2.5 h-2.5 text-red-400" />
+                      <span>{formatRelativeTimeAgo(latestCriticalReport.createdAt)}</span>
+                    </span>
+                  )}
+                  <div className="critical-corner-badge flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_12px_rgba(239,68,68,0.85)]">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                    </span>
+                    <span className="text-[9px] font-mono font-black uppercase tracking-wider text-white">
+                      CRITICAL
+                    </span>
+                  </div>
                 </div>
               )}
-              <p className="text-xs text-zinc-400 uppercase mb-1 flex items-center gap-1.5">
-                <ShieldAlert className={`w-3.5 h-3.5 text-red-500 ${isCriticalActive ? 'animate-pulse' : ''}`} />
-                <span>Critical Findings</span>
-              </p>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <p className="text-xs text-zinc-400 uppercase flex items-center gap-1.5">
+                  <ShieldAlert className={`w-3.5 h-3.5 text-red-500 ${isCriticalActive ? 'animate-pulse' : ''}`} />
+                  <span>Critical Findings</span>
+                </p>
+                {isCriticalActive && latestCriticalReport && (
+                  <span className="sm:hidden text-[9px] font-mono text-red-300 bg-red-950/80 border border-red-500/40 px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5 text-red-400" />
+                    <span>{formatRelativeTimeAgo(latestCriticalReport.createdAt)}</span>
+                  </span>
+                )}
+              </div>
               <h3 className="text-3xl font-light text-red-500 font-mono tracking-tight flex items-baseline gap-2">
                 <span className={isCriticalActive ? 'drop-shadow-[0_0_8px_rgba(239,68,68,0.6)] font-normal' : ''}>
                   {String(criticalCount).padStart(2, '0')}
@@ -1338,11 +1387,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       title={isCritical ? "Alerta Crítico: clique para inspecionar" : "Clique para inspecionar o relatório completo"}
                     >
                       {isCritical && (
-                        <div className="absolute top-1.5 right-2 flex items-center gap-1 pointer-events-none">
-                          <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                          </span>
+                        <div className="absolute top-1.5 right-2 flex items-center gap-1 pointer-events-none z-10">
+                          <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                            </span>
+                            <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
+                              CRITICAL
+                            </span>
+                          </div>
                         </div>
                       )}
                       <div className="flex items-start justify-between gap-2">
@@ -1367,6 +1421,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                 {evt.reportSeverity}
                               </span>
                               <StatusBadge status={evt.report.status} size="xs" />
+                              {isCritical && (
+                                <span 
+                                  className="px-1.5 py-0.2 rounded bg-red-950/70 text-red-300 border border-red-500/40 text-[9px] font-mono font-medium inline-flex items-center gap-1 shadow-sm"
+                                  title={`Criado em: ${evt.report.createdAt}`}
+                                >
+                                  <Clock className="w-2.5 h-2.5 text-red-400 shrink-0" />
+                                  <span>{formatRelativeTimeAgo(evt.report.createdAt)}</span>
+                                </span>
+                              )}
                             </div>
                             {evt.notes && (
                               <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5 font-sans">

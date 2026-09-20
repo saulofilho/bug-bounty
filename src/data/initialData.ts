@@ -832,5 +832,74 @@ Em 2 a 3 parágrafos claros:
 - NUNCA altere dados reais de outros clientes; use suas próprias contas de teste.`,
     tags: ["Writing", "Triage", "Best Practices", "Bounty Optimization"],
     updatedAt: "2024-04-05"
+  },
+  {
+    id: "DOC-005",
+    title: "Manual Prático: Central de Ferramentas AppSec & DevSecOps (10 Módulos)",
+    category: "Methodology",
+    content: `### Manual de Operações: Suíte AppSec & DevSecOps do BugSentinel
+
+A suíte **AppSec** integra 10 ferramentas essenciais para caçadores de recompensa e analistas de segurança de aplicações. Abaixo, confira o guia passo a passo de como utilizar cada módulo:
+
+---
+
+#### 1. Calculadora Oficial CVSS v4.0
+- **Objetivo**: Avaliar vulnerabilidades segundo o novo padrão FIRST.org CVSS 4.0.
+- **Diferencial**: Separação precisa entre impacto no sistema vulnerável (\`VC/VI/VA\`) e impacto subsequente em outros sistemas/redes (\`SC/SI/SA\`).
+- **Como usar**:
+  1. Carregue um relatório ativo para herdar o contexto do achado.
+  2. Ajuste as métricas Base (AV, AC, AT, PR, UI), Threat (Exploit Maturity) e Environmental.
+  3. Copie o vetor gerado para colar na plataforma de submissão (HackerOne, Bugcrowd, Intigriti).
+
+#### 2. Mapeador CWE & OWASP Top 10 (2021)
+- **Objetivo**: Padronizar a taxonomia da falha para acelerar a aceitação por triadores.
+- **Recursos**: Catálogo com as Top 25 CWEs (2023/2024) e as 10 categorias OWASP.
+- **Como usar**:
+  1. Pesquise por tipo de vulnerabilidade (ex: \`IDOR\`, \`SQLi\`, \`SSRF\`, \`Broken Auth\`).
+  2. Inspecione a descrição técnica, exemplos de código vulnerável e mitigações recomendadas.
+
+#### 3. Construtor de PoC & Requisições HTTP
+- **Objetivo**: Gerar artefatos de reprodução rápidos e profissionais.
+- **Formatos Gerados**:
+  - \`cURL\`: Comando executável com flags \`-X\`, \`-H\` e \`-d\`.
+  - \`Python Requests\`: Script estruturado com session e verificação SSL.
+  - \`Raw HTTP/1.1\`: Texto puro pronto para o Burp Suite Repeater ou OWASP ZAP.
+
+#### 4. Monitor de SLA de Triagem & Remediação
+- **Objetivo**: Rastrear prazos contratuais de resposta inicial (MTTA) e resolução (MTTR).
+- **Parâmetros Padrão**:
+  - *Crítico*: 24h para triagem / 7 dias para correção.
+  - *Alto*: 48h para triagem / 14 dias para correção.
+  - *Médio*: 72h para triagem / 30 dias para correção.
+- **Alerta de Breach**: Destaca relatórios com prazos vencidos para priorizar follow-up educado.
+
+#### 5. Macros de Resposta Rápida (Triage Macros)
+- **Objetivo**: Comunicação padronizada para analistas de triagem e pesquisadores.
+- **Variáveis Dinâmicas**: Injeta automaticamente \`{hunter}\`, \`{report_title}\`, \`{bounty}\`, \`{cvss}\` e \`{platform}\`.
+
+#### 6. Detector Avançado de Relatórios Duplicados
+- **Objetivo**: Prevenir relatórios duplicados antes da submissão formal.
+- **Como funciona**: Compara o título, endpoint e descrição com o histórico local via índice de Jaccard e distância de Levenshtein.
+
+#### 7. Matriz de Bounties & Simulação de Orçamento
+- **Objetivo**: Simular faixas justas de recompensa com base no ativo afetado:
+  - *Tier 1 (Crítico)*: Sistemas de autenticação, pagamentos e dados confidenciais.
+  - *Tier 2 (Core)*: APIs de clientes e serviços primários.
+  - *Tier 3 (Auxiliar)*: Landing pages, blogs e documentação.
+
+#### 8. Exportador para Issue Trackers (Jira, GitHub, GitLab)
+- **Objetivo**: Encaminhar relatórios diretamente para os times de engenharia.
+- **Saída**: Markdown estruturado com Sumário Executivo, Steps to Reproduce, cURL de teste e Correções recomendadas.
+
+#### 9. Sanitizador DLP (Prevenção de Vazamentos)
+- **Objetivo**: Inspecionar textos e PoCs em busca de tokens e chaves privadas antes da publicação.
+- **Padrões Detectados**: Chaves AWS (\`AKIA...\`), tokens do GitHub (\`ghp_...\`), tokens JWT, senhas em URLs, chaves RSA e emails.
+- **Ação**: Clique em *Sanitizar Texto* para substituir dados sensíveis por máscaras seguras como \`[REDACTED-TOKEN]\`.
+
+#### 10. Simulador de Webhooks & Notificações
+- **Objetivo**: Integrar os achados com canais corporativos de segurança.
+- **Suporte**: Formatações para Slack, Discord e Microsoft Teams com teste instantâneo.`,
+    tags: ["AppSec", "DevSecOps", "CVSS v4", "DLP", "PoC Builder", "SLA", "Guide"],
+    updatedAt: "2024-04-10"
   }
 ];

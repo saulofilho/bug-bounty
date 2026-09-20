@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, ReportStatus, Severity, PlatformName } from '../types';
-import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform, formatRelativeTimeAgo, getImpactCategoryTag } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
 import { AutoTagsFilterBar } from './AutoTagsFilterBar';
 import { getReportAutoTags, getAllTagsFromReports, AutoExtractedTag } from '../utils/taggingEngine';
@@ -1009,17 +1009,33 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     : 'bg-[#0a0a0a] hover:bg-[#121212] border border-[#262626] hover:border-zinc-700'
                 }`}
               >
-                {isCritical && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 critical-radar-ping" />
-                    </span>
-                    <span className="text-[9px] font-mono font-bold text-red-300 uppercase tracking-wider bg-red-950/80 border border-red-500/50 px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(239,68,68,0.5)] hidden sm:inline-block">
-                      CRÍTICA
-                    </span>
-                  </div>
-                )}
+                {isCritical && (() => {
+                  const impactTag = getImpactCategoryTag(report);
+                  return (
+                    <div className="absolute top-3 right-3 flex items-center gap-2 pointer-events-none z-10">
+                      <span className="text-[10px] font-mono font-medium text-red-300/90 bg-red-950/80 border border-red-500/40 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(239,68,68,0.3)] hidden md:inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-red-400 shrink-0" />
+                        <span>{formatRelativeTimeAgo(report.createdAt)}</span>
+                      </span>
+                      <span 
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider ${impactTag.bg} ${impactTag.text} border ${impactTag.border} shadow-[0_0_8px_rgba(0,0,0,0.5)]`}
+                        title={`Impact Category / Attack Vector: ${impactTag.label}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${impactTag.dotColor}`} />
+                        <span>{impactTag.label}</span>
+                      </span>
+                      <div className="critical-corner-badge flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600 border border-red-400/90 text-white shadow-[0_0_14px_rgba(239,68,68,0.85)]">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                        </span>
+                        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-white">
+                          CRITICAL
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   
                   {/* Left Column: Badges, Title & Meta */}
@@ -1042,6 +1058,33 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                       </span>
                       
                       <StatusBadge status={report.status} size="sm" />
+
+                      {isCritical && (
+                        <span 
+                          className="px-2 py-0.5 rounded bg-red-950/70 text-red-300 border border-red-500/40 text-[10px] font-mono font-medium flex items-center gap-1 shadow-sm"
+                          title={`Data de criação: ${report.createdAt}`}
+                        >
+                          <Clock className="w-3 h-3 text-red-400 shrink-0" />
+                          <span>{formatRelativeTimeAgo(report.createdAt)}</span>
+                        </span>
+                      )}
+
+                      {/* Prominent Quick Triage button for critical vulnerability card */}
+                      {isCritical && onUpdateStatus && report.status !== 'TRIAGED' && (
+                        <button
+                          id={`btn-quick-triage-badge-${report.id}`}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateStatus(report.id, 'TRIAGED');
+                          }}
+                          className="px-2.5 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 active:scale-[0.98] text-blue-200 hover:text-white border border-blue-500/50 hover:border-blue-400 text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(59,130,246,0.35)] cursor-pointer"
+                          title="Transição rápida de status para TRIAGED com 1 clique"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Quick Triage</span>
+                        </button>
+                      )}
 
                       <span className="text-xs font-mono text-zinc-400 bg-[#121212] px-2 py-0.5 rounded border border-[#262626]">
                         {report.platform}

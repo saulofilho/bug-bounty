@@ -25,6 +25,7 @@ import { StorageIntegrityModal } from './components/StorageIntegrityModal';
 import { WelcomePlatformModal } from './components/WelcomePlatformModal';
 import { SettingsModal } from './components/SettingsModal';
 import { Notifications } from './components/Notifications';
+import { AppSecSuiteView } from './components/AppSecSuiteView';
 import { getStoredMockEmails, checkReportsStateChanges } from './utils/notificationEngine';
 import { validateAndRepairStorageIntegrity, StorageIntegrityResult } from './utils/storageIntegrityValidator';
 import { ShieldCheck, X as CloseIcon, Sparkles } from 'lucide-react';
@@ -980,6 +981,17 @@ function AppContent() {
               reports={reports}
               onSelectReport={handleSelectReport}
               onUpdateReport={handleSaveReport}
+            />
+          </div>
+        )}
+
+        {currentTab === 'tools' && (
+          <div className="space-y-6 animate-fadeIn pb-12">
+            <AppSecSuiteView
+              reports={reports}
+              onSelectReport={handleSelectReport}
+              onUpdateStatus={handleUpdateStatus}
+              onUpdateReport={handleUpdateReport}
             />
           </div>
         )}
