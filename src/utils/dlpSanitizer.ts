@@ -30,7 +30,7 @@ const SECRET_PATTERNS: SecretPattern[] = [
   {
     name: 'openai_key',
     label: 'OpenAI Secret Key',
-    regex: /sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{32,64}/g,
+    regex: /sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{20,64}/g,
     severity: 'CRITICAL',
     maskFormat: (m) => `sk-[REDACTED_OPENAI_KEY_${m.slice(-4)}]`
   },

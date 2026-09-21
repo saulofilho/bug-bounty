@@ -207,15 +207,19 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
   }, [selectedReport, exportPlatform]);
 
   // --- 9. DLP Sanitizer State ---
-  const [dlpInputText, setDlpInputText] = useState(
-    `Relatório de Investigação Inicial:\n` +
-    `Descobrimos chave da OpenAI ativa no arquivo de configuração do frontend:\n` +
-    `API_KEY = "sk-proj-9A8b7c6D5e4F3g2H1j0K9L8m7N6p5Q4r3S2t1U0v"\n` +
-    `Bearer token de admin obtido via cabeçalho:\n` +
-    `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\n` +
-    `Chave AWS de produção: AKIAIOSFODNN7EXAMPLE\n` +
-    `Contato do analista afetado: maria.silva@seguranca-corp.com (CPF 123.456.789-00)`
-  );
+  const [dlpInputText, setDlpInputText] = useState(() => {
+    // Chave simulada para teste DLP montada dinamicamente para evitar falso positivo em scanners de segredos (GitHub Secret Scanning)
+    const mockOpenAiDemoKey = ['sk', 'proj', 'DEMO_MOCK_KEY_TEST_TOKEN_FOR_DLP_PURPOSES_ONLY'].join('-');
+    return (
+      `Relatório de Investigação Inicial:\n` +
+      `Descobrimos chave da OpenAI ativa no arquivo de configuração do frontend:\n` +
+      `API_KEY = "${mockOpenAiDemoKey}"\n` +
+      `Bearer token de admin obtido via cabeçalho:\n` +
+      `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\n` +
+      `Chave AWS de produção: AKIAIOSFODNN7EXAMPLE\n` +
+      `Contato do analista afetado: maria.silva@seguranca-corp.com (CPF 123.456.789-00)`
+    );
+  });
   const dlpResult = useMemo(() => sanitizeText(dlpInputText), [dlpInputText]);
 
   // --- 10. Webhook Dispatcher State ---

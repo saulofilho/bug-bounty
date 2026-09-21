@@ -18,6 +18,9 @@
 - [Visão Geral](#-visão-geral)
 - [Central de Ferramentas AppSec & DevSecOps (10 Módulos)](#-central-de-ferramentas-appsec--devsecops-10-módulos)
 - [Como Usar as Novas Ferramentas (Guia Prático)](#-como-usar-as-novas-ferramentas-guia-prático)
+- [Categorias de Impacto & Legenda de Triagem Rápida (Fast Triage)](#-categorias-de-impacto--legenda-de-triagem-rápida-fast-triage)
+- [Monitores de Rate Limits de APIs e Alvos](#-monitores-de-rate-limits-de-apis-e-alvos)
+- [Análise de Sentimento nas Interações de Triagem](#-análise-de-sentimento-nas-interações-de-triagem)
 - [Threat Intelligence Global em Tempo Real](#-threat-intelligence-global-em-tempo-real)
 - [Simuladores Quantitativos de Risco & Impacto Financeiro](#-simuladores-quantitativos-de-risco--impacto-financeiro)
 - [Métricas de Produtividade & Eficiência de Triagem](#-métricas-de-produtividade--eficiência-de-triagem)
@@ -112,6 +115,49 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
    - Categoria CWE associada;
    - Recomendações de remediação e referências técnicas.
 4. Copie com um clique ou baixe o arquivo em Markdown para abertura do chamado.
+
+---
+
+## 🏷️ Categorias de Impacto & Legenda de Triagem Rápida (Fast Triage)
+
+Para acelerar a triagem e o roteamento de remediação para os times de engenharia, cada achado com severidade **CRITICAL** recebe automaticamente uma **Tag de Categoria de Impacto** baseada na especificação do vetor CVSS (3.1 e 4.0), tipos de vulnerabilidade e taxonomia CWE:
+
+| Categoria | Identificador Visual | Vetor CVSS / CWE | Definição e Escopo de Ameaça | Exemplos Típicos |
+| :--- | :--- | :--- | :--- | :--- |
+| **Remote** | `bg-cyan-950/80 text-cyan-300` | `AV:N` (Network) | Explorável remotamente via internet ou intranet, sem necessidade de proximidade física ou acesso local. | RCE, SQLi, SSRF, Command Injection, APIs expostas sem auth. |
+| **Auth** | `bg-amber-950/80 text-amber-300` | `PR:N` / `AC:L` / CWE-287 / CWE-862 | Falhas nos mecanismos de identidade, sessão, controle de acesso quebrado (BAC) ou escalação de privilégios. | IDOR, BOLA, JWT Forgery, Account Takeover (ATO), Bypass MFA. |
+| **Physical** | `bg-orange-950/80 text-orange-300` | `AV:P` (Physical) | Exige intervenção física direta no equipamento, quiosque interativo, porta de depuração ou chip embarcado. | Kiosk Breakout, BadUSB/Rubber Ducky, portas UART/JTAG, Smartcards. |
+| **Local** | `bg-indigo-950/80 text-indigo-300` | `AV:L` (Local) | Exige execução de código ou conta prévia no sistema operacional local. | Local Privilege Escalation (LPE), SUID abuse, DLL Hijacking. |
+| **Cloud** | `bg-sky-950/80 text-sky-300` | Cloud / IAM / IMDS | Vetores direcionados à infraestrutura de nuvem e permissões elásticas. | Extração de chaves via AWS IMDSv1, bypass de IAM, Kubernetes RBAC. |
+
+### Componente `VulnerabilityImpactLegend`
+- Integrado diretamente ao cabeçalho do Dashboard principal (`DashboardView`), o botão **Impact Legend** abre um painel interativo com:
+  - **Glossário Técnico & Impacto de Negócio**: Descrição completa do impacto e riscos associados a cada categoria;
+  - **Filtros por Categoria**: Visualização isolada ou consolidada de `Remote`, `Auth` e `Physical`;
+  - **Mapeamento CVSS**: Correlação com métricas Base (Attack Vector, Privileges Required, Attack Complexity);
+  - **Exemplos Práticos**: Lista de ataques reais que se enquadram em cada categoria.
+
+---
+
+## 🚦 Monitores de Rate Limits de APIs e Alvos
+
+O BugSentinel inclui dois módulos dedicados para prevenir bloqueios de IP, estouro de cotas e banimentos durante testes de segurança:
+
+1. **Monitor de APIs Globais (`RateLimitMonitor`)**:
+   - Rastreia o consumo de requisições de APIs integradas (GitHub REST API, Google Gemini AI, Shodan, NVD CVE Feed, SecurityTrails).
+   - Indicador visual com barra de progresso colorida (Verde <70%, Amarelo 70-90%, Vermelho >90%), contador de chamadas restantes e contagem regressiva para o reset de cota (*Reset in mm:ss*).
+2. **Monitor por Alvo / Programa (`TargetRateLimitMonitor`)**:
+   - Acompanha a taxa de envio de requisições por programa de Bug Bounty para manter-se em estrita conformidade com as regras de engajamento (*Rules of Engagement - RoE*), prevenindo ataques acidentais de negação de serviço (DoS).
+
+---
+
+## 💬 Análise de Sentimento nas Interações de Triagem
+
+O módulo **Reporter Interaction Sentiment Tracker (`ReporterInteractionSentiment`)** analisa o histórico de conversas entre o pesquisador de segurança e os analistas de triagem das plataformas:
+
+- **Classificação de Sentimento**: Categoriza o tom da equipe em *Colaborativo/Positivo*, *Neutro/Burocrático* ou *Tenso/Atrito*.
+- **Indicador de Risco de Disputa**: Alerta preventivamente sobre sinais de divergência de severidade (ex: discussão entre P1 vs P2) ou risco de duplicata contestada.
+- **Sugestões de Resposta & Mediação**: Recomenda abordagens diplomáticas baseadas em evidências técnicas adicionais para evitar fechamentos como *Informative* ou *Not Applicable*.
 
 ---
 

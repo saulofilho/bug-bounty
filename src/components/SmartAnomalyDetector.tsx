@@ -21,7 +21,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { VulnerabilityReport, ReportStatus, Severity } from '../types';
-import { formatCurrency, getSeverityBadgeColor, formatRelativeTimeAgo } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, formatRelativeTimeAgo, getImpactCategoryTag } from '../utils/formatters';
 
 export type AnomalyType = 
   | 'STATUS_JUMP' 
@@ -651,19 +651,29 @@ export const SmartAnomalyDetector: React.FC<SmartAnomalyDetectorProps> = ({
                       : 'bg-[#101320] border-[#1e2338]'
                   } border border-l-4 ${sevStyle.borderLeft} rounded-r-xl rounded-l-sm p-4 transition-all duration-200 hover:border-zinc-500/40 shadow-sm relative overflow-hidden`}
                 >
-                  {isCritical && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 pointer-events-none z-10">
-                      <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                  {isCritical && (() => {
+                    const impactTag = getImpactCategoryTag(anomaly.report);
+                    return (
+                      <div className="absolute top-2 right-2 flex items-center gap-1 pointer-events-none z-10">
+                        <span 
+                          className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[8px] font-mono font-bold uppercase tracking-wider ${impactTag.bg} ${impactTag.text} border ${impactTag.border}`}
+                          title={`Impact Category / Attack Vector: ${impactTag.label}`}
+                        >
+                          <span className={`w-1 h-1 rounded-full ${impactTag.dotColor}`} />
+                          <span>{impactTag.label}</span>
                         </span>
-                        <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
-                          CRITICAL
-                        </span>
+                        <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                          </span>
+                          <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
+                            CRITICAL
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     {/* Left Icon & Main Anomaly Info */}
                     <div className="flex items-start gap-3 min-w-0 flex-1">

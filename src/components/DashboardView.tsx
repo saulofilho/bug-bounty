@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
-import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo, getImpactCategoryTag } from '../utils/formatters';
 import { calculateTriageEfficiency } from '../utils/triageEfficiencyEngine';
 import { BountySparklineChart, BountyCompactSparkline } from './BountySparklineChart';
 import { SeverityBarChart } from './SeverityBarChart';
@@ -73,6 +73,7 @@ import { RiskPriorityMatrix } from './RiskPriorityMatrix';
 import { RiskAssessmentMatrix } from './RiskAssessmentMatrix';
 import { BountyPayoutTracker } from './BountyPayoutTracker';
 import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
+import { VulnerabilityImpactLegend } from './VulnerabilityImpactLegend';
 import { TimelineEvent } from '../types';
 import { NavTab } from './Header';
 
@@ -371,6 +372,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <VulnerabilityImpactLegend />
+
           {onOpenCvssCalculator && (
             <button
               id="btn-dashboard-cvss-calc"
@@ -619,28 +622,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               }`}
               title="Clique para filtrar apenas vulnerabilidades CRITICAL"
             >
-              {isCriticalActive && (
-                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
-                  {latestCriticalReport && (
+              {isCriticalActive && (() => {
+                const latestImpactTag = getImpactCategoryTag(latestCriticalReport || undefined);
+                return (
+                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+                    {latestCriticalReport && (
+                      <span 
+                        className="text-[9px] font-mono text-red-300 bg-red-950/90 border border-red-500/40 px-1.5 py-0.2 rounded shadow-[0_0_8px_rgba(239,68,68,0.3)] hidden sm:inline-flex items-center gap-1"
+                        title={`Mais recente: ${latestCriticalReport.title} (${latestCriticalReport.createdAt})`}
+                      >
+                        <Clock className="w-2.5 h-2.5 text-red-400" />
+                        <span>{formatRelativeTimeAgo(latestCriticalReport.createdAt)}</span>
+                      </span>
+                    )}
                     <span 
-                      className="text-[9px] font-mono text-red-300 bg-red-950/90 border border-red-500/40 px-1.5 py-0.2 rounded shadow-[0_0_8px_rgba(239,68,68,0.3)] hidden sm:inline-flex items-center gap-1"
-                      title={`Mais recente: ${latestCriticalReport.title} (${latestCriticalReport.createdAt})`}
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-wider ${latestImpactTag.bg} ${latestImpactTag.text} border ${latestImpactTag.border} shadow-[0_0_8px_rgba(0,0,0,0.5)]`}
+                      title={`Impact Category / Attack Vector: ${latestImpactTag.label}`}
                     >
-                      <Clock className="w-2.5 h-2.5 text-red-400" />
-                      <span>{formatRelativeTimeAgo(latestCriticalReport.createdAt)}</span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${latestImpactTag.dotColor}`} />
+                      <span>{latestImpactTag.label}</span>
                     </span>
-                  )}
-                  <div className="critical-corner-badge flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_12px_rgba(239,68,68,0.85)]">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-                    </span>
-                    <span className="text-[9px] font-mono font-black uppercase tracking-wider text-white">
-                      CRITICAL
-                    </span>
+                    <div className="critical-corner-badge flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_12px_rgba(239,68,68,0.85)]">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                      </span>
+                      <span className="text-[9px] font-mono font-black uppercase tracking-wider text-white">
+                        CRITICAL
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
               <div className="flex items-center justify-between gap-1 mb-1">
                 <p className="text-xs text-zinc-400 uppercase flex items-center gap-1.5">
                   <ShieldAlert className={`w-3.5 h-3.5 text-red-500 ${isCriticalActive ? 'animate-pulse' : ''}`} />
@@ -1386,19 +1399,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       }`}
                       title={isCritical ? "Alerta Crítico: clique para inspecionar" : "Clique para inspecionar o relatório completo"}
                     >
-                      {isCritical && (
-                        <div className="absolute top-1.5 right-2 flex items-center gap-1 pointer-events-none z-10">
-                          <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
-                            <span className="relative flex h-1.5 w-1.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
-                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                      {isCritical && (() => {
+                        const impactTag = getImpactCategoryTag(evt.report);
+                        return (
+                          <div className="absolute top-1.5 right-2 flex items-center gap-1 pointer-events-none z-10">
+                            <span 
+                              className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[8px] font-mono font-bold uppercase tracking-wider ${impactTag.bg} ${impactTag.text} border ${impactTag.border}`}
+                              title={`Impact Category / Attack Vector: ${impactTag.label}`}
+                            >
+                              <span className={`w-1 h-1 rounded-full ${impactTag.dotColor}`} />
+                              <span>{impactTag.label}</span>
                             </span>
-                            <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
-                              CRITICAL
-                            </span>
+                            <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                              </span>
+                              <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
+                                CRITICAL
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-start gap-2.5 min-w-0">
                           <div className={`p-1.5 rounded shrink-0 border ${

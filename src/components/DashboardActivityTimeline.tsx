@@ -24,7 +24,7 @@ import {
   Send
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus, TimelineEvent } from '../types';
-import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo } from '../utils/formatters';
+import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo, getImpactCategoryTag } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
 
 export type SystemActionType = 
@@ -537,19 +537,29 @@ export const DashboardActivityTimeline: React.FC<DashboardActivityTimelineProps>
                       }`}
                       title="Clique para inspecionar os detalhes deste relatório"
                     >
-                      {action.reportSeverity === 'CRITICAL' && (
-                        <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
-                          <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
-                            <span className="relative flex h-1.5 w-1.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
-                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                      {action.reportSeverity === 'CRITICAL' && (() => {
+                        const impactTag = getImpactCategoryTag(action.report);
+                        return (
+                          <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                            <span 
+                              className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[8px] font-mono font-bold uppercase tracking-wider ${impactTag.bg} ${impactTag.text} border ${impactTag.border}`}
+                              title={`Impact Category / Attack Vector: ${impactTag.label}`}
+                            >
+                              <span className={`w-1 h-1 rounded-full ${impactTag.dotColor}`} />
+                              <span>{impactTag.label}</span>
                             </span>
-                            <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
-                              CRITICAL
-                            </span>
+                            <div className="critical-corner-badge flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-red-600 border border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.85)]">
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90" />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                              </span>
+                              <span className="text-[8px] font-mono font-black uppercase tracking-wider text-white">
+                                CRITICAL
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                       {/* Top Header Row */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#181d30]">
                         <div className="flex items-center gap-2 flex-wrap text-[10px] font-mono">
