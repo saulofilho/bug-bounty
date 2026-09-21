@@ -71,6 +71,7 @@ import { VulnerabilityHeatmap } from './VulnerabilityHeatmap';
 import { TargetVulnerabilityHeatmap } from './TargetVulnerabilityHeatmap';
 import { RiskPriorityMatrix } from './RiskPriorityMatrix';
 import { RiskAssessmentMatrix } from './RiskAssessmentMatrix';
+import { VulnerabilityRiskMatrix } from './VulnerabilityRiskMatrix';
 import { BountyPayoutTracker } from './BountyPayoutTracker';
 import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
 import { VulnerabilityImpactLegend } from './VulnerabilityImpactLegend';
@@ -1154,13 +1155,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNewReport={onNewReport}
       />
 
-      {/* Vulnerability Density Heatmap: Color-coded grid matrix visualizing vulnerability density by platform and severity type */}
+      {/* Vulnerability Heatmap: D3.js World Map overlaying report locations and threat density clusters with interactive zoom and datacenter inspection */}
       <VulnerabilityHeatmap
         reports={reports}
         onSelectReport={onSelectReport}
         onSelectSeverity={onSelectSeverity}
         onNavigateToReports={() => onNavigateTab('reports')}
         onNewReport={onNewReport}
+      />
+
+      {/* Vulnerability Risk Matrix (Severity vs. Likelihood) Recharts Visualization Component */}
+      <VulnerabilityRiskMatrix
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
       />
 
       {/* Risk Priority Matrix: Maps CVSS scores against business impact assessments (Critical, High, Medium, Low quadrants) */}

@@ -62,10 +62,12 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 | **4** | **Monitor de SLA de Triagem** | Acompanhamento de conformidade de prazos | Rastreamento de MTTA (*Mean Time to Acknowledge*) e MTTR (*Mean Time to Resolve*); contagem regressiva para breach com base na severidade (Crítico: 24h/7d; Alto: 48h/14d). |
 | **5** | **Macros de Resposta Rápida** | Comunicação padronizada para triadores e hunters | Templates pré-configurados (Solicitação de PoC, Confirmação de Triagem, Notificação de Duplicata, Concessão de Bounty) com interpolação de variáveis dinâmicas (`{hunter}`, `{report_title}`, `{bounty}`, `{cvss}`). |
 | **6** | **Detector de Duplicatas** | Prevenção de relatórios duplicados | Comparador de similaridade de texto (Jaccard + Levenshtein), verificação de correspondência de endpoint e parâmetros vulneráveis em relação aos relatórios já existentes. |
-| **7** | **Matriz & Simulador de Bounties** | Cálculo justo de recompensas e orçamento | Definição por Criticidade do Ativo (*Tier 1: Core/Auth/Payment*, *Tier 2: API/Customer*, *Tier 3: Marketing/Docs*) e simulação de impacto financeiro no orçamento anual. |
-| **8** | **Exportador para Issue Trackers** | Conversão para times de desenvolvimento | Geração de tickets prontos em Markdown técnico para **Jira**, **GitHub Issues** e **GitLab Issues** com passos de reprodução, impacto de negócio e sugestões de correção. |
-| **9** | **Sanitizador DLP (Segredos & PII)** | Proteção antes do envio de relatórios | Scanner em tempo real que detecta e ofusca chaves AWS (`AKIA...`), tokens de acesso GitHub (`ghp_...`), JWTs, senhas em URLs, chaves privadas RSA/OpenSSH e emails. |
-| **10** | **Simulador de Webhooks** | Notificações e automação de alertas | Disparo e teste de payloads estruturados para **Slack**, **Discord** e **Microsoft Teams**, simulando avisos automáticos de vulnerabilidades críticas. |
+| **7** | **Matriz & Orçamento de Bounties** | Cálculo justo de recompensas e orçamento | Definição por Criticidade do Ativo (*Tier 1: Core/Auth/Payment*, *Tier 2: API/Customer*, *Tier 3: Marketing/Docs*) e simulação de impacto financeiro no orçamento anual. |
+| **8** | **Calculadora de ROI de Programas & Yield** | Priorização de plataformas e programas de bug bounty | Avaliação de Retorno sobre Investimento (ROI) correlacionando histórico de payouts pagos ($) vs. amplitude de cobertura, saturação de pesquisadores e velocidade de triagem, estimando o rendimento por hora (`$/hora`) do pesquisador. |
+| **9** | **Exportador para Issue Trackers** | Conversão para times de desenvolvimento | Geração de tickets prontos em Markdown técnico para **Jira**, **GitHub Issues** e **GitLab Issues** com passos de reprodução, impacto de negócio e sugestões de correção. |
+| **10** | **Sanitizador DLP (Segredos & PII)** | Proteção antes do envio de relatórios | Scanner em tempo real que detecta e ofusca chaves AWS (`AKIA...`), tokens de acesso GitHub (`ghp_...`), JWTs, senhas em URLs, chaves privadas RSA/OpenSSH e emails. |
+| **11** | **Guia de Remediação de Segredos** | Resposta a incidentes de credenciais vazadas | Procedimento padronizado (SOP) com checklist interativo para rotacionar credenciais, revogar no console de provedores (OpenAI e AWS), auditar telemetria no CloudTrail/Usage Dashboard e encerrar alertas do GitHub Secret Scanning. |
+| **12** | **Simulador de Webhooks** | Notificações e automação de alertas | Disparo e teste de payloads estruturados para **Slack**, **Discord** e **Microsoft Teams**, simulando avisos automáticos de vulnerabilidades críticas. |
 
 ---
 
@@ -115,6 +117,36 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
    - Categoria CWE associada;
    - Recomendações de remediação e referências técnicas.
 4. Copie com um clique ou baixe o arquivo em Markdown para abertura do chamado.
+
+### 6. Como Executar a Remediação de Segredos Vazados & Remediação em Lote (Batch Remediation)
+1. Na aba **AppSec**, acesse a sub-aba **Secret Remediation Guide** (ou clique no botão de ação no rodapé do Sanitizador DLP).
+2. **Painel de Remediação em Lote (Batch Remediation Header)**:
+   - Ative o seletor **⚡ Modo de Remediação em Lote (Batch Remediation)** acima dos cards de segredos identificados.
+   - Utilize o seletor rápido **Selecionar Todos**, **Apenas Críticos** ou marque individualmente as caixas de seleção nos cards de credenciais identificadas (**OpenAI API Key**, **AWS IAM Access Key**, **Admin JWT Secret**, **GitHub PAT**).
+   - Execute ações simultâneas em múltiplos segredos com um único clique:
+     - ⚡ **Aplicar Todas as Correções (Batch Master Fix)**: Conclui todas as 4 fases de remediação para os segredos selecionados.
+     - 🔄 **Rotacionar em Lote**: Marca tarefas de rotação e provisionamento seguro de novos tokens.
+     - 🔒 **Revogar em Lote**: Valida a invalidação e revogação das chaves antigas simultaneamente.
+     - 🛡️ **Auditar em Lote**: Audita logs de telemetria nos provedores (CloudTrail, OpenAI Usage, Redis sessions).
+     - 📋 **Encerrar Alertas em Lote**: Fecha alertas correspondentes no GitHub Secret Scanning.
+     - 💻 **Script Batch CLI**: Gera e copia um script Shell unificado e automatizado contendo todos os comandos de rotação, inativação via AWS CLI, curl 401 test e limpeza com `git-filter-repo`.
+3. Siga o checklist operacional interativo dividido em 4 fases padronizadas:
+   - 🔄 **Fase 1 (Rotate)**: Crie novas credenciais com menor privilégio (Project-scoped keys na OpenAI / IAM Roles temporárias na AWS) e propague aos ambientes seguros;
+   - 🔒 **Fase 2 (Revoke)**: Inative e revogue imediatamente as chaves antigas nos consoles de cada provedor, testando a resposta com erro `401 Unauthorized`;
+   - 🛡️ **Fase 3 (Audit)**: Inspecione telemetria de consumo (OpenAI Usage Dashboard) e eventos recentes de API (AWS CloudTrail / GuardDuty);
+   - 📋 **Fase 4 (Close Alert)**: Siga o guia para encerrar alertas no GitHub Secret Scanning (marcando *Revoked* ou *Used in tests*) e expurgar referências do histórico do Git com `git-filter-repo`.
+4. Clique em **Copiar Relatório SOP** para gerar o documento formal consolidado para anexar ao chamado de segurança ou post-mortem.
+
+### 7. Como Priorizar Programas com a Calculadora de ROI & Yield
+1. Na aba **AppSec**, selecione a sub-aba **Program ROI & Yield Prioritizer**.
+2. **Ranking & Leaderboard**: Visualize os programas ranqueados por atratividade e rendimento estimado por hora (`$/h`), com filtros por plataforma (HackerOne, Bugcrowd, Intigriti, YesWeHack, Immunefi, Google VRP e seus alvos reais registrados).
+3. **Métricas Comparativas**:
+   - **ROI Score (0-100)**: Correlação entre valor médio de payout, amplitude do escopo (*Wildcard*, *Multi-Domain*, *Single-App*), velocidade de triagem e taxa de atrito/duplicatas.
+   - **Yield Estimado ($/hora)**: Projeção realista do retorno monetário por hora de pesquisa dedicada.
+   - **Retorno Projetado em 10h**: Retorno financeiro estimado para uma sessão de 10 horas de hunting.
+4. **Simulador Interativo de Novos Programas**:
+   - Ajuste os parâmetros de um novo alvo (amplitude de escopo, saturação de concorrentes, payouts para Crítico/Alto/Médio e dias de resolução).
+   - Receba um parecer estratégico em tempo real (*Tier S*, *Tier A*, *Tier B*, etc.) com recomendações táticas para sua carteira de pesquisa.
 
 ---
 
@@ -166,6 +198,13 @@ O módulo **Reporter Interaction Sentiment Tracker (`ReporterInteractionSentimen
 A aba **Intel** fornece visibilidade completa sobre o cenário mundial de segurança:
 
 - **Mapa Global de Ameaças (`GlobalThreatMap`)**: Mapa interativo mundial destacando focos de campanhas ativas, ataques de negação de serviço, exploração de vulnerabilidades zero-day e atividades de grupos APT.
+- **Vulnerability Heatmap Geográfico D3.js (`VulnerabilityHeatmap`)**:
+  - Renderização geoespacial vetorial via **D3.js Natural Earth** projetando relatórios de vulnerabilidade em tempo real sobre os continentes do mundo.
+  - **Camadas de Calor Radial (Radial Density Heatmaps)** com gradientes de cores ponderados por severidade (Crítico, Alto, Médio, Baixo), permitindo aos pesquisadores identificar aglomerados geográficos (*geographic clusters*) e concentrações de infraestrutura sob ataque (ex: datacenters AWS us-east-1 Ashburn, GCP Iowa, Hetzner Frankfurt, Fastly AMS, AWS Tóquio e São Paulo).
+  - **Anéis Isobáricos / Curvas de Nível**: Linhas de contorno concêntricas animadas indicando a densidade de falhas acumuladas por polo regional.
+  - **Inspetor de Cluster Integrado**: Clique em qualquer cluster para abrir o painel detalhado com alvos afetados, provedores de nuvem, pontuação média CVSS e botão para inspecionar o relatório.
+  - **Controles Interativos**: Ajuste de raio/dispersão do calor (35px a 95px), filtro por severidade, quick-zoom por continente (América do Norte, Europa, APAC, América Latina) e navegação com pan e zoom.
+  - **Modo Dual**: Alternância com matrizes bidimensionais de densidade por Plataforma e Alvo.
 - **Linha do Tempo de Incidentes (`GlobalSecurityIncidentTimeline`)**: Histórico cronológico das maiores violações e vazamentos recentes com severidade, volume de registros afetados e lições aprendidas.
 - **Feed de Inteligência Recente (`RecentGlobalThreatIntelligence`)**: Atualizações rápidas de novas técnicas de ataque, vulnerabilidades críticas recém-descobertas e avisos de segurança da CISA, NVD e CERT.
 - **Tendência de Descobertas (`ThreatDiscoveryTrend`)**: Métricas de evolução dos tipos de vetores de exploração mais frequentes no trimestre.
@@ -235,6 +274,7 @@ O sistema utiliza a biblioteca **Recharts** com paleta dark de alto contraste (`
 
 | Componente | Tipo de Gráfico | Finalidade |
 | :--- | :--- | :--- |
+| `VulnerabilityRiskMatrix` | `ScatterChart` (2D Matrix com Z-Weight) | Matriz visual de Risco (Severidade vs. Probabilidade) dividida em 4 quadrantes (P0 Crítico, P1 Alto, P2 Médio, P3 Baixo) com tooltip contextual, filtros dinâmicos e fila de priorização por score composto. |
 | `FutureEarningsProjectionChart` | `ComposedChart` (Area + Line) | Projeta rendimentos dos próximos 3, 6 ou 12 meses nos cenários Conservador, Esperado e Otimista com base no backlog em triagem e taxa de aceitação histórica. |
 | `MonthlySubmissionCadenceChart` | `LineChart` | Acompanha a cadência histórica mensal de submissões, volume por severidade, média móvel (3M) e correlação com bounties. |
 | `ReportsTrendChart` | `LineChart` / `AreaChart` | Exibe a cadência de entrega dos últimos 30 dias. |

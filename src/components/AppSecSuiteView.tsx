@@ -28,7 +28,8 @@ import {
   Download,
   Filter,
   Flame,
-  CheckSquare
+  CheckSquare,
+  TrendingUp
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
@@ -55,6 +56,8 @@ import { DEFAULT_TRIAGE_MACROS, renderMacroTemplate, TriageMacro } from '../util
 import { computeBountyBudgetSimulation, ASSET_TIERS } from '../utils/bountyMatrixEngine';
 import { sanitizeText, DetectedSecret } from '../utils/dlpSanitizer';
 import { StatusBadge } from './StatusBadge';
+import { SecretRemediationGuide } from './SecretRemediationGuide';
+import { ProgramRoiCalculator } from './ProgramRoiCalculator';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
@@ -64,8 +67,10 @@ export type ToolSubTab =
   | 'triage-macros' 
   | 'duplicate-detector' 
   | 'bounty-matrix' 
+  | 'program-roi'
   | 'issue-exporter' 
   | 'dlp-sanitizer' 
+  | 'secret-remediation'
   | 'webhooks';
 
 interface AppSecSuiteViewProps {
@@ -267,9 +272,11 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     { id: 'sla-tracker', label: 'SLA & MTTR/MTTT', icon: Clock, badge: `${slaOverview.overallComplianceRatePct}%`, badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
     { id: 'triage-macros', label: 'Triage Macros', icon: MessageSquareCode, badge: `${DEFAULT_TRIAGE_MACROS.length}`, badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
     { id: 'duplicate-detector', label: 'Duplicate Cross-Matcher', icon: Copy, badge: 'AI/Token', badgeColor: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' },
-    { id: 'bounty-matrix', label: 'Bounty Matrix & ROI', icon: DollarSign, badge: `${budgetSimulation.programRoiRatio}x ROI`, badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'bounty-matrix', label: 'Bounty Matrix & Budget', icon: DollarSign, badge: `${budgetSimulation.programRoiRatio}x ROI`, badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'program-roi', label: 'Program ROI & Yield Prioritizer', icon: TrendingUp, badge: 'Hunter Yield', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     { id: 'issue-exporter', label: 'Issue Tracker Export', icon: Share2, badge: 'Jira/GH', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
     { id: 'dlp-sanitizer', label: 'DLP & Token Redactor', icon: EyeOff, badge: '100% Client', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+    { id: 'secret-remediation', label: 'Secret Remediation Guide', icon: Key, badge: 'Batch & SOP', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
     { id: 'webhooks', label: 'Webhooks & SIEM', icon: Bell, badge: 'Simulador', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
   ];
 
@@ -286,13 +293,13 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                 <span>DevSecOps & AppSec Suite</span>
               </span>
               <span className="text-zinc-500 text-xs">•</span>
-              <span className="text-zinc-400 font-mono text-xs">10 Ferramentas Integradas</span>
+              <span className="text-zinc-400 font-mono text-xs">12 Ferramentas Integradas</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
               <span>Central de Engenharia & AppSec</span>
             </h1>
             <p className="text-sm text-zinc-400 max-w-3xl leading-relaxed">
-              Automação de triagem, cálculo CVSS v4.0, catalogação CWE/OWASP, construtor de PoCs com codificadores, métricas de SLA, sanitizador DLP de tokens e integradores para Jira, GitHub e Webhooks corporativos.
+              Automação de triagem, cálculo CVSS v4.0, catalogação CWE/OWASP, construtor de PoCs com codificadores, métricas de SLA, calculadora de ROI e priorização de programas bug bounty (payouts vs. cobertura), sanitizador DLP, checklist de remediação de segredos e integradores para Jira, GitHub e Webhooks.
             </p>
           </div>
 
@@ -1299,7 +1306,14 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 8: Issue Tracker Exporter */}
+      {/* TAB 8: Program ROI & Yield Prioritizer (Historical Payouts vs. Coverage) */}
+      {/* ========================================================================= */}
+      {activeTab === 'program-roi' && (
+        <ProgramRoiCalculator reports={reports} />
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 9: Issue Tracker Exporter */}
       {/* ========================================================================= */}
       {activeTab === 'issue-exporter' && (
         <div className="space-y-6">
@@ -1426,12 +1440,46 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Quick Action Link to Secret Remediation Guide */}
+            <div className="mt-4 p-4 rounded-xl bg-[#16121c] border border-red-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-950/80 border border-red-500/40 text-red-400 shrink-0">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                    <span>Vazamento de Chaves Detectado (OpenAI / AWS / JWT / GitHub)?</span>
+                    <span className="text-[9px] px-2 py-0.2 rounded bg-red-950 text-red-300 border border-red-500/30 font-mono font-bold uppercase">Ação Crítica</span>
+                  </h4>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                    Siga o checklist operacional dedicado com suporte a <strong>Remediação em Lote (Batch Remediation)</strong> para <strong>rotacionar</strong> credenciais, <strong>revogar</strong> nos consoles oficiais, <strong>auditar</strong> telemetria no CloudTrail/OpenAI e <strong>encerrar alertas</strong> no GitHub Secret Scanning simultaneamente.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                id="btn-goto-secret-remediation-guide"
+                onClick={() => setActiveTab('secret-remediation')}
+                className="px-3.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-colors shrink-0 shadow-sm cursor-pointer"
+              >
+                <span>Abrir Guia de Remediação</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 10: Webhooks & SIEM */}
+      {/* TAB 10: Secret Remediation Guide */}
+      {/* ========================================================================= */}
+      {activeTab === 'secret-remediation' && (
+        <SecretRemediationGuide />
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 11: Webhooks & SIEM */}
       {/* ========================================================================= */}
       {activeTab === 'webhooks' && (
         <div className="space-y-6">
