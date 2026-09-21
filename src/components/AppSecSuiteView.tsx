@@ -29,7 +29,15 @@ import {
   Filter,
   Flame,
   CheckSquare,
-  TrendingUp
+  TrendingUp,
+  Package,
+  KeyRound,
+  Binary,
+  ShieldCheck,
+  Crosshair,
+  Globe,
+  Shield,
+  Network
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
@@ -58,9 +66,25 @@ import { sanitizeText, DetectedSecret } from '../utils/dlpSanitizer';
 import { StatusBadge } from './StatusBadge';
 import { SecretRemediationGuide } from './SecretRemediationGuide';
 import { ProgramRoiCalculator } from './ProgramRoiCalculator';
+import { CvssV4ComponentCalculator } from './CvssV4ComponentCalculator';
+import { JwtSecurityAnalyzer } from './JwtSecurityAnalyzer';
+import { CspStudio } from './CspStudio';
+import { CvssEpssMatrix } from './CvssEpssMatrix';
+import { CsrfPocStudio } from './CsrfPocStudio';
+import { PayloadEncoderDecoder } from './PayloadEncoderDecoder';
+import { SecurityHeadersAuditor } from './SecurityHeadersAuditor';
+import { AttackGraphStudio } from './AttackGraphStudio';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
+  | 'cvss-component'
+  | 'attack-graph'
+  | 'jwt-analyzer'
+  | 'csp-studio'
+  | 'epss-prioritizer'
+  | 'csrf-poc-studio'
+  | 'payload-encoder'
+  | 'security-headers'
   | 'cwe-owasp' 
   | 'poc-builder' 
   | 'sla-tracker' 
@@ -267,6 +291,14 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
 
   const navTabs: Array<{ id: ToolSubTab; label: string; icon: any; badge?: string; badgeColor?: string }> = [
     { id: 'cvss-v4', label: 'CVSS v4.0 Engine', icon: Calculator, badge: 'v4.0', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'cvss-component', label: 'CVSS v4 Component Calculator', icon: Package, badge: 'Supply Chain / SCA', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'attack-graph', label: 'Attack Graph & Kill Chain', icon: Network, badge: 'D3.js / MITRE', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'jwt-analyzer', label: 'JWT Security Analyzer', icon: KeyRound, badge: 'OWASP / None', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'csp-studio', label: 'CSP Studio & Evaluator', icon: ShieldCheck, badge: 'Level 3 / XSS', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'epss-prioritizer', label: 'CVSS v4 + EPSS Matrix', icon: Crosshair, badge: 'FIRST EPSS', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
+    { id: 'csrf-poc-studio', label: 'CSRF PoC Studio', icon: Globe, badge: 'SameSite Matrix', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'payload-encoder', label: 'Payload Multi-Encoder', icon: Binary, badge: 'WAF Evasion', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'security-headers', label: 'Security Headers Auditor', icon: Shield, badge: 'HSTS / CSP / MIME', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     { id: 'cwe-owasp', label: 'CWE & OWASP Top 10', icon: Layers, badge: 'A01-A10', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'poc-builder', label: 'PoC Request & Encoders', icon: Terminal, badge: 'cURL / Py', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'sla-tracker', label: 'SLA & MTTR/MTTT', icon: Clock, badge: `${slaOverview.overallComplianceRatePct}%`, badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
@@ -293,13 +325,13 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                 <span>DevSecOps & AppSec Suite</span>
               </span>
               <span className="text-zinc-500 text-xs">•</span>
-              <span className="text-zinc-400 font-mono text-xs">12 Ferramentas Integradas</span>
+              <span className="text-zinc-400 font-mono text-xs">20 Ferramentas Integradas</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
               <span>Central de Engenharia & AppSec</span>
             </h1>
             <p className="text-sm text-zinc-400 max-w-3xl leading-relaxed">
-              Automação de triagem, cálculo CVSS v4.0, catalogação CWE/OWASP, construtor de PoCs com codificadores, métricas de SLA, calculadora de ROI e priorização de programas bug bounty (payouts vs. cobertura), sanitizador DLP, checklist de remediação de segredos e integradores para Jira, GitHub e Webhooks.
+              Automação de triagem, cálculo CVSS v4.0 e supply chain SCA, grafo de ataque interativo D3.js (Kill Chain & MITRE ATT&CK), auditoria de segurança JWT, gerador e avaliador de CSP, priorização CVSS v4 vs. FIRST EPSS, gerador de PoC CSRF com matriz SameSite, canivete suíço de codificações (WAF evasion), auditor de cabeçalhos HTTP defensivos, catalogação CWE/OWASP, SLA, ROI de bug bounty, DLP e integradores.
             </p>
           </div>
 
@@ -367,6 +399,36 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'cvss-v4' && (
         <div className="space-y-6">
+          {/* Quick Switch Banner to Supply Chain Component Calculator */}
+          <div className="bg-gradient-to-r from-[#131726] via-[#101422] to-[#0c0f1a] border border-[#232d4b] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                <Package className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-xs font-bold text-white flex items-center gap-2 flex-wrap">
+                  <span>Avaliando vulnerabilidade em biblioteca ou componente de terceiros (SCA)?</span>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold border border-indigo-500/30">
+                    CVSS v4.0 Supply Chain
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Estime o sub-score de explorabilidade real com análise de camada de dependência, alcançabilidade de call-graph e requisitos de ambiente (AT:P).
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              id="btn-open-cvss-component-calc"
+              onClick={() => setActiveTab('cvss-component')}
+              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 shadow-md shadow-indigo-950/50"
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>Abrir Component Calculator</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left 2 Cols: Metric Controls */}
             <div className="lg:col-span-2 space-y-5 bg-[#121218] border border-[#22222d] rounded-2xl p-5">
@@ -671,6 +733,28 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: CVSS v4.0 Component Calculator (Supply Chain Exploitability Sub-score) */}
+      {/* ========================================================================= */}
+      {activeTab === 'cvss-component' && (
+        <CvssV4ComponentCalculator
+          reportId={selectedReport?.id}
+          reportTitle={selectedReport?.title}
+          onBackToStandardCalculator={() => setActiveTab('cvss-v4')}
+          onApplyToCvssV4={(metrics) => {
+            setV4Metrics(prev => ({
+              ...prev,
+              av: metrics.av,
+              ac: metrics.ac,
+              at: metrics.at,
+              pr: metrics.pr,
+              ui: metrics.ui
+            }));
+            setActiveTab('cvss-v4');
+          }}
+        />
       )}
 
       {/* ========================================================================= */}
@@ -1579,6 +1663,55 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* --- 14. JWT Security Analyzer --- */}
+      {activeTab === 'jwt-analyzer' && (
+        <JwtSecurityAnalyzer 
+          reportId={selectedReport?.id} 
+          reportTitle={selectedReport?.title} 
+        />
+      )}
+
+      {/* --- 20. Interactive D3.js Attack Graph Studio --- */}
+      {activeTab === 'attack-graph' && (
+        <AttackGraphStudio 
+          reports={reports}
+          selectedReportId={selectedReport?.id}
+          onSelectReport={onSelectReport}
+        />
+      )}
+
+      {/* --- 15. CSP Studio & Evaluator --- */}
+      {activeTab === 'csp-studio' && (
+        <CspStudio />
+      )}
+
+      {/* --- 16. CVSS v4.0 + FIRST EPSS Matrix --- */}
+      {activeTab === 'epss-prioritizer' && (
+        <CvssEpssMatrix 
+          reportId={selectedReport?.id} 
+          reportTitle={selectedReport?.title} 
+          cvssScore={selectedReport?.cvssScore} 
+        />
+      )}
+
+      {/* --- 17. CSRF PoC Studio --- */}
+      {activeTab === 'csrf-poc-studio' && (
+        <CsrfPocStudio 
+          reportId={selectedReport?.id} 
+          targetEndpoint={selectedReport?.target ? `https://${selectedReport.target}/api/action` : undefined} 
+        />
+      )}
+
+      {/* --- 18. Payload Multi-Encoder / Decoder --- */}
+      {activeTab === 'payload-encoder' && (
+        <PayloadEncoderDecoder />
+      )}
+
+      {/* --- 19. Security Headers Auditor --- */}
+      {activeTab === 'security-headers' && (
+        <SecurityHeadersAuditor />
       )}
     </div>
   );

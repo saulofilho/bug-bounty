@@ -50,24 +50,32 @@ A plataforma cobre todas as fases do ciclo de vida de vulnerabilidades:
 
 ---
 
-## 🛠️ Central de Ferramentas AppSec & DevSecOps (10 Módulos)
+## 🛠️ Central de Ferramentas AppSec & DevSecOps (20 Módulos)
 
 Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de utilitários técnicos:
 
 | # | Ferramenta | Finalidade | Principais Recursos |
 | :-: | :--- | :--- | :--- |
 | **1** | **Calculadora CVSS v4.0** | Pontuação conforme a especificação oficial da FIRST.org | Suporte a grupos de métricas Base, Threat e Environmental; resolução por macro-vetores (EQ1 a EQ6); conversor e parser de vetor string. |
-| **2** | **Mapeador CWE / OWASP Top 10** | Padronização taxonômica de vulnerabilidades | Catálogo das Top CWEs (2023/2024), correlação com OWASP Top 10 2021, descrições detalhadas, exemplos de código vulnerável e guia de mitigação. |
-| **3** | **Construtor de PoC & HTTP** | Geração rápida de requisições de reprodução | Exportação instantânea em comando `cURL`, script em `Python Requests` e requisição `Raw HTTP/1.1` com headers e payloads estruturados. |
-| **4** | **Monitor de SLA de Triagem** | Acompanhamento de conformidade de prazos | Rastreamento de MTTA (*Mean Time to Acknowledge*) e MTTR (*Mean Time to Resolve*); contagem regressiva para breach com base na severidade (Crítico: 24h/7d; Alto: 48h/14d). |
-| **5** | **Macros de Resposta Rápida** | Comunicação padronizada para triadores e hunters | Templates pré-configurados (Solicitação de PoC, Confirmação de Triagem, Notificação de Duplicata, Concessão de Bounty) com interpolação de variáveis dinâmicas (`{hunter}`, `{report_title}`, `{bounty}`, `{cvss}`). |
-| **6** | **Detector de Duplicatas** | Prevenção de relatórios duplicados | Comparador de similaridade de texto (Jaccard + Levenshtein), verificação de correspondência de endpoint e parâmetros vulneráveis em relação aos relatórios já existentes. |
-| **7** | **Matriz & Orçamento de Bounties** | Cálculo justo de recompensas e orçamento | Definição por Criticidade do Ativo (*Tier 1: Core/Auth/Payment*, *Tier 2: API/Customer*, *Tier 3: Marketing/Docs*) e simulação de impacto financeiro no orçamento anual. |
-| **8** | **Calculadora de ROI de Programas & Yield** | Priorização de plataformas e programas de bug bounty | Avaliação de Retorno sobre Investimento (ROI) correlacionando histórico de payouts pagos ($) vs. amplitude de cobertura, saturação de pesquisadores e velocidade de triagem, estimando o rendimento por hora (`$/hora`) do pesquisador. |
-| **9** | **Exportador para Issue Trackers** | Conversão para times de desenvolvimento | Geração de tickets prontos em Markdown técnico para **Jira**, **GitHub Issues** e **GitLab Issues** com passos de reprodução, impacto de negócio e sugestões de correção. |
-| **10** | **Sanitizador DLP (Segredos & PII)** | Proteção antes do envio de relatórios | Scanner em tempo real que detecta e ofusca chaves AWS (`AKIA...`), tokens de acesso GitHub (`ghp_...`), JWTs, senhas em URLs, chaves privadas RSA/OpenSSH e emails. |
-| **11** | **Guia de Remediação de Segredos** | Resposta a incidentes de credenciais vazadas | Procedimento padronizado (SOP) com checklist interativo para rotacionar credenciais, revogar no console de provedores (OpenAI e AWS), auditar telemetria no CloudTrail/Usage Dashboard e encerrar alertas do GitHub Secret Scanning. |
-| **12** | **Simulador de Webhooks** | Notificações e automação de alertas | Disparo e teste de payloads estruturados para **Slack**, **Discord** e **Microsoft Teams**, simulando avisos automáticos de vulnerabilidades críticas. |
+| **2** | **CVSS v4.0 Component Calculator (Supply Chain)** | Estimativa do sub-score de explorabilidade para dependências e bibliotecas (SCA) | Avalia camada da dependência (*Direct*, *Transitive*, *Build CI*, *Plugin*), alcançabilidade de call-graph, requisitos de ambiente (`AT:P`), status CISA VEX e injeção direta de métricas no calculador CVSS v4.0 principal. |
+| **3** | **Grafo de Ataque Interativo (D3.js) & Kill Chain** | Visualização topológica e encadeamento de exploração | Mapeamento em 4 fases (*Acesso Inicial*, *Escalação*, *Movimentação Lateral* e *Crown Jewels*), taxonomia MITRE ATT&CK, detecção de nós de estrangulamento (*Choke Points*), simulador interativo de caminhos de ataque com reprodução passo a passo e exportação em SVG/JSON. |
+| **4** | **JWT Security Analyzer** | Auditoria e decodificação profunda de JSON Web Tokens | Detecção de algoritmo `none`, injeções de chaves (`jku`, `jwk`, `kid`), auditoria de expiração (`exp`, `nbf`, `iat`), vazamento de credenciais e gerador de tokens forjados para testes de PoC. |
+| **5** | **CSP Studio & Evaluator** | Avaliação e geração de Content Security Policy (W3C Level 3) | Parser automático de diretivas, detecção de bypass (`unsafe-inline`, `data:`, wildcards `*`), classificação de segurança A+ a F e exportação de snippets para Nginx, Apache e Express Helmet. |
+| **6** | **CVSS v4 + FIRST EPSS Matrix** | Priorização baseada em probabilidade de ameaça em circulação | Matriz 2D correlacionando severidade inerente (CVSS v4.0) com probabilidade estatística de exploração ativa em 30 dias (FIRST EPSS), com cálculo dinâmico de SLAs (P0 a P3). |
+| **7** | **CSRF PoC Studio** | Gerador de Provas de Conceito de Cross-Site Request Forgery | Criação de exploits HTML autocontidos com submissão automática via iframe oculto, suporte a truque JSON (`text/plain`), avaliação de navegabilidade com cookies `SameSite (Lax, Strict, None)` e download `.html`. |
+| **8** | **Payload Multi-Encoder / Decoder** | Canivete suíço de codificações e evasão de filtros WAF | Conversão instantânea e simultânea em URL Encode, Double URL, Base64/Base64URL, Hexadecimal (`\x41`, `0x41`), HTML Entities, Unicode Escape (`\u0041`), SQL `CHAR()` e PowerShell `-Enc`. |
+| **9** | **Security Headers Auditor** | Análise e hardening de cabeçalhos HTTP de segurança | Inspeção de HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, detecção de fingerprint em `Server`/`X-Powered-By` e gerador de configs seguras. |
+| **10** | **Mapeador CWE / OWASP Top 10** | Padronização taxonômica de vulnerabilidades | Catálogo das Top CWEs (2023/2024), correlação com OWASP Top 10 2021, descrições detalhadas, exemplos de código vulnerável e guia de mitigação. |
+| **11** | **Construtor de PoC & HTTP** | Geração rápida de requisições de reprodução | Exportação instantânea em comando `cURL`, script em `Python Requests` e requisição `Raw HTTP/1.1` com headers e payloads estruturados. |
+| **12** | **Monitor de SLA de Triagem** | Acompanhamento de conformidade de prazos | Rastreamento de MTTA (*Mean Time to Acknowledge*) e MTTR (*Mean Time to Resolve*); contagem regressiva para breach com base na severidade (Crítico: 24h/7d; Alto: 48h/14d). |
+| **13** | **Macros de Resposta Rápida** | Comunicação padronizada para triadores e hunters | Templates pré-configurados (Solicitação de PoC, Confirmação de Triagem, Notificação de Duplicata, Concessão de Bounty) com interpolação de variáveis dinâmicas (`{hunter}`, `{report_title}`, `{bounty}`, `{cvss}`). |
+| **14** | **Detector de Duplicatas** | Prevenção de relatórios duplicados | Comparador de similaridade de texto (Jaccard + Levenshtein), verificação de correspondência de endpoint e parâmetros vulneráveis em relação aos relatórios já existentes. |
+| **15** | **Matriz & Orçamento de Bounties** | Cálculo justo de recompensas e orçamento | Definição por Criticidade do Ativo (*Tier 1: Core/Auth/Payment*, *Tier 2: API/Customer*, *Tier 3: Marketing/Docs*) e simulação de impacto financeiro no orçamento anual. |
+| **16** | **Calculadora de ROI de Programas & Yield** | Priorização de plataformas e programas de bug bounty | Avaliação de Retorno sobre Investimento (ROI) correlacionando histórico de payouts pagos ($) vs. amplitude de cobertura, saturação de pesquisadores e velocidade de triagem, estimando o rendimento por hora (`$/hora`) do pesquisador. |
+| **17** | **Exportador para Issue Trackers** | Conversão para times de desenvolvimento | Geração de tickets prontos em Markdown técnico para **Jira**, **GitHub Issues** e **GitLab Issues** com passos de reprodução, impacto de negócio e sugestões de correção. |
+| **18** | **Sanitizador DLP (Segredos & PII)** | Proteção antes do envio de relatórios | Scanner em tempo real que detecta e ofusca chaves AWS (`AKIA...`), tokens de acesso GitHub (`ghp_...`), JWTs, senhas em URLs, chaves privadas RSA/OpenSSH e emails. |
+| **19** | **Guia de Remediação de Segredos** | Resposta a incidentes de credenciais vazadas | Procedimento padronizado (SOP) com checklist interativo para rotacionar credenciais, revogar no console de provedores (OpenAI e AWS), auditar telemetria no CloudTrail/Usage Dashboard e encerrar alertas do GitHub Secret Scanning. |
+| **20** | **Simulador de Webhooks** | Notificações e automação de alertas | Disparo e teste de payloads estruturados para **Slack**, **Discord** e **Microsoft Teams**, simulando avisos automáticos de vulnerabilidades críticas. |
 
 ---
 
@@ -84,7 +92,24 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 4. O sistema calcula a pontuação final (0.0 a 10.0), a classificação de severidade e gera o vetor oficial (ex: `CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H`).
 5. Clique em **Copiar Vetor** para incluir diretamente no seu formulário de submissão.
 
-### 2. Como Sanitizar um Relatório antes do Envio (DLP Sanitizer)
+### 2. Como Avaliar Vulnerabilidades em Dependências de Terceiros (CVSS v4.0 Component Calculator)
+1. Na aba **AppSec**, acesse a sub-aba **CVSS v4 Component Calculator** (ou clique no banner de atalho na aba CVSS v4.0 Engine).
+2. Carregue um relatório ativo em contexto ou selecione um cenário pré-configurado:
+   - *Log4Shell (Direto, RCE Remoto)*;
+   - *Express Body-Parser (Transitivo Nível 2)*;
+   - *Webpack Dev Server (CI/Build Tooling)*;
+   - *ESLint Plugin (Linter Local)*;
+   - *Inalcançável / Dead Code (Call-Path Sem Rota)*.
+3. Configure os parâmetros específicos de Software Supply Chain (SCA):
+   - **Camada de Dependência (*Dependency Tier*)**: Direta, Transitiva Rasa (1-2 saltos), Transitiva Profunda (>2 saltos), Ferramenta de Build/Dev ou Plugin/Extensão.
+   - **Alcançabilidade de Código (*Call-Graph Reachability*)**: Caminho de execução confirmado, Invocação indireta com sanitização, Importado sem execução, Não importado (*Dead Code*) ou Desconhecido.
+   - **Pré-requisitos de Ambiente (*Attack Requirements - AT:P*)**: Configurações específicas, flags de compilação, variáveis de ambiente ou dependências do SO necessárias para viabilizar o exploit.
+   - **Exposição de Rede & Superfície de Entrada (*Exposure Surface*)**: Endpoint público sem autenticação, API autenticada, Acesso local/CLI ou Air-gapped.
+   - **Status VEX (Vulnerability Exploitability eXchange - CISA Standard)**: `under_investigation`, `not_affected`, `affected` ou `fixed`.
+4. Obtenha o **Sub-score de Explorabilidade CVSS v4.0** recalculado com justificativas técnicas detalhadas e declaração VEX formal gerada.
+5. Clique em **Injetar Métricas na Calculadora CVSS v4.0 Principal** para carregar os parâmetros calculados diretamente no motor CVSS v4.0.
+
+### 3. Como Sanitizar um Relatório antes do Envio (DLP Sanitizer)
 1. Antes de publicar ou exportar um relatório, abra a aba **AppSec** > **DLP Sanitizer**.
 2. Cole o texto completo do relatório ou carregue os dados do relatório selecionado.
 3. O motor de DLP inspecionará o texto em busca de segredos: chaves AWS, tokens pessoais do GitHub, tokens Bearer JWT, senhas expostas em URLs ou chaves privadas.
@@ -148,6 +173,26 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
    - Ajuste os parâmetros de um novo alvo (amplitude de escopo, saturação de concorrentes, payouts para Crítico/Alto/Médio e dias de resolução).
    - Receba um parecer estratégico em tempo real (*Tier S*, *Tier A*, *Tier B*, etc.) com recomendações táticas para sua carteira de pesquisa.
 
+### 8. Como Utilizar o Grafo de Ataque Interativo (D3.js) & Kill Chain
+1. Na aba **AppSec**, selecione a sub-aba **Attack Graph & Kill Chain**.
+2. **Navegação Topológica D3.js**:
+   - Alterne entre os modos **Estagiado (Kill Chain)** (colunas estruturadas da esquerda para a direita) e **Força Direcionada** (layout orgânico via simulação física de cargas e links).
+   - Use controles de **Zoom (+ / -)**, **Ajustar à Tela (Fit)**, **Reset** e arraste os nós para inspecionar clusters densos.
+   - Nós com anel pulsante vermelho e etiqueta dourada identificam **Choke Points** (pontos de estrangulamento onde múltiplos caminhos de ataque convergem).
+3. **Simulador de Caminhos de Ataque (Attack Path Walkthrough)**:
+   - Selecione um dos cenários pré-computados (ex: *SSRF para Comprometimento Total do Cluster Cloud*, *SQL Injection para Dump de Banco e RCE*, *Exposição de Segredos para Exfiltração de S3*).
+   - Utilize os botões **Anterior**, **Play/Pausa** ou **Próximo** para avançar passo a passo pelo kill chain.
+   - O grafo ilumina os nós e arestas do passo atual com partículas animadas, destacando a transição de privilégios e os vetores de transição.
+4. **Inspetor de Ameaças & Nós**:
+   - Clique em qualquer nó do grafo para visualizar no painel lateral:
+     - **Metadados**: Tipo do ativo, estágio do kill chain, severidade e probabilidade de exploração (EPSS).
+     - **Mapeamento MITRE ATT&CK**: Táticas (ex: *Initial Access*, *Privilege Escalation*, *Lateral Movement*, *Exfiltration*) e IDs de Técnicas (ex: `T1190`, `T1552`, `T1021`).
+     - **Raio de Impacto (Blast Radius)**: Ativos adjacentes vulneráveis a salto lateral.
+     - **Ação de Correção Recomendada**: Mitigações práticas para quebrar a cadeia de ataque no ponto mais barato e eficiente.
+5. **Exportação & Integração**:
+   - **Exportar SVG**: Gera vetor gráfico em alta definição pronto para apresentações executivas e relatórios formais de pentest.
+   - **Exportar JSON**: Baixa a topologia completa com nós, links e cenários para ingestão em SIEMs ou ferramentas de SOAR.
+
 ---
 
 ## 🏷️ Categorias de Impacto & Legenda de Triagem Rápida (Fast Triage)
@@ -197,6 +242,13 @@ O módulo **Reporter Interaction Sentiment Tracker (`ReporterInteractionSentimen
 
 A aba **Intel** fornece visibilidade completa sobre o cenário mundial de segurança:
 
+- **Radar de Inteligência Global de Ameaças D3.js (`GlobalThreatIntelligenceRadar`)**:
+  - Renderização vetorial polar rotativa em tempo real via **D3.js**, simulando uma tela de radar tático militar/cyber-ops de 360 graus.
+  - **Setores Polares por Plataforma de Origem**: Mapeamento dos relatórios nos setores angulares dedicados: *HackerOne* (0°–60°), *Bugcrowd* (60°–120°), *Intigriti* (120°–180°), *YesWeHack* (180°–240°), *Synack* (240°–300°) e *Direct / VDP* (300°–360°).
+  - **Anéis Concéntricos de Alcance / Distância CVSS**: O raio do alvo no radar é projetado matematicamente pela severidade e score CVSS, situando achados Críticos (CVSS 9.0+) no *Core Threat Zone* (núcleo de impacto) e falhas médias/baixas em órbitas intermediárias e no perímetro.
+  - **Feixe Rotativo em Tempo Real & Efeito Fosforescente**: Varredura contínua com feixe cônico em gradiente (*sweep beam*) acionado via `requestAnimationFrame`. Ao passar sobre cada alvo, o blip pulsa com onda expansiva de detecção (*ping ripple*) e rastro de luminescência.
+  - **Painel Tático HUD Inspector**: Seleção e trava de alvo (*lock-on*) com mira tática ao clicar em qualquer blip, exibindo alvo, título da falha, severidade, pontuação CVSS, status de triagem, bounty estimado e botão de abertura direta do relatório.
+  - **Controles Operacionais**: Ajuste de velocidade da varredura (Pause, 0.5x, 1x, 2x), filtros interativos por plataforma e severidade, alternância de temas cromáticos táticos (*Phosphor Emerald*, *Quantum Cyan*, *Crimson Threat Alert*, *Tactical Amber*) e ativação de rótulos e preenchimento de setores.
 - **Mapa Global de Ameaças (`GlobalThreatMap`)**: Mapa interativo mundial destacando focos de campanhas ativas, ataques de negação de serviço, exploração de vulnerabilidades zero-day e atividades de grupos APT.
 - **Vulnerability Heatmap Geográfico D3.js (`VulnerabilityHeatmap`)**:
   - Renderização geoespacial vetorial via **D3.js Natural Earth** projetando relatórios de vulnerabilidade em tempo real sobre os continentes do mundo.

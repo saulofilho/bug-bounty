@@ -65,6 +65,7 @@ import { ReporterInteractionSentiment } from './ReporterInteractionSentiment';
 import { HourlyRateMetrics } from './HourlyRateMetrics';
 import { TriageEfficiencyCard } from './TriageEfficiencyCard';
 import { GlobalThreatMap } from './GlobalThreatMap';
+import { GlobalThreatIntelligenceRadar } from './GlobalThreatIntelligenceRadar';
 import { RecentGlobalThreatIntelligence } from './RecentGlobalThreatIntelligence';
 import { VulnerabilityImpactScorecard } from './VulnerabilityImpactScorecard';
 import { VulnerabilityHeatmap } from './VulnerabilityHeatmap';
@@ -1101,6 +1102,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         reports={reports}
         onSelectReport={onSelectReport}
         onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
+      {/* D3.js Global Threat Intelligence Radar: 360-degree rotating real-time visualization of vulnerability reports based on platform origin */}
+      <GlobalThreatIntelligenceRadar
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+        onNewReport={onNewReport}
       />
 
       {/* Real-time Threat Intelligence Dashboard: Security Advisory Feeds with Google Search Grounding & Vulnerability Context */}
