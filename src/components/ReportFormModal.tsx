@@ -18,7 +18,7 @@ import {
   AlertTriangle,
   ShieldCheck
 } from 'lucide-react';
-import { VulnerabilityReport, Severity, ReportStatus, PlatformName, TargetProgram, TechnicalDoc, AutoTagSuggestion, ValidationChecklistItem } from '../types';
+import { VulnerabilityReport, Severity, ReportStatus, PlatformName, TargetProgram, TechnicalDoc, AutoTagSuggestion, ValidationChecklistItem, GeneratedDraftReport } from '../types';
 import { calculateCvssScore, parseCvssVector, CvssMetrics } from '../utils/cvss';
 import { getSeverityBadgeColor } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
@@ -31,6 +31,7 @@ import { DuplicateReportDetectorCard } from './DuplicateReportDetectorCard';
 import { detectPotentialDuplicates } from '../utils/duplicateDetector';
 import { INITIAL_REPORTS } from '../data/initialData';
 import { showSuccessToast, showErrorToast } from '../utils/toastNotifications';
+import { GeminiReportDraftModal } from './GeminiReportDraftModal';
 
 interface ReportFormModalProps {
   initialReport?: VulnerabilityReport | null;
@@ -126,6 +127,41 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
     justification: string;
   } | null>(null);
   const [aiCvssError, setAiCvssError] = useState<string | null>(null);
+
+  // Gemini Automatic Draft Generator Modal State
+  const [isGeminiDraftModalOpen, setIsGeminiDraftModalOpen] = useState(false);
+
+  const handleApplyDraftFromGemini = (draft: GeneratedDraftReport) => {
+    if (draft.title) setTitle(draft.title);
+    if (draft.target) setTarget(draft.target);
+    if (draft.vulnerabilityType) setVulnerabilityType(draft.vulnerabilityType);
+    if (draft.summary) setSummary(draft.summary);
+    if (draft.businessImpact) setBusinessImpact(draft.businessImpact);
+    if (draft.remediation) setRemediation(draft.remediation);
+    if (draft.cwe) setCwe(draft.cwe);
+    if (draft.proofOfConcept) setProofOfConcept(draft.proofOfConcept);
+    if (Array.isArray(draft.stepsToReproduce) && draft.stepsToReproduce.length > 0) {
+      setSteps(draft.stepsToReproduce);
+    }
+    if (Array.isArray(draft.suggestedTags) && draft.suggestedTags.length > 0) {
+      setTags(draft.suggestedTags);
+    }
+    if (draft.cvssVector) {
+      try {
+        const parsed = parseCvssVector(draft.cvssVector);
+        setCvssMetrics(parsed);
+        const calculated = calculateCvssScore(parsed);
+        setCvssScore(draft.cvssScore !== undefined ? draft.cvssScore : calculated.score);
+        setCvssVector(draft.cvssVector || calculated.vector);
+      } catch {
+        if (typeof draft.cvssScore === 'number') setCvssScore(draft.cvssScore);
+        setCvssVector(draft.cvssVector);
+      }
+    }
+    setAiSuccessMessage('Rascunho gerado pelo Gemini aplicado a todos os campos com sucesso!');
+    setTimeout(() => setAiSuccessMessage(null), 5000);
+    showSuccessToast('Rascunho do Gemini aplicado com sucesso ao formulário!');
+  };
 
   // Potential Duplicate Detection Analysis (Live across targets & vuln types)
   const duplicateSummary = useMemo(() => {
@@ -494,26 +530,39 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
         {/* AI Banner Bar */}
         <div className="p-4 bg-[#121212] border-b border-[#262626] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+            <div className="w-8 h-8 rounded bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/20">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider font-mono">Assistente Gemini de Triagem</span>
+              <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider font-mono">Assistente Gemini de Triagem & Rascunho</span>
               <p className="text-xs text-zinc-400">
-                Transforma notas brutas e PoC em título profissional, impacto de negócio e passos determinísticos.
+                Transforma notas brutas ou logs de rede HTTP em títulos profissionais, impacto de negócio e PoC sanitizada.
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleAiRefine}
-            disabled={isAiLoading}
-            className="flex items-center justify-center gap-2 px-3.5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 shrink-0"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{isAiLoading ? 'Analisando...' : '🪄 Refinar com IA'}</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <button
+              type="button"
+              id="btn-form-open-gemini-draft"
+              onClick={() => setIsGeminiDraftModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded bg-linear-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-cyan-600/20 active:scale-95 shrink-0 cursor-pointer"
+              title="Cole passos de reprodução ou log HTTP/Burp Suite para preencher este formulário automaticamente"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
+              <span>Importar via Log / Passos</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAiRefine}
+              disabled={isAiLoading}
+              className="flex items-center justify-center gap-2 px-3.5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 shrink-0 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isAiLoading ? 'Analisando...' : '🪄 Refinar Campos'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Potential Duplicate Reports Detector Banner (Live Scan) */}
@@ -1123,6 +1172,16 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
             setCvssMetrics(parseCvssVector(vector));
             setIsCvssModalOpen(false);
           }}
+        />
+      )}
+
+      {/* Embedded Gemini Report Draft Modal */}
+      {isGeminiDraftModalOpen && (
+        <GeminiReportDraftModal
+          isOpen={isGeminiDraftModalOpen}
+          onClose={() => setIsGeminiDraftModalOpen(false)}
+          initialTarget={target}
+          onApplyToForm={handleApplyDraftFromGemini}
         />
       )}
     </div>

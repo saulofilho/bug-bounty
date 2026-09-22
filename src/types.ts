@@ -305,3 +305,28 @@ export interface GitHubIntegrationData {
   syncStatus?: GitHubSyncStatus;
   lastSyncError?: string;
 }
+
+export interface GeneratedDraftReport {
+  title: string;
+  target: string;
+  vulnerabilityType: string;
+  severity: Severity;
+  cvssScore: number;
+  cvssVector: string;
+  cwe: string;
+  summary: string;
+  stepsToReproduce: string[];
+  proofOfConcept: string;
+  businessImpact: string;
+  remediation: string;
+  suggestedTags: string[];
+  detectedArtifacts?: {
+    httpMethod?: string;
+    endpoint?: string;
+    parameter?: string;
+    authScheme?: string;
+    statusCode?: string;
+  };
+  logAnalysis?: string;
+}
+

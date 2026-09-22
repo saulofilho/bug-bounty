@@ -54,6 +54,7 @@ interface ReportsViewProps {
   onOpenPdfExport?: (report: VulnerabilityReport) => void;
   onOpenCsvImport?: () => void;
   onExportCsv?: () => void;
+  onOpenGeminiDraft?: () => void;
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({
@@ -71,7 +72,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   onSeverityChange,
   onOpenPdfExport,
   onOpenCsvImport,
-  onExportCsv
+  onExportCsv,
+  onOpenGeminiDraft
 }) => {
   const { isAuthenticated, openLoginModal } = useAuth();
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
@@ -424,6 +426,19 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             >
               <Calculator className="w-3.5 h-3.5 text-emerald-400" />
               <span>CVSS Calc</span>
+            </button>
+          )}
+
+          {onOpenGeminiDraft && (
+            <button
+              type="button"
+              id="btn-reports-view-gemini-draft"
+              onClick={onOpenGeminiDraft}
+              className="flex items-center justify-center gap-1.5 bg-linear-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-mono font-bold px-3.5 py-2 rounded text-xs tracking-wider transition-all shadow-md shadow-cyan-600/20 active:scale-95 shrink-0 cursor-pointer"
+              title="Gerar rascunho de relatório automático a partir de passos de reprodução ou log de rede com a API do Gemini"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
+              <span>Gerar com Gemini</span>
             </button>
           )}
 

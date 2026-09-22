@@ -260,6 +260,306 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido (sem tags markdown de código ou t
   }
 });
 
+type DraftSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+// Gemini AI endpoint to automatically generate a vulnerability report draft from steps or network log
+app.post("/api/gemini/generate-draft-report", async (req, res) => {
+  try {
+    const { content, inputType = 'auto', targetHint, titleHint } = req.body;
+
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({
+        error: "Por favor, forneça os passos para reprodução ou um log de rede para análise."
+      });
+    }
+
+    const trimmedContent = content.trim();
+
+    // Check if Gemini API is available
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const ai = getGeminiClient();
+
+        const inputDescription = inputType === 'network_log'
+          ? 'Log de Rede / Tráfego HTTP / Burp Suite / Requisição cURL'
+          : inputType === 'steps'
+            ? 'Descrição de Passos para Reprodução'
+            : 'Entrada Automática (Log de Rede ou Passos para Reprodução)';
+
+        const prompt = `Você é um especialista sênior em Segurança Ofensiva (AppSec / Red Team) e Triador Líder em plataformas de Bug Bounty (HackerOne, Bugcrowd, Intigriti).
+Sua missão é transformar o texto a seguir (que contém passos para reprodução e/ou log de rede/tráfego HTTP) em um RELATÓRIO TÉCNICO DE VULNERABILIDADE COMPLETO, ELEGANTE E PROFISSIONAL, pronto para submissão aos programas de bug bounty.
+
+Tipo de Entrada: ${inputDescription}
+${targetHint ? `- Dica de Alvo Informada: ${targetHint}` : ''}
+${titleHint ? `- Dica de Título/Vulnerabilidade: ${titleHint}` : ''}
+
+CONTEÚDO FORNECIDO PELO PESQUISADOR (LOG DE REDE OU PASSOS):
+"""
+${trimmedContent}
+"""
+
+DIRETRIZES DE ENGENHARIA DO RELATÓRIO:
+1. Analise minuciosamente o conteúdo:
+   - Se for um log de rede ou tráfego HTTP, identifique: Método (GET, POST, etc.), Host/Domínio do alvo, Caminho/Endpoint, Cabeçalhos relevantes, Parâmetros vulneráveis, Códigos e Corpos de Resposta.
+   - Se forem passos descritivos, extraia a sequência lógica de exploração, as contas necessárias e as ações no navegador/ferramenta.
+2. Formate o Título profissional: "[Classe da Falha] em [Endpoint/Componente] permite [Impacto Concreto no Negócio]".
+3. Classifique a Severidade com base no padrão CVSS v3.1:
+   - "CRITICAL" (9.0 - 10.0) | "HIGH" (7.0 - 8.9) | "MEDIUM" (4.0 - 6.9) | "LOW" (0.1 - 3.9) | "INFO" (0.0)
+4. Forneça pontuação e vetor CVSS 3.1 válidos (ex: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N").
+5. Identifique o CWE correspondente com código e nome canônico (ex: "CWE-639: Authorization Bypass Through User-Controlled Key").
+6. Estruture "stepsToReproduce" em uma lista ordenada e reproduzível (Passo 1, Passo 2, ...) sem ambiguidade.
+7. Sanitize tokens sensíveis ou cookies em "proofOfConcept", substituindo-os por marcadores (ex: [TOKEN_VITIMA], [JWT_ATACANTE]).
+8. Forneça "summary", "businessImpact" (riscos regulatórios/LGPD, confidencialidade, impacto financeiro) e "remediation" acionável para os desenvolvedores.
+9. Extraia tags (#idor, #api-security, etc.) e artefatos detectados (método, endpoint, parâmetro vulnerável).
+
+Retorne EXCLUSIVAMENTE um objeto JSON válido (sem tags markdown \`\`\`json ou texto adicional):
+{
+  "title": "Título técnico profissional",
+  "target": "alvo.com ou api.alvo.com",
+  "vulnerabilityType": "IDOR / BOLA" ou "SSRF" ou "SQL Injection" ou "Broken Authentication" ou outro,
+  "severity": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO",
+  "cvssScore": 7.5,
+  "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+  "cwe": "CWE-639: Authorization Bypass Through User-Controlled Key",
+  "summary": "Resumo executivo e técnico detalhado explicando a falha e a causa raiz.",
+  "stepsToReproduce": [
+    "Passo 1: ...",
+    "Passo 2: ...",
+    "Passo 3: ..."
+  ],
+  "proofOfConcept": "Requisição HTTP ou script PoC formatado e sanitizado.",
+  "businessImpact": "Impacto detalhado no negócio e riscos de confidencialidade/integridade.",
+  "remediation": "Recomendações técnicas diretas e acionáveis de correção para o time de desenvolvimento.",
+  "suggestedTags": ["#tag1", "#tag2", "#tag3"],
+  "detectedArtifacts": {
+    "httpMethod": "GET | POST | PUT | DELETE | ...",
+    "endpoint": "/api/v1/...",
+    "parameter": "id | token | query | ...",
+    "authScheme": "Bearer JWT | Cookie Session | None",
+    "statusCode": "200 OK | 500 Internal Error | ..."
+  },
+  "logAnalysis": "Síntese dos dados técnicos detectados na entrada."
+}`;
+
+        const response = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents: prompt,
+          config: {
+            temperature: 0.2
+          }
+        });
+
+        const responseText = response.text || "{}";
+        let cleaned = responseText.trim();
+        if (cleaned.startsWith("```json")) {
+          cleaned = cleaned.replace(/^```json/, "").replace(/```$/, "").trim();
+        } else if (cleaned.startsWith("```")) {
+          cleaned = cleaned.replace(/^```/, "").replace(/```$/, "").trim();
+        }
+
+        const parsed = JSON.parse(cleaned);
+
+        // Normalize severity
+        const validSeverities = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
+        let finalSeverity = String(parsed.severity || "").toUpperCase();
+        if (!validSeverities.includes(finalSeverity)) {
+          const score = Number(parsed.cvssScore) || 0;
+          if (score >= 9.0) finalSeverity = "CRITICAL";
+          else if (score >= 7.0) finalSeverity = "HIGH";
+          else if (score >= 4.0) finalSeverity = "MEDIUM";
+          else if (score > 0) finalSeverity = "LOW";
+          else finalSeverity = "INFO";
+        }
+
+        return res.json({
+          success: true,
+          source: "gemini-3.8-flash",
+          data: {
+            title: parsed.title || titleHint || "Vulnerabilidade de Segurança Detectada",
+            target: parsed.target || targetHint || "api.target.com",
+            vulnerabilityType: parsed.vulnerabilityType || "IDOR / BOLA",
+            severity: finalSeverity,
+            cvssScore: typeof parsed.cvssScore === 'number' ? parsed.cvssScore : parseFloat(parsed.cvssScore) || 7.5,
+            cvssVector: parsed.cvssVector || "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            cwe: parsed.cwe || "CWE-639: Authorization Bypass Through User-Controlled Key",
+            summary: parsed.summary || "Resumo da vulnerabilidade identificado via IA.",
+            stepsToReproduce: Array.isArray(parsed.stepsToReproduce) && parsed.stepsToReproduce.length > 0
+              ? parsed.stepsToReproduce
+              : ["Passo 1: Acesse a aplicação alvo.", "Passo 2: Reproduza a requisição identificada no log.", "Passo 3: Verifique a violação de segurança."],
+            proofOfConcept: parsed.proofOfConcept || trimmedContent,
+            businessImpact: parsed.businessImpact || "Potencial exposição indevida de informações e comprometimento de integridade.",
+            remediation: parsed.remediation || "Implementar validação estrita de autorização em nível de objeto e controle de acesso baseado em papéis.",
+            suggestedTags: Array.isArray(parsed.suggestedTags) ? parsed.suggestedTags : ["#vulnerability", "#appsec"],
+            detectedArtifacts: parsed.detectedArtifacts || {
+              httpMethod: "DETECTED",
+              endpoint: parsed.target || "N/A"
+            },
+            logAnalysis: parsed.logAnalysis || "Análise estruturada gerada pelo modelo Gemini 3.8 Flash."
+          }
+        });
+      } catch (geminiError: any) {
+        console.warn("Gemini draft generation failed, falling back to heuristic engine:", geminiError);
+        // proceed to heuristic parser below
+      }
+    }
+
+    // Heuristic Fallback Engine (when API key is absent or on network error/quota limit)
+    // Extracts Host, Method, URI, Parameters from raw HTTP or reproduction steps
+    const lower = trimmedContent.toLowerCase();
+
+    // 1. Detect target domain
+    let detectedTarget = targetHint || "";
+    const hostMatch = trimmedContent.match(/Host:\s*([^\r\n\s]+)/i);
+    if (hostMatch && hostMatch[1]) {
+      detectedTarget = hostMatch[1].trim();
+    } else {
+      const urlMatch = trimmedContent.match(/https?:\/\/([^\s\/:\?#]+)/i);
+      if (urlMatch && urlMatch[1]) {
+        detectedTarget = urlMatch[1].trim();
+      }
+    }
+    if (!detectedTarget) detectedTarget = "api.target.com";
+
+    // 2. Detect HTTP Method & Endpoint
+    let httpMethod = "GET";
+    let endpoint = "/api/v1/resource";
+    const requestLineMatch = trimmedContent.match(/^(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\s+([^\s]+)\s+HTTP/im);
+    if (requestLineMatch) {
+      httpMethod = requestLineMatch[1].toUpperCase();
+      endpoint = requestLineMatch[2];
+    } else {
+      const curlMatch = trimmedContent.match(/curl\s+(?:-X\s+([A-Z]+)\s+)?['"]?(https?:\/\/[^\s'"]+)/i);
+      if (curlMatch) {
+        httpMethod = curlMatch[1] || "GET";
+        try {
+          const parsedUrl = new URL(curlMatch[2]);
+          endpoint = parsedUrl.pathname + parsedUrl.search;
+          detectedTarget = parsedUrl.host;
+        } catch {}
+      }
+    }
+
+    // 3. Classify vulnerability type, CWE, CVSS & title
+    let vulnType = "IDOR / BOLA";
+    let cweId = "CWE-639: Authorization Bypass Through User-Controlled Key";
+    let score = 7.5;
+    let severity: DraftSeverity = "HIGH";
+    let vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N";
+    let title = `Broken Object Level Authorization (IDOR) em ${endpoint} permite acesso não autorizado a dados`;
+    let summary = `Identificada falha de controle de acesso de objeto (IDOR) no endpoint ${endpoint}. A aplicação não valida se o identificador informado no parâmetro pertence ao usuário autenticado, permitindo que atacantes consultem ou manipulem registros de terceiros.`;
+    let impact = "Exposição direta de informações confidenciais (PII) de outros usuários da plataforma, violando normas de proteção de dados e privacidade.";
+    let remediation = "Implementar verificação rigorosa de autorização no backend, garantindo que o identificador requisitado esteja vinculado à sessão do usuário autenticado no token JWT/sessão.";
+    const tags = ["#idor", "#bola", "#api-security", "#cwe-639"];
+
+    if (lower.includes("ssrf") || lower.includes("169.254.169.254") || lower.includes("metadata") || lower.includes("webhook")) {
+      vulnType = "SSRF (Server-Side Request Forgery)";
+      cweId = "CWE-918: Server-Side Request Forgery (SSRF)";
+      score = 8.6;
+      severity = "HIGH";
+      vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N";
+      title = `Server-Side Request Forgery (SSRF) em ${endpoint} permite consulta a metadados de nuvem`;
+      summary = `A funcionalidade em ${endpoint} aceita URLs fornecidas pelo cliente e realiza requisições HTTP server-side sem validação prévia de esquema ou bloqueio de endereços privados (RFC 1918 / Cloud Metadata 169.254.169.254).`;
+      impact = "Permite a leitura de metadados internos de instâncias de nuvem (AWS/GCP/Azure), potencial vazamento de credenciais temporárias IAM e varredura de portas de serviços internos.";
+      remediation = "Implementar allowlist estrita de domínios externos permitidos, desabilitar suporte a redirecionamentos HTTP e bloquear resoluções DNS para faixas privadas e de metadados de nuvem.";
+      tags.length = 0;
+      tags.push("#ssrf", "#cloud-security", "#cwe-918", "#metadata");
+    } else if (lower.includes("select") && (lower.includes("from") || lower.includes("where") || lower.includes("union") || lower.includes("' or '1'='1"))) {
+      vulnType = "SQL Injection";
+      cweId = "CWE-89: Improper Neutralization of Special Elements used in an SQL Command";
+      score = 9.8;
+      severity = "CRITICAL";
+      vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H";
+      title = `Injeção de SQL (SQLi) em ${endpoint} permite extração completa do banco de dados`;
+      summary = `Parâmetros recebidos pelo endpoint ${endpoint} são concatenados diretamente em comandos SQL sem uso de consultas preparadas (Prepared Statements) ou parametrização segura.`;
+      impact = "Extração completa de credenciais e dados sensíveis de todos os clientes, manipulação de integridade de dados e potencial execução de comandos no sistema operacional via extensões de banco de dados.";
+      remediation = "Substituir concatenações dinâmicas de SQL por consultas parametrizadas (Prepared Statements com parameterized queries) ou ORM seguro.";
+      tags.length = 0;
+      tags.push("#sqli", "#injection", "#cwe-89", "#critical");
+    } else if (lower.includes("<script>") || lower.includes("alert(") || lower.includes("javascript:") || lower.includes("xss")) {
+      vulnType = "Cross-Site Scripting (XSS)";
+      cweId = "CWE-79: Improper Neutralization of Input During Web Page Generation";
+      score = 7.1;
+      severity = "HIGH";
+      vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N";
+      title = `Cross-Site Scripting (XSS) em ${endpoint} permite execução arbitrária de scripts no navegador`;
+      summary = `A aplicação reflete ou armazena conteúdo fornecido pelo usuário em ${endpoint} sem sanitização adequada ou codificação de saída sensível ao contexto (context-aware output encoding).`;
+      impact = "Sequestro de sessões ativas (Session Hijacking), execução de ações forjadas em nome de usuários legítimos e desfiguração da interface.";
+      remediation = "Codificar a saída de acordo com o contexto HTML/JavaScript e configurar uma Política de Segurança de Conteúdo (CSP - Content Security Policy) restritiva.";
+      tags.length = 0;
+      tags.push("#xss", "#client-side", "#cwe-79");
+    } else if (lower.includes("access-control-allow-origin") || lower.includes("cors")) {
+      vulnType = "CORS Misconfiguration";
+      cweId = "CWE-942: Permissive Cross-Domain Policy with Untrusted Domains";
+      score = 6.5;
+      severity = "MEDIUM";
+      vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N";
+      title = `Configuração Insegura de CORS em ${endpoint} permite extração de dados confidenciais por sites de terceiros`;
+      summary = `O servidor reflete dinamicamente a origem da requisição no cabeçalho Access-Control-Allow-Origin conjuntamente com Access-Control-Allow-Credentials: true sem validação estrita de domínios autorizados.`;
+      impact = "Qualquer site externo malicioso visitado por um usuário autenticado pode ler respostas HTTP contendo dados privados e tokens.";
+      remediation = "Configurar uma lista estrita de origens permitidas (whitelist) em vez de refletir o cabeçalho Origin indiscriminadamente.";
+      tags.length = 0;
+      tags.push("#cors", "#web-security", "#cwe-942");
+    }
+
+    // 4. Extract or assemble steps to reproduce
+    const rawLines = trimmedContent.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const stepsToReproduce: string[] = [];
+    const stepLines = rawLines.filter(l => /^(\d+[\.\-\)]|passo\s*\d+|step\s*\d+)/i.test(l));
+
+    if (stepLines.length > 0) {
+      stepLines.forEach((line, i) => {
+        const cleanedLine = line.replace(/^(\d+[\.\-\)]|passo\s*\d+:?|step\s*\d+:?)\s*/i, "").trim();
+        stepsToReproduce.push(`Passo ${i + 1}: ${cleanedLine}`);
+      });
+    } else {
+      stepsToReproduce.push(`Passo 1: Acesse o alvo ${detectedTarget} utilizando navegador ou cliente HTTP (Burp Suite / Postman).`);
+      stepsToReproduce.push(`Passo 2: Realize uma requisição ${httpMethod} direcionada para ${endpoint}.`);
+      stepsToReproduce.push(`Passo 3: Modifique os parâmetros de controle ou insira a carga de prova de conceito no corpo da requisição.`);
+      stepsToReproduce.push(`Passo 4: Analise a resposta do servidor e comprove o comportamento anômalo da vulnerabilidade.`);
+    }
+
+    // 5. Build clean Proof of Concept
+    let proofOfConcept = trimmedContent;
+    if (trimmedContent.length > 1200) {
+      proofOfConcept = trimmedContent.slice(0, 1200) + "\n\n[... Log truncado para brevidade da PoC ...]";
+    }
+
+    return res.json({
+      success: true,
+      source: "heuristic_engine",
+      note: "Relatório gerado pelo motor heurístico integrado. Configure GEMINI_API_KEY para habilitar a inteligência do Gemini 3.8 Flash.",
+      data: {
+        title,
+        target: detectedTarget,
+        vulnerabilityType: vulnType,
+        severity,
+        cvssScore: score,
+        cvssVector: vector,
+        cwe: cweId,
+        summary,
+        stepsToReproduce,
+        proofOfConcept,
+        businessImpact: impact,
+        remediation,
+        suggestedTags: tags,
+        detectedArtifacts: {
+          httpMethod,
+          endpoint,
+          parameter: "Detectado no log / entrada",
+          authScheme: lower.includes("authorization: bearer") ? "Bearer Token" : lower.includes("cookie") ? "Cookie Session" : "None / Standard",
+          statusCode: "200 OK"
+        },
+        logAnalysis: `Detectado tráfego para ${detectedTarget} em ${endpoint} (${httpMethod}). Categoria mapeada: ${vulnType}.`
+      }
+    });
+  } catch (error: any) {
+    console.error("Generate draft report error:", error);
+    res.status(500).json({
+      error: "Erro no servidor ao processar rascunho de relatório: " + (error?.message || "Erro desconhecido.")
+    });
+  }
+});
+
 // Gemini AI endpoint to suggest CVSS Score and Severity based on Summary and Steps to Reproduce
 app.post("/api/gemini/analyze-cvss", async (req, res) => {
   try {

@@ -26,6 +26,7 @@ import { WelcomePlatformModal } from './components/WelcomePlatformModal';
 import { SettingsModal } from './components/SettingsModal';
 import { Notifications } from './components/Notifications';
 import { AppSecSuiteView } from './components/AppSecSuiteView';
+import { GeminiReportDraftModal } from './components/GeminiReportDraftModal';
 import { getStoredMockEmails, checkReportsStateChanges } from './utils/notificationEngine';
 import { validateAndRepairStorageIntegrity, StorageIntegrityResult } from './utils/storageIntegrityValidator';
 import { ShieldCheck, X as CloseIcon, Sparkles } from 'lucide-react';
@@ -35,7 +36,7 @@ import { notifyCriticalVulnerability, showSuccessToast, showInfoToast } from './
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { INITIAL_REPORTS, INITIAL_TARGETS, INITIAL_DOCS } from './data/initialData';
-import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity } from './types';
+import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity, GeneratedDraftReport } from './types';
 
 function AppContent() {
   const {
@@ -83,6 +84,8 @@ function AppContent() {
   const [selectedSeverityFilter, setSelectedSeverityFilter] = useState<string>('ALL');
   const [reportForPdfExport, setReportForPdfExport] = useState<VulnerabilityReport | null>(null);
   const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
+  const [isGeminiDraftModalOpen, setIsGeminiDraftModalOpen] = useState(false);
+  const [draftInitialTarget, setDraftInitialTarget] = useState<string>('');
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
@@ -334,6 +337,105 @@ function AppContent() {
     if (selectedReportForDetail?.id === updated.id) {
       setSelectedReportForDetail(updated);
     }
+  };
+
+  const handleOpenGeminiDraft = (initialTarget?: string) => {
+    setDraftInitialTarget(initialTarget || '');
+    setIsGeminiDraftModalOpen(true);
+  };
+
+  const handleApplyDraftToNewReport = (draft: GeneratedDraftReport) => {
+    const today = new Date().toISOString().split('T')[0];
+    const newReport: VulnerabilityReport = {
+      id: `rep-ai-${Date.now()}`,
+      title: draft.title || 'Rascunho Gerado pelo Gemini',
+      target: draft.target || 'api.target.com',
+      vulnerabilityType: draft.vulnerabilityType || 'API Vulnerability',
+      severity: draft.severity || 'HIGH',
+      cvssScore: draft.cvssScore || 7.5,
+      cvssVector: draft.cvssVector || 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N',
+      status: 'DRAFT',
+      platform: 'HackerOne',
+      cwe: draft.cwe || 'CWE-639',
+      cveIds: [],
+      tags: draft.suggestedTags || ['ai-generated', 'gemini-draft'],
+      summary: draft.summary || '',
+      stepsToReproduce: draft.stepsToReproduce || [],
+      proofOfConcept: draft.proofOfConcept || '',
+      businessImpact: draft.businessImpact || '',
+      remediation: draft.remediation || '',
+      validationChecklist: [
+        { id: 'vc-1', label: 'Alvo confirmado no escopo permitido', completed: true },
+        { id: 'vc-2', label: 'PoC sanitizada e reproduzível', completed: true },
+        { id: 'vc-3', label: 'Cálculo de CVSS 3.1 verificado', completed: true },
+        { id: 'vc-4', label: 'Impacto nos dados validado', completed: false }
+      ],
+      bountyAmount: 0,
+      currency: 'USD',
+      createdAt: today,
+      updatedAt: today,
+      timeline: [
+        {
+          id: `t-${Date.now()}`,
+          date: today,
+          title: 'Rascunho Gerado com Gemini 3.8 Flash',
+          notes: 'Gerado a partir da análise de log de rede / passos de reprodução.',
+          type: 'creation'
+        }
+      ]
+    };
+
+    setReportForFormModal(newReport);
+    setIsFormModalOpen(true);
+    setIsGeminiDraftModalOpen(false);
+    showSuccessToast('Rascunho aberto no formulário para revisão final.');
+  };
+
+  const handleSaveDraftDirectly = (draft: GeneratedDraftReport) => {
+    const today = new Date().toISOString().split('T')[0];
+    const newReport: VulnerabilityReport = {
+      id: `rep-ai-${Date.now()}`,
+      title: draft.title || 'Rascunho Gerado pelo Gemini',
+      target: draft.target || 'api.target.com',
+      vulnerabilityType: draft.vulnerabilityType || 'API Vulnerability',
+      severity: draft.severity || 'HIGH',
+      cvssScore: draft.cvssScore || 7.5,
+      cvssVector: draft.cvssVector || 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N',
+      status: 'DRAFT',
+      platform: 'HackerOne',
+      cwe: draft.cwe || 'CWE-639',
+      cveIds: [],
+      tags: draft.suggestedTags || ['ai-generated', 'gemini-draft'],
+      summary: draft.summary || '',
+      stepsToReproduce: draft.stepsToReproduce || [],
+      proofOfConcept: draft.proofOfConcept || '',
+      businessImpact: draft.businessImpact || '',
+      remediation: draft.remediation || '',
+      validationChecklist: [
+        { id: 'vc-1', label: 'Alvo confirmado no escopo permitido', completed: true },
+        { id: 'vc-2', label: 'PoC sanitizada e reproduzível', completed: true },
+        { id: 'vc-3', label: 'Cálculo de CVSS 3.1 verificado', completed: true },
+        { id: 'vc-4', label: 'Impacto nos dados validado', completed: false }
+      ],
+      bountyAmount: 0,
+      currency: 'USD',
+      createdAt: today,
+      updatedAt: today,
+      timeline: [
+        {
+          id: `t-${Date.now()}`,
+          date: today,
+          title: 'Rascunho Gerado com Gemini 3.8 Flash',
+          notes: 'Salvo diretamente no workbench de relatórios.',
+          type: 'creation'
+        }
+      ]
+    };
+
+    setReports(prev => [newReport, ...prev]);
+    setIsGeminiDraftModalOpen(false);
+    showSuccessToast(`Rascunho "${newReport.title}" salvo no workbench!`);
+    setCurrentTab('reports');
   };
 
   const handleOpenNewReport = () => {
@@ -941,6 +1043,7 @@ function AppContent() {
             onOpenPdfExport={(rep) => setReportForPdfExport(rep)}
             onOpenCsvImport={handleOpenCsvImport}
             onExportCsv={handleExportAllCsv}
+            onOpenGeminiDraft={() => handleOpenGeminiDraft()}
           />
         )}
 
@@ -1138,6 +1241,17 @@ function AppContent() {
             />
           </div>
         </div>
+      )}
+
+      {/* Gemini AI Report Draft Modal */}
+      {isGeminiDraftModalOpen && (
+        <GeminiReportDraftModal
+          isOpen={isGeminiDraftModalOpen}
+          onClose={() => setIsGeminiDraftModalOpen(false)}
+          initialTarget={draftInitialTarget}
+          onApplyToForm={handleApplyDraftToNewReport}
+          onSaveDirectly={handleSaveDraftDirectly}
+        />
       )}
 
       {/* Sophisticated Dark Global Status Footer */}
