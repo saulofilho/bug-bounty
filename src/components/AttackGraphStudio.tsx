@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as d3 from 'd3';
 import { 
   Network, 
@@ -7,15 +7,8 @@ import {
   RotateCcw, 
   ZoomIn, 
   ZoomOut, 
-  Maximize2, 
   Filter, 
   Layers, 
-  ShieldAlert, 
-  ArrowRight, 
-  Key, 
-  Server, 
-  Database, 
-  Flame, 
   ExternalLink, 
   Download, 
   FileCode, 
@@ -25,9 +18,12 @@ import {
   ChevronRight,
   Crosshair,
   Sparkles,
-  Share2,
   X,
-  Target
+  Target,
+  Globe,
+  Shield,
+  ArrowRight,
+  Server
 } from 'lucide-react';
 import { VulnerabilityReport, Severity } from '../types';
 import { 
@@ -36,6 +32,7 @@ import {
   AttackPathScenario, 
   STAGE_CONFIG, 
   AttackStage,
+  NodeType,
   buildAttackGraphFromReports 
 } from '../utils/attackGraphEngine';
 import { getSeverityBadgeColor } from '../utils/formatters';
@@ -55,10 +52,12 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Layout & View State
-  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 960, height: 560 });
-  const [viewMode, setViewMode] = useState<'staged' | 'force'>('staged');
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 960, height: 600 });
+  const [viewMode, setViewMode] = useState<'infrastructure-force' | 'staged'>('infrastructure-force');
   const [selectedTarget, setSelectedTarget] = useState<string>('ALL');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
+  const [selectedNodeType, setSelectedNodeType] = useState<string>('ALL');
+  const [onlyLateralPaths, setOnlyLateralPaths] = useState<boolean>(false);
   const [selectedNode, setSelectedNode] = useState<AttackGraphNode | null>(null);
 
   // Scenario Walkthrough State
@@ -70,39 +69,72 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const gRef = useRef<SVGGElement | null>(null);
 
-  // 1. Build Graph Data from Reports
+  // 1. Build Graph Data from Reports (Connecting Reports, CVEs, Target Domains & Lateral Movement Pivots)
   const rawGraphData = useMemo(() => {
     return buildAttackGraphFromReports(reports);
   }, [reports]);
 
-  // Available unique targets for filter
+  // Unique target domains for filter
   const targetOptions = useMemo(() => {
-    return Array.from(new Set(reports.map(r => r.target).filter(Boolean)));
-  }, [reports]);
+    return Array.from(new Set(
+      rawGraphData.nodes
+        .filter(n => n.type === 'target_domain' && !n.isInternalInfrastructure)
+        .map(n => n.targetDomain || n.target)
+        .filter(Boolean)
+    )) as string[];
+  }, [rawGraphData]);
 
   // Filtered Graph Data
   const graphData = useMemo(() => {
     let filteredNodes = rawGraphData.nodes.map(n => ({ ...n }));
 
+    // Target Domain filter
     if (selectedTarget !== 'ALL') {
-      filteredNodes = filteredNodes.filter(n => {
-        if (n.type === 'threat_actor') return true;
-        if (n.target) return n.target === selectedTarget;
-        return true;
+      const associatedNodeIds = new Set<string>();
+      associatedNodeIds.add('actor-external');
+
+      // Find reports/domains matching selectedTarget
+      rawGraphData.links.forEach(l => {
+        const sId = typeof l.source === 'object' ? (l.source as AttackGraphNode).id : l.source;
+        const tId = typeof l.target === 'object' ? (l.target as AttackGraphNode).id : l.target;
+        const sNode = rawGraphData.nodes.find(n => n.id === sId);
+        const tNode = rawGraphData.nodes.find(n => n.id === tId);
+
+        if ((sNode?.targetDomain === selectedTarget || sNode?.target === selectedTarget) ||
+            (tNode?.targetDomain === selectedTarget || tNode?.target === selectedTarget)) {
+          associatedNodeIds.add(sId);
+          associatedNodeIds.add(tId);
+        }
       });
+
+      filteredNodes = filteredNodes.filter(n => associatedNodeIds.has(n.id) || n.type === 'threat_actor');
     }
 
+    // Severity filter
     if (selectedSeverity !== 'ALL') {
       filteredNodes = filteredNodes.filter(n => {
-        if (n.type === 'vulnerability') {
+        if (n.type === 'report' || n.type === 'vulnerability') {
           return n.severity === selectedSeverity;
         }
         return true;
       });
     }
 
+    // Node Type filter
+    if (selectedNodeType !== 'ALL') {
+      filteredNodes = filteredNodes.filter(n => {
+        if (n.type === 'threat_actor') return true;
+        if (selectedNodeType === 'target_domain') return n.type === 'target_domain' || n.type === 'entry_point';
+        if (selectedNodeType === 'report') return n.type === 'report' || n.type === 'vulnerability';
+        if (selectedNodeType === 'cve') return n.type === 'cve';
+        if (selectedNodeType === 'pivot') return n.type === 'pivot';
+        if (selectedNodeType === 'crown_jewel') return n.type === 'crown_jewel';
+        return true;
+      });
+    }
+
     const nodeIds = new Set(filteredNodes.map(n => n.id));
-    const filteredLinks = rawGraphData.links
+    let filteredLinks = rawGraphData.links
       .filter(l => {
         const sourceId = typeof l.source === 'object' ? (l.source as AttackGraphNode).id : l.source;
         const targetId = typeof l.target === 'object' ? (l.target as AttackGraphNode).id : l.target;
@@ -110,18 +142,49 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
       })
       .map(l => ({ ...l }));
 
+    // Lateral paths only filter
+    if (onlyLateralPaths) {
+      const lateralNodeIds = new Set<string>();
+      filteredLinks.forEach(l => {
+        if (l.isLateralMovement || l.linkType === 'lateral_movement' || l.linkType === 'exploits_cve' || l.linkType === 'privilege_escalation') {
+          const sId = typeof l.source === 'object' ? (l.source as AttackGraphNode).id : l.source;
+          const tId = typeof l.target === 'object' ? (l.target as AttackGraphNode).id : l.target;
+          lateralNodeIds.add(sId);
+          lateralNodeIds.add(tId);
+        }
+      });
+      filteredNodes = filteredNodes.filter(n => lateralNodeIds.has(n.id));
+      filteredLinks = filteredLinks.filter(l => {
+        const sId = typeof l.source === 'object' ? (l.source as AttackGraphNode).id : l.source;
+        const tId = typeof l.target === 'object' ? (l.target as AttackGraphNode).id : l.target;
+        return lateralNodeIds.has(sId) && lateralNodeIds.has(tId);
+      });
+    }
+
     return {
       nodes: filteredNodes,
       links: filteredLinks,
       scenarios: rawGraphData.scenarios,
     };
-  }, [rawGraphData, selectedTarget, selectedSeverity]);
+  }, [rawGraphData, selectedTarget, selectedSeverity, selectedNodeType, onlyLateralPaths]);
 
   // Active scenario object
   const currentScenario = useMemo(() => {
     if (!activeScenarioId) return null;
     return graphData.scenarios.find(s => s.id === activeScenarioId) || null;
   }, [activeScenarioId, graphData.scenarios]);
+
+  // Counts by entity type
+  const entityCounts = useMemo(() => {
+    return {
+      domains: rawGraphData.nodes.filter(n => n.type === 'target_domain' || n.type === 'entry_point').length,
+      reports: rawGraphData.nodes.filter(n => n.type === 'report' || n.type === 'vulnerability').length,
+      cves: rawGraphData.nodes.filter(n => n.type === 'cve').length,
+      pivots: rawGraphData.nodes.filter(n => n.type === 'pivot').length,
+      objectives: rawGraphData.nodes.filter(n => n.type === 'crown_jewel').length,
+      lateralLinks: rawGraphData.links.filter(l => l.isLateralMovement || l.linkType === 'lateral_movement').length,
+    };
+  }, [rawGraphData]);
 
   // 2. Responsive Container Resize Observer
   useEffect(() => {
@@ -131,8 +194,8 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
         const { width } = entry.contentRect;
         if (width > 0) {
           setDimensions({
-            width: Math.max(width, 700),
-            height: 580,
+            width: Math.max(width, 740),
+            height: 600,
           });
         }
       }
@@ -177,6 +240,16 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
     }
   }, [graphData.scenarios, activeScenarioId]);
 
+  // Select initial node if selectedReportId provided
+  useEffect(() => {
+    if (selectedReportId) {
+      const matching = graphData.nodes.find(n => n.reportId === selectedReportId);
+      if (matching) {
+        setSelectedNode(matching);
+      }
+    }
+  }, [selectedReportId, graphData.nodes]);
+
   // 4. Render D3 Force Simulation & Graph
   useEffect(() => {
     if (!svgRef.current) return;
@@ -193,7 +266,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
     defs.append('marker')
       .attr('id', 'arrow-default')
       .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 28)
+      .attr('refX', 30)
       .attr('refY', 0)
       .attr('markerWidth', 6)
       .attr('markerHeight', 6)
@@ -205,7 +278,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
     defs.append('marker')
       .attr('id', 'arrow-active')
       .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 28)
+      .attr('refX', 32)
       .attr('refY', 0)
       .attr('markerWidth', 7)
       .attr('markerHeight', 7)
@@ -217,7 +290,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
     defs.append('marker')
       .attr('id', 'arrow-critical')
       .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 28)
+      .attr('refX', 32)
       .attr('refY', 0)
       .attr('markerWidth', 7)
       .attr('markerHeight', 7)
@@ -225,6 +298,30 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
       .append('path')
       .attr('d', 'M0,-4L8,0L0,4')
       .attr('fill', '#ef4444');
+
+    defs.append('marker')
+      .attr('id', 'arrow-lateral')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 32)
+      .attr('refY', 0)
+      .attr('markerWidth', 8)
+      .attr('markerHeight', 8)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-4L8,0L0,4')
+      .attr('fill', '#818cf8');
+
+    defs.append('marker')
+      .attr('id', 'arrow-cve')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 30)
+      .attr('refY', 0)
+      .attr('markerWidth', 6.5)
+      .attr('markerHeight', 6.5)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-4L8,0L0,4')
+      .attr('fill', '#c084fc');
 
     // Radial Glow filter
     const filter = defs.append('filter')
@@ -248,7 +345,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
 
     // Zoom behavior
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.4, 2.5])
+      .scaleExtent([0.35, 2.8])
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
       });
@@ -276,7 +373,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
           .attr('stroke', conf.borderColor)
           .attr('stroke-width', 1)
           .attr('stroke-dasharray', '4,4')
-          .attr('opacity', 0.8);
+          .attr('opacity', 0.7);
 
         // Header Pill
         const headerG = g.append('g')
@@ -285,28 +382,27 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
         headerG.append('text')
           .attr('text-anchor', 'middle')
           .attr('fill', conf.color)
-          .attr('font-size', '11px')
+          .attr('font-size', '10px')
           .attr('font-weight', '700')
           .attr('font-family', 'monospace')
           .text(conf.label.toUpperCase());
       });
     }
 
-    // Prepare Node Positions
+    // Prepare Node and Link Copies for D3 mutation
     const nodes: AttackGraphNode[] = graphData.nodes.map(d => ({ ...d }));
     const links: AttackGraphLink[] = graphData.links.map(d => ({ ...d }));
 
-    // Compute stage column X positions
-    const columnWidth = width / 4;
-    const stageXMap: Record<AttackStage, number> = {
-      initial_entry: columnWidth * 0.5,
-      privilege_escalation: columnWidth * 1.5,
-      lateral_movement: columnWidth * 2.5,
-      final_objective: columnWidth * 3.5,
-    };
-
-    // Staged View: Initial placement in columns with jitter
+    // Staged View: Initial placement in columns
     if (viewMode === 'staged') {
+      const columnWidth = width / 4;
+      const stageXMap: Record<AttackStage, number> = {
+        initial_entry: columnWidth * 0.5,
+        privilege_escalation: columnWidth * 1.5,
+        lateral_movement: columnWidth * 2.5,
+        final_objective: columnWidth * 3.5,
+      };
+
       const stageCounts: Record<AttackStage, number> = {
         initial_entry: 0,
         privilege_escalation: 0,
@@ -334,7 +430,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
 
         node.x = targetX;
         node.y = targetY;
-        node.fx = targetX; // Lock X coordinate to enforce Kill Chain lanes
+        node.fx = targetX; // Lock X coordinate in staged mode
       });
     }
 
@@ -342,15 +438,38 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
     const simulation = d3.forceSimulation<AttackGraphNode>(nodes)
       .force('link', d3.forceLink<AttackGraphNode, AttackGraphLink>(links)
         .id(d => d.id)
-        .distance(viewMode === 'staged' ? columnWidth * 0.9 : 110)
+        .distance(d => {
+          if (viewMode === 'staged') return (width / 4) * 0.85;
+          if (d.isLateralMovement || d.linkType === 'lateral_movement') return 160;
+          if (d.linkType === 'exploits_cve') return 85;
+          if (d.linkType === 'targets') return 120;
+          return 105;
+        })
       )
-      .force('charge', d3.forceManyBody().strength(viewMode === 'staged' ? -180 : -350))
-      .force('collide', d3.forceCollide<AttackGraphNode>().radius(42))
+      .force('charge', d3.forceManyBody<AttackGraphNode>().strength(d => {
+        if (viewMode === 'staged') return -220;
+        if (d.type === 'target_domain') return -420;
+        if (d.type === 'crown_jewel') return -480;
+        if (d.type === 'cve') return -280;
+        return -350;
+      }))
+      .force('collide', d3.forceCollide<AttackGraphNode>().radius(d => {
+        if (d.type === 'target_domain') return 46;
+        if (d.type === 'crown_jewel') return 44;
+        if (d.type === 'cve') return 34;
+        return 38;
+      }))
       .force('y', d3.forceY(height / 2).strength(viewMode === 'staged' ? 0.08 : 0.05));
 
-    if (viewMode === 'force') {
+    if (viewMode === 'infrastructure-force') {
       simulation.force('center', d3.forceCenter(width / 2, height / 2));
-      simulation.force('x', d3.forceX(width / 2).strength(0.04));
+      simulation.force('x', d3.forceX<AttackGraphNode>(d => {
+        // Soft horizontal clustering by attack stage
+        if (d.stage === 'initial_entry') return width * 0.22;
+        if (d.stage === 'privilege_escalation') return width * 0.44;
+        if (d.stage === 'lateral_movement') return width * 0.68;
+        return width * 0.86;
+      }).strength(0.08));
     }
 
     // Active path nodes & links determination
@@ -380,13 +499,28 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
       .append('line')
       .attr('stroke', d => {
         if (activePathLinkIds.has(d.id)) {
-          return d.riskLevel === 'CRITICAL' ? '#ef4444' : '#06b6d4';
+          if (d.isLateralMovement || d.linkType === 'lateral_movement') return '#818cf8';
+          if (d.riskLevel === 'CRITICAL') return '#ef4444';
+          return '#06b6d4';
         }
+        if (d.isLateralMovement || d.linkType === 'lateral_movement') return '#6366f1';
+        if (d.linkType === 'exploits_cve') return '#a855f7';
+        if (d.riskLevel === 'CRITICAL') return '#991b1b';
         return '#334155';
       })
-      .attr('stroke-width', d => activePathLinkIds.has(d.id) ? 2.5 : 1.2)
-      .attr('stroke-dasharray', d => activePathLinkIds.has(d.id) ? '4,4' : 'none')
+      .attr('stroke-width', d => {
+        if (activePathLinkIds.has(d.id)) return 2.8;
+        if (d.isLateralMovement || d.linkType === 'lateral_movement') return 2.2;
+        return 1.4;
+      })
+      .attr('stroke-dasharray', d => {
+        if (d.isLateralMovement || d.linkType === 'lateral_movement') return '6,4';
+        if (activePathLinkIds.has(d.id)) return '4,4';
+        return 'none';
+      })
       .attr('marker-end', d => {
+        if (d.isLateralMovement || d.linkType === 'lateral_movement') return 'url(#arrow-lateral)';
+        if (d.linkType === 'exploits_cve') return 'url(#arrow-cve)';
         if (activePathLinkIds.has(d.id)) {
           return d.riskLevel === 'CRITICAL' ? 'url(#arrow-critical)' : 'url(#arrow-active)';
         }
@@ -394,9 +528,10 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
       })
       .attr('opacity', d => {
         if (currentScenario && !activePathLinkIds.has(d.id)) {
-          return 0.25;
+          return 0.2;
         }
-        return 0.8;
+        if (d.isLateralMovement || d.linkType === 'lateral_movement') return 0.95;
+        return 0.75;
       });
 
     // Link Labels (Hover / Active)
@@ -406,11 +541,19 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
       .append('text')
       .attr('font-size', '9px')
       .attr('font-family', 'monospace')
-      .attr('fill', d => activePathLinkIds.has(d.id) ? '#94a3b8' : '#64748b')
+      .attr('fill', d => {
+        if (d.isLateralMovement || d.linkType === 'lateral_movement') return '#c7d2fe';
+        if (activePathLinkIds.has(d.id)) return '#94a3b8';
+        return '#64748b';
+      })
       .attr('text-anchor', 'middle')
-      .attr('dy', -4)
-      .text(d => activePathLinkIds.has(d.id) ? d.label : '')
-      .attr('opacity', d => activePathLinkIds.has(d.id) ? 0.9 : 0);
+      .attr('dy', -5)
+      .text(d => {
+        if (activePathLinkIds.has(d.id)) return d.label;
+        if (d.isLateralMovement || d.linkType === 'lateral_movement') return '➔ Salto Lateral';
+        return '';
+      })
+      .attr('opacity', d => (activePathLinkIds.has(d.id) || d.isLateralMovement) ? 0.9 : 0);
 
     // Nodes Rendering
     const nodeGroup = g.append('g').attr('class', 'nodes');
@@ -428,7 +571,6 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
         })
         .on('drag', (event, d) => {
           if (viewMode === 'staged') {
-            // Keep constrained horizontally, allow vertical repositioning
             d.fy = event.y;
           } else {
             d.fx = event.x;
@@ -437,7 +579,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
         })
         .on('end', (event, d) => {
           if (!event.active) simulation.alphaTarget(0);
-          if (viewMode === 'force') {
+          if (viewMode === 'infrastructure-force') {
             d.fx = null;
             d.fy = null;
           }
@@ -446,70 +588,103 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
 
     // Node outer pulsing halo for choke points or active step
     nodeElements.append('circle')
-      .attr('r', d => d.type === 'crown_jewel' ? 28 : 22)
+      .attr('r', d => {
+        if (d.type === 'crown_jewel') return 29;
+        if (d.type === 'target_domain') return 27;
+        if (d.type === 'cve') return 22;
+        return 24;
+      })
       .attr('fill', 'none')
       .attr('stroke', d => {
         if (currentScenario && activeStepIndex >= 0 && currentScenario.nodeIds[activeStepIndex] === d.id) {
-          return '#06b6d4';
+          return '#38bdf8';
         }
+        if (d.type === 'target_domain' && d.isInternalInfrastructure) return '#818cf8';
+        if (d.type === 'cve') return '#c084fc';
         if (d.chokePoint) return '#ef4444';
         return 'transparent';
       })
       .attr('stroke-width', d => (currentScenario && currentScenario.nodeIds[activeStepIndex] === d.id) ? 3 : 1.5)
       .attr('stroke-dasharray', d => d.chokePoint ? '3,3' : 'none')
-      .attr('opacity', 0.8)
+      .attr('opacity', 0.85)
       .attr('filter', d => (currentScenario && currentScenario.nodeIds[activeStepIndex] === d.id) ? 'url(#glow)' : null);
 
-    // Main Node Circle
-    nodeElements.append('circle')
-      .attr('r', d => {
-        if (d.type === 'threat_actor') return 20;
-        if (d.type === 'crown_jewel') return 24;
-        if (d.type === 'vulnerability') return 21;
-        return 18;
-      })
-      .attr('fill', d => {
-        if (d.type === 'threat_actor') return '#1e293b';
-        if (d.type === 'crown_jewel') return '#450a0a';
-        if (d.type === 'vulnerability') {
-          if (d.severity === 'CRITICAL') return '#3f1515';
-          if (d.severity === 'HIGH') return '#3b2111';
-          return '#182736';
-        }
-        if (d.type === 'pivot') return '#1e1b4b';
-        return '#0f172a';
-      })
-      .attr('stroke', d => {
-        if (currentScenario && currentScenario.nodeIds[activeStepIndex] === d.id) {
-          return '#38bdf8';
-        }
-        if (d.id === selectedNode?.id) {
-          return '#ffffff';
-        }
-        if (d.type === 'crown_jewel') return '#ef4444';
-        if (d.severity === 'CRITICAL') return '#f87171';
-        if (d.severity === 'HIGH') return '#fb923c';
-        if (d.type === 'pivot') return '#818cf8';
-        if (d.type === 'threat_actor') return '#94a3b8';
-        return '#38bdf8';
-      })
-      .attr('stroke-width', d => (d.id === selectedNode?.id || (currentScenario && currentScenario.nodeIds[activeStepIndex] === d.id)) ? 2.5 : 1.5)
-      .attr('opacity', d => {
-        if (currentScenario && !activePathNodeIds.has(d.id)) {
-          return 0.35;
-        }
-        return 1;
-      });
+    // Main Node Shapes: Rounded Rect for Target Domains and CVEs, Circle for others
+    nodeElements.each(function(d) {
+      const el = d3.select(this);
 
-    // Node glyph / icon text
+      if (d.type === 'target_domain' || d.type === 'entry_point') {
+        // Hexagon/Pill for Target Domains
+        const isInternal = d.isInternalInfrastructure;
+        el.append('rect')
+          .attr('x', -24)
+          .attr('y', -24)
+          .attr('width', 48)
+          .attr('height', 48)
+          .attr('rx', 12)
+          .attr('fill', isInternal ? '#1e1b4b' : '#0c2340')
+          .attr('stroke', isInternal ? '#818cf8' : '#38bdf8')
+          .attr('stroke-width', d.id === selectedNode?.id ? 2.5 : 1.8)
+          .attr('opacity', (currentScenario && !activePathNodeIds.has(d.id)) ? 0.35 : 1);
+      } else if (d.type === 'cve') {
+        // Diamond / Rounded Box for CVEs
+        el.append('rect')
+          .attr('x', -18)
+          .attr('y', -18)
+          .attr('width', 36)
+          .attr('height', 36)
+          .attr('rx', 8)
+          .attr('fill', '#2e1065')
+          .attr('stroke', '#a855f7')
+          .attr('stroke-width', d.id === selectedNode?.id ? 2.5 : 1.6)
+          .attr('opacity', (currentScenario && !activePathNodeIds.has(d.id)) ? 0.35 : 1);
+      } else {
+        // Circle for Reports, Pivots, Threat Actors, Crown Jewels
+        el.append('circle')
+          .attr('r', () => {
+            if (d.type === 'threat_actor') return 20;
+            if (d.type === 'crown_jewel') return 25;
+            if (d.type === 'report' || d.type === 'vulnerability') return 22;
+            if (d.type === 'pivot') return 21;
+            return 19;
+          })
+          .attr('fill', () => {
+            if (d.type === 'threat_actor') return '#1e293b';
+            if (d.type === 'crown_jewel') return '#450a0a';
+            if (d.type === 'report' || d.type === 'vulnerability') {
+              if (d.severity === 'CRITICAL') return '#450a0a';
+              if (d.severity === 'HIGH') return '#3b2111';
+              return '#172554';
+            }
+            if (d.type === 'pivot') return '#1e1b4b';
+            return '#0f172a';
+          })
+          .attr('stroke', () => {
+            if (currentScenario && currentScenario.nodeIds[activeStepIndex] === d.id) return '#38bdf8';
+            if (d.id === selectedNode?.id) return '#ffffff';
+            if (d.type === 'crown_jewel') return '#ef4444';
+            if (d.severity === 'CRITICAL') return '#f87171';
+            if (d.severity === 'HIGH') return '#fb923c';
+            if (d.type === 'pivot') return '#818cf8';
+            if (d.type === 'threat_actor') return '#94a3b8';
+            return '#38bdf8';
+          })
+          .attr('stroke-width', (d.id === selectedNode?.id || (currentScenario && currentScenario.nodeIds[activeStepIndex] === d.id)) ? 2.5 : 1.6)
+          .attr('opacity', (currentScenario && !activePathNodeIds.has(d.id)) ? 0.35 : 1);
+      }
+    });
+
+    // Node Icon / Glyph Text
     nodeElements.append('text')
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'central')
-      .attr('font-size', '11px')
+      .attr('font-size', d => d.type === 'cve' ? '9px' : '11px')
       .attr('font-weight', 'bold')
       .attr('font-family', 'monospace')
       .attr('fill', d => {
         if (d.type === 'crown_jewel') return '#fca5a5';
+        if (d.type === 'cve') return '#e9d5ff';
+        if (d.type === 'target_domain') return d.isInternalInfrastructure ? '#c7d2fe' : '#7dd3fc';
         if (d.severity === 'CRITICAL') return '#fca5a5';
         if (d.severity === 'HIGH') return '#fdba74';
         if (d.type === 'pivot') return '#c7d2fe';
@@ -520,47 +695,61 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
         if (d.type === 'threat_actor') return '👤';
         if (d.type === 'crown_jewel') return '👑';
         if (d.type === 'pivot') return '⚡';
-        if (d.type === 'entry_point') return '🌐';
+        if (d.type === 'target_domain' || d.type === 'entry_point') {
+          return d.isInternalInfrastructure ? '🏢' : '🌐';
+        }
+        if (d.type === 'cve') return 'CVE';
         if (d.cvssScore) return d.cvssScore.toFixed(1);
         return '⚠️';
       });
 
-    // Node Label Text Below
+    // Node Primary Label (Below node)
     nodeElements.append('text')
-      .attr('dy', d => d.type === 'crown_jewel' ? 36 : 30)
+      .attr('dy', d => {
+        if (d.type === 'target_domain') return 34;
+        if (d.type === 'crown_jewel') return 36;
+        if (d.type === 'cve') return 28;
+        return 30;
+      })
       .attr('text-anchor', 'middle')
       .attr('font-size', '10px')
       .attr('font-weight', '600')
       .attr('fill', d => d.id === selectedNode?.id ? '#ffffff' : '#cbd5e1')
       .attr('font-family', 'system-ui, -apple-system, sans-serif')
       .text(d => {
-        if (d.label.length > 24) return d.label.substring(0, 22) + '…';
+        if (d.type === 'cve') return d.cveId || d.label;
+        if (d.label.length > 22) return d.label.substring(0, 20) + '…';
         return d.label;
       })
-      .attr('opacity', d => {
-        if (currentScenario && !activePathNodeIds.has(d.id)) return 0.4;
-        return 1;
-      });
+      .attr('opacity', d => (currentScenario && !activePathNodeIds.has(d.id)) ? 0.4 : 1);
 
-    // Node Subtitle (Type / ID)
+    // Node Subtitle / Classification (Type / Zone)
     nodeElements.append('text')
-      .attr('dy', d => d.type === 'crown_jewel' ? 48 : 42)
+      .attr('dy', d => {
+        if (d.type === 'target_domain') return 46;
+        if (d.type === 'crown_jewel') return 48;
+        if (d.type === 'cve') return 40;
+        return 42;
+      })
       .attr('text-anchor', 'middle')
-      .attr('font-size', '8.5px')
-      .attr('fill', '#94a3b8')
+      .attr('font-size', '8px')
+      .attr('fill', d => {
+        if (d.type === 'cve') return '#c084fc';
+        if (d.type === 'target_domain') return d.isInternalInfrastructure ? '#818cf8' : '#38bdf8';
+        if (d.type === 'pivot') return '#a5b4fc';
+        return '#94a3b8';
+      })
       .attr('font-family', 'monospace')
       .text(d => {
+        if (d.type === 'cve') return `EPSS ${( (d.epssScore || 0.7) * 100).toFixed(0)}%`;
+        if (d.type === 'target_domain') return d.isInternalInfrastructure ? 'VPC Interna' : 'Perímetro Web';
         if (d.reportId) return d.reportId;
         if (d.type === 'crown_jewel') return 'Crown Jewel';
-        if (d.type === 'pivot') return 'Lateral Pivot';
-        if (d.type === 'entry_point') return 'Perímetro Externo';
+        if (d.type === 'pivot') return 'Salto Lateral';
         if (d.type === 'threat_actor') return 'Atacante';
         return '';
       })
-      .attr('opacity', d => {
-        if (currentScenario && !activePathNodeIds.has(d.id)) return 0.3;
-        return 0.9;
-      });
+      .attr('opacity', d => (currentScenario && !activePathNodeIds.has(d.id)) ? 0.3 : 0.9);
 
     // Click handler on nodes
     nodeElements.on('click', (event, d) => {
@@ -616,7 +805,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `attack-graph-${new Date().toISOString().split('T')[0]}.svg`;
+    a.download = `attack-graph-infrastructure-${new Date().toISOString().split('T')[0]}.svg`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -626,7 +815,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
     const exportPayload = {
       generatedAt: new Date().toISOString(),
       reportCount: reports.length,
-      attackGraph: {
+      infrastructureTopology: {
         nodes: graphData.nodes.map(n => ({
           id: n.id,
           label: n.label,
@@ -634,8 +823,10 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
           type: n.type,
           severity: n.severity,
           cvssScore: n.cvssScore,
-          cwe: n.cwe,
-          target: n.target,
+          cveId: n.cveId,
+          targetDomain: n.targetDomain,
+          isInternalInfrastructure: n.isInternalInfrastructure,
+          networkZone: n.networkZone,
           mitreTactic: n.mitreTactic,
           mitreTechnique: n.mitreTechnique
         })),
@@ -644,6 +835,8 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
           source: typeof l.source === 'object' ? (l.source as AttackGraphNode).id : l.source,
           target: typeof l.target === 'object' ? (l.target as AttackGraphNode).id : l.target,
           label: l.label,
+          linkType: l.linkType,
+          isLateralMovement: l.isLateralMovement,
           riskLevel: l.riskLevel
         })),
         scenarios: graphData.scenarios
@@ -653,61 +846,87 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `attack-graph-topology-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `attack-graph-infrastructure-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // Active step details for the scenario walkthrough
-  const currentStepNode = useMemo(() => {
-    if (!currentScenario) return null;
-    const nodeId = currentScenario.nodeIds[activeStepIndex];
-    return graphData.nodes.find(n => n.id === nodeId) || null;
-  }, [currentScenario, activeStepIndex, graphData.nodes]);
+  // Direct neighboring connections for selected node
+  const nodeConnections = useMemo(() => {
+    if (!selectedNode) return { inbound: [], outbound: [] };
+
+    const inbound = graphData.links
+      .filter(l => {
+        const tId = typeof l.target === 'object' ? (l.target as AttackGraphNode).id : l.target;
+        return tId === selectedNode.id;
+      })
+      .map(l => {
+        const sId = typeof l.source === 'object' ? (l.source as AttackGraphNode).id : l.source;
+        return {
+          node: graphData.nodes.find(n => n.id === sId),
+          link: l
+        };
+      })
+      .filter(item => Boolean(item.node));
+
+    const outbound = graphData.links
+      .filter(l => {
+        const sId = typeof l.source === 'object' ? (l.source as AttackGraphNode).id : l.source;
+        return sId === selectedNode.id;
+      })
+      .map(l => {
+        const tId = typeof l.target === 'object' ? (l.target as AttackGraphNode).id : l.target;
+        return {
+          node: graphData.nodes.find(n => n.id === tId),
+          link: l
+        };
+      })
+      .filter(item => Boolean(item.node));
+
+    return { inbound, outbound };
+  }, [selectedNode, graphData]);
 
   return (
     <div className="space-y-5" ref={containerRef}>
       {/* Top Header Card */}
       <div className="bg-[#14141c] border border-[#232330] rounded-2xl p-5 shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute right-0 top-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 font-mono text-xs font-bold flex items-center gap-1.5">
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 font-mono text-xs font-bold flex items-center gap-1.5">
                 <Network className="w-3.5 h-3.5" />
-                <span>Threat Modeling & Attack Graph (D3.js)</span>
+                <span>D3.js Force-Directed Lateral Movement Graph</span>
               </span>
               <span className="text-zinc-500 text-xs">•</span>
-              <span className="text-zinc-400 font-mono text-xs">Kill Chain & MITRE ATT&CK Mapping</span>
+              <span className="text-zinc-400 font-mono text-xs">Reports, CVEs & Target Domains</span>
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <span>Grafo de Ataque & Caminhos de Exploração Interativos</span>
+              <span>Topologia de Infraestrutura & Movimentação Lateral</span>
             </h2>
             <p className="text-xs text-zinc-400 max-w-3xl mt-1 leading-relaxed">
-              Mapeamento topológico das vulnerabilidades do programa em estágios da cadeia de ataque: desde a entrada externa inicial no perímetro, escalação de privilégios e pivoting lateral em nuvem até os ativos de impacto crítico (Crown Jewels).
+              Mapeamento de relações entre <strong>Domínios Alvo</strong> (perímetro e VPC interna), <strong>Relatórios de Vulnerabilidade</strong>, <strong>CVEs</strong> e <strong>Pontos de Salto Lateral</strong> para simular o comprometimento de infraestrutura até os <strong>Crown Jewels</strong>.
             </p>
           </div>
 
           {/* Quick Metrics Badges */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <div className="px-3 py-2 rounded-xl bg-[#191924] border border-[#2b2b3d] text-center min-w-[90px]">
-              <span className="block text-[10px] font-mono text-zinc-400 uppercase">Nós Ativos</span>
-              <span className="text-base font-bold font-mono text-cyan-400">{graphData.nodes.length}</span>
+            <div className="px-3 py-2 rounded-xl bg-[#191924] border border-[#2b2b3d] text-center min-w-[85px]">
+              <span className="block text-[10px] font-mono text-zinc-400 uppercase">Domínios</span>
+              <span className="text-base font-bold font-mono text-sky-400">{entityCounts.domains}</span>
             </div>
-            <div className="px-3 py-2 rounded-xl bg-[#191924] border border-[#2b2b3d] text-center min-w-[90px]">
-              <span className="block text-[10px] font-mono text-zinc-400 uppercase">Vetores</span>
-              <span className="text-base font-bold font-mono text-indigo-400">{graphData.links.length}</span>
+            <div className="px-3 py-2 rounded-xl bg-[#191924] border border-[#2b2b3d] text-center min-w-[85px]">
+              <span className="block text-[10px] font-mono text-zinc-400 uppercase">Relatórios</span>
+              <span className="text-base font-bold font-mono text-amber-400">{entityCounts.reports}</span>
             </div>
-            <div className="px-3 py-2 rounded-xl bg-[#191924] border border-[#2b2b3d] text-center min-w-[90px]">
-              <span className="block text-[10px] font-mono text-zinc-400 uppercase">Cenários</span>
-              <span className="text-base font-bold font-mono text-amber-400">{graphData.scenarios.length}</span>
+            <div className="px-3 py-2 rounded-xl bg-[#191924] border border-[#2b2b3d] text-center min-w-[85px]">
+              <span className="block text-[10px] font-mono text-zinc-400 uppercase">CVEs</span>
+              <span className="text-base font-bold font-mono text-purple-400">{entityCounts.cves}</span>
             </div>
-            <div className="px-3 py-2 rounded-xl bg-[#191924] border border-[#2b2b3d] text-center min-w-[90px]">
-              <span className="block text-[10px] font-mono text-zinc-400 uppercase">Ponto Crítico</span>
-              <span className="text-base font-bold font-mono text-red-400">
-                {graphData.nodes.filter(n => n.chokePoint).length} Choke
-              </span>
+            <div className="px-3 py-2 rounded-xl bg-[#191924] border border-[#2b2b3d] text-center min-w-[85px]">
+              <span className="block text-[10px] font-mono text-zinc-400 uppercase">Saltos Laterais</span>
+              <span className="text-base font-bold font-mono text-indigo-400">{entityCounts.lateralLinks}</span>
             </div>
           </div>
         </div>
@@ -717,6 +936,17 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             {/* View Mode Toggle */}
             <div className="inline-flex rounded-xl bg-[#1a1a24] p-1 border border-[#2c2c3e]">
+              <button
+                onClick={() => setViewMode('infrastructure-force')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                  viewMode === 'infrastructure-force' 
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold' 
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Network className="w-3.5 h-3.5" />
+                <span>Grafo de Força D3.js</span>
+              </button>
               <button
                 onClick={() => setViewMode('staged')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
@@ -728,50 +958,54 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
                 <Layers className="w-3.5 h-3.5" />
                 <span>Colunas Kill Chain</span>
               </button>
-              <button
-                onClick={() => setViewMode('force')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                  viewMode === 'force' 
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold' 
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Network className="w-3.5 h-3.5" />
-                <span>Grafo de Força Livre</span>
-              </button>
             </div>
 
-            {/* Target Filter */}
+            {/* Entity Type Filter */}
             <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-[#1a1a24] border border-[#2c2c3e] rounded-xl px-2.5 py-1.5">
-              <Target className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Alvo:</span>
+              <Filter className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Entidade:</span>
+              <select
+                value={selectedNodeType}
+                onChange={e => setSelectedNodeType(e.target.value)}
+                className="bg-transparent text-white font-mono text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="ALL" className="bg-[#181822]">Todas as Entidades ({rawGraphData.nodes.length})</option>
+                <option value="target_domain" className="bg-[#181822]">Domínios Alvo ({entityCounts.domains})</option>
+                <option value="report" className="bg-[#181822]">Relatórios ({entityCounts.reports})</option>
+                <option value="cve" className="bg-[#181822]">CVEs ({entityCounts.cves})</option>
+                <option value="pivot" className="bg-[#181822]">Saltos Laterais ({entityCounts.pivots})</option>
+                <option value="crown_jewel" className="bg-[#181822]">Crown Jewels ({entityCounts.objectives})</option>
+              </select>
+            </div>
+
+            {/* Target Domain Filter */}
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-[#1a1a24] border border-[#2c2c3e] rounded-xl px-2.5 py-1.5">
+              <Globe className="w-3.5 h-3.5 text-sky-400" />
+              <span>Domínio:</span>
               <select
                 value={selectedTarget}
                 onChange={e => setSelectedTarget(e.target.value)}
                 className="bg-transparent text-white font-mono text-xs focus:outline-none cursor-pointer"
               >
-                <option value="ALL" className="bg-[#181822]">Todos os Alvos ({reports.length})</option>
+                <option value="ALL" className="bg-[#181822]">Todos os Domínios ({targetOptions.length})</option>
                 {targetOptions.map(t => (
                   <option key={t} value={t} className="bg-[#181822]">{t}</option>
                 ))}
               </select>
             </div>
 
-            {/* Severity Filter */}
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-[#1a1a24] border border-[#2c2c3e] rounded-xl px-2.5 py-1.5">
-              <Filter className="w-3.5 h-3.5 text-amber-400" />
-              <span>Severidade:</span>
-              <select
-                value={selectedSeverity}
-                onChange={e => setSelectedSeverity(e.target.value)}
-                className="bg-transparent text-white font-mono text-xs focus:outline-none cursor-pointer"
-              >
-                <option value="ALL" className="bg-[#181822]">Todas as Severidades</option>
-                <option value="CRITICAL" className="bg-[#181822]">Apenas CRITICAL</option>
-                <option value="HIGH" className="bg-[#181822]">Apenas HIGH</option>
-                <option value="MEDIUM" className="bg-[#181822]">Apenas MEDIUM</option>
-              </select>
-            </div>
+            {/* Only Lateral Paths Button */}
+            <button
+              onClick={() => setOnlyLateralPaths(!onlyLateralPaths)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-1.5 ${
+                onlyLateralPaths
+                  ? 'bg-indigo-500/25 border border-indigo-500/50 text-indigo-300 font-bold'
+                  : 'bg-[#1a1a24] border border-[#2c2c3e] text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Apenas Movimentação Lateral</span>
+            </button>
           </div>
 
           {/* Action Tools: Zoom & Export */}
@@ -822,12 +1056,12 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
       {graphData.scenarios.length > 0 && (
         <div className="bg-[#121218] border border-[#232332] rounded-2xl p-4 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
               <Crosshair className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-amber-400">Simulador de Caminho de Ataque:</span>
+                <span className="text-xs font-mono font-bold text-indigo-400">Simulador de Movimentação Lateral:</span>
                 <select
                   value={activeScenarioId || ''}
                   onChange={e => {
@@ -835,7 +1069,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
                     setActiveStepIndex(0);
                     setIsPlayingScenario(false);
                   }}
-                  className="bg-[#1b1b26] border border-[#2c2c3e] text-white font-mono text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:border-amber-500"
+                  className="bg-[#1b1b26] border border-[#2c2c3e] text-white font-mono text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-500"
                 >
                   {graphData.scenarios.map(sc => (
                     <option key={sc.id} value={sc.id}>{sc.name}</option>
@@ -843,7 +1077,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
                 </select>
               </div>
               <p className="text-xs text-zinc-400 mt-0.5">
-                {currentScenario?.description || 'Selecione um cenário para inspecionar os saltos passo a passo.'}
+                {currentScenario?.lateralSummary || currentScenario?.description || 'Selecione um cenário para inspecionar os saltos passo a passo.'}
               </p>
             </div>
           </div>
@@ -855,8 +1089,8 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
                 onClick={() => setIsPlayingScenario(!isPlayingScenario)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
                   isPlayingScenario
-                    ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
-                    : 'bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                    : 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30'
                 }`}
               >
                 {isPlayingScenario ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -875,7 +1109,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
               </button>
 
               <span className="text-xs font-mono text-zinc-400 px-1">
-                <strong className="text-amber-400">{activeStepIndex + 1}</strong> / {currentScenario.nodeIds.length}
+                <strong className="text-indigo-400">{activeStepIndex + 1}</strong> / {currentScenario.nodeIds.length}
               </span>
 
               <button
@@ -896,43 +1130,51 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
       {/* Main Interactive Stage & Inspector Split */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* D3 Graph Canvas */}
-        <div className="lg:col-span-8 bg-[#0e0e14] border border-[#20202c] rounded-2xl overflow-hidden shadow-2xl relative min-h-[560px] flex flex-col">
+        <div className="lg:col-span-8 bg-[#0e0e14] border border-[#20202c] rounded-2xl overflow-hidden shadow-2xl relative min-h-[580px] flex flex-col">
           {/* Stage watermark & instruction badge */}
           <div className="absolute top-3 left-3 z-10 pointer-events-none flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-lg bg-black/60 border border-zinc-800 text-[11px] font-mono text-zinc-400 backdrop-blur-md">
-              Arraste para mover • Scroll para zoom • Clique no nó para inspecionar
+              🌐 Domínio ➔ 📄 Relatório ➔ 🛡️ CVE ➔ ⚡ Pivot ➔ 🏢 Infra Interna ➔ 👑 Crown Jewels
             </span>
           </div>
 
           <svg
             ref={svgRef}
-            className="w-full h-[560px] cursor-grab active:cursor-grabbing block"
-            style={{ background: 'radial-gradient(ellipse at center, #12121c 0%, #09090d 100%)' }}
+            className="w-full h-[580px] cursor-grab active:cursor-grabbing block"
+            style={{ background: 'radial-gradient(ellipse at center, #131320 0%, #08080c 100%)' }}
           />
 
           {/* Bottom Stage Legend */}
-          <div className="border-t border-[#1c1c28] bg-[#111118]/80 backdrop-blur-sm px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-[11px]">
+          <div className="border-t border-[#1c1c28] bg-[#111118]/85 backdrop-blur-sm px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-[11px]">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-zinc-500 font-mono text-[10px] uppercase">Legenda:</span>
+              <span className="text-zinc-500 font-mono text-[10px] uppercase">Entidades:</span>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block" />
-                <span className="text-zinc-300">1. Acesso Inicial</span>
+                <span className="w-2.5 h-2.5 rounded-sm bg-sky-500 inline-block" />
+                <span className="text-zinc-300">Domínio Alvo</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
-                <span className="text-zinc-300">2. Escalação & Exploração</span>
+                <span className="text-zinc-300">Relatório</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm bg-purple-500 inline-block" />
+                <span className="text-zinc-300">CVE</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 inline-block" />
-                <span className="text-zinc-300">3. Movimentação Lateral</span>
+                <span className="text-zinc-300">Salto Lateral (Pivot)</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
-                <span className="text-zinc-300">4. Crown Jewels</span>
+                <span className="text-zinc-300">Crown Jewel</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1 text-indigo-400 font-mono text-[10px]">
+                <span className="w-3 h-0.5 border-b border-indigo-400 border-dashed inline-block" />
+                Salto Lateral (Pivoting)
+              </span>
               <span className="flex items-center gap-1 text-red-400 font-mono text-[10px]">
                 <span className="w-2 h-2 rounded-full border border-red-500 border-dashed inline-block" />
                 Choke Point
@@ -941,17 +1183,27 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
           </div>
         </div>
 
-        {/* Node Inspector & Kill Chain Intelligence Panel */}
+        {/* Node Inspector & Threat Intelligence Panel */}
         <div className="lg:col-span-4 space-y-4">
           {selectedNode ? (
             <div className="bg-[#14141d] border border-[#272738] rounded-2xl p-5 shadow-xl space-y-4 relative overflow-hidden">
               {/* Header */}
               <div className="flex items-start justify-between gap-2 border-b border-[#252538] pb-3.5">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${STAGE_CONFIG[selectedNode.stage].badgeBg}`}>
                       {STAGE_CONFIG[selectedNode.stage].label}
                     </span>
+                    {selectedNode.type === 'target_domain' && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                        {selectedNode.isInternalInfrastructure ? 'Infra Interna (VPC)' : 'Perímetro Externo'}
+                      </span>
+                    )}
+                    {selectedNode.type === 'cve' && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                        NVD / NIST CVE
+                      </span>
+                    )}
                     {selectedNode.chokePoint && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-500/15 text-red-400 border border-red-500/30">
                         Choke Point
@@ -975,6 +1227,52 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
                 </button>
               </div>
 
+              {/* Network / Infrastructure Coordinates */}
+              {(selectedNode.ipAddress || selectedNode.networkZone || selectedNode.targetDomain) && (
+                <div className="bg-[#181824] border border-[#29293b] rounded-xl p-3 space-y-1.5 text-xs font-mono">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400">Zona de Rede:</span>
+                    <span className="text-sky-300 font-bold">{selectedNode.networkZone || 'Perímetro Web'}</span>
+                  </div>
+                  {selectedNode.ipAddress && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-400">Endereço IP:</span>
+                      <span className="text-zinc-200">{selectedNode.ipAddress}</span>
+                    </div>
+                  )}
+                  {selectedNode.targetDomain && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-400">Host / Domínio:</span>
+                      <span className="text-cyan-400 truncate max-w-[190px]">{selectedNode.targetDomain}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* CVE Specific Intelligence if applicable */}
+              {selectedNode.type === 'cve' && (
+                <div className="bg-[#1e1430] border border-[#3d2460] rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-mono text-purple-300 font-bold">Identificador CVE:</span>
+                    <span className="font-mono text-white font-black bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/40">
+                      {selectedNode.cveId || selectedNode.label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center pt-1">
+                    <div className="p-2 bg-[#261740] rounded-lg border border-[#3e2764]">
+                      <span className="text-[10px] font-mono text-zinc-400 block">CVSS Score</span>
+                      <span className="text-sm font-bold font-mono text-rose-400">{selectedNode.cvssScore?.toFixed(1) || '8.5'}</span>
+                    </div>
+                    <div className="p-2 bg-[#261740] rounded-lg border border-[#3e2764]">
+                      <span className="text-[10px] font-mono text-zinc-400 block">Probabilidade EPSS</span>
+                      <span className="text-sm font-bold font-mono text-purple-300">
+                        {((selectedNode.epssScore || 0.72) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Vulnerability Report Metadata if applicable */}
               {selectedNode.report && (
                 <div className="bg-[#1a1a26] border border-[#2b2b3d] rounded-xl p-3 space-y-2">
@@ -995,15 +1293,6 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
                       <span className="font-mono text-zinc-400">CWE Taxonomia:</span>
                       <span className="font-mono text-indigo-400 text-[11px] truncate max-w-[200px]" title={selectedNode.report.cwe}>
                         {selectedNode.report.cwe}
-                      </span>
-                    </div>
-                  )}
-
-                  {selectedNode.report.target && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono text-zinc-400">Domínio Alvo:</span>
-                      <span className="font-mono text-cyan-400 text-[11px]">
-                        {selectedNode.report.target}
                       </span>
                     </div>
                   )}
@@ -1034,35 +1323,51 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
               {/* Description & Impact */}
               <div className="space-y-1.5 text-xs">
                 <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
-                  Mecânica do Ataque / Descrição
+                  Mecânica de Ameaça & Descrição
                 </span>
                 <p className="text-zinc-300 leading-relaxed bg-[#111118] p-3 rounded-xl border border-[#20202c]">
                   {selectedNode.description}
                 </p>
               </div>
 
-              {selectedNode.impact && (
-                <div className="space-y-1.5 text-xs">
-                  <span className="text-[10px] font-mono font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" />
-                    <span>Impacto no Negócio (Blast Radius)</span>
+              {/* Connected Lateral Hops & Blast Radius */}
+              {(nodeConnections.inbound.length > 0 || nodeConnections.outbound.length > 0) && (
+                <div className="space-y-2 text-xs">
+                  <span className="text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-wider block">
+                    Caminhos & Vizinhos Conectados ({nodeConnections.inbound.length + nodeConnections.outbound.length})
                   </span>
-                  <p className="text-zinc-300 leading-relaxed bg-red-500/5 p-3 rounded-xl border border-red-500/20">
-                    {selectedNode.impact}
-                  </p>
-                </div>
-              )}
+                  
+                  {nodeConnections.inbound.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-mono text-zinc-500">Origem / Entrada:</span>
+                      {nodeConnections.inbound.map(({ node, link }) => (
+                        <div
+                          key={`in-${node?.id}`}
+                          onClick={() => node && setSelectedNode(node)}
+                          className="p-2 rounded-lg bg-[#181826] border border-[#2a2a3e] hover:border-indigo-500/50 cursor-pointer flex items-center justify-between gap-1 text-[11px]"
+                        >
+                          <span className="text-zinc-300 truncate max-w-[180px]">{node?.label}</span>
+                          <span className="text-[9px] font-mono text-cyan-400">{link.label.slice(0, 16)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-              {/* Defensive Remediation */}
-              {selectedNode.remediation && (
-                <div className="space-y-1.5 text-xs">
-                  <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>Mitigação & Quebra do Kill Chain</span>
-                  </span>
-                  <p className="text-zinc-300 leading-relaxed bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/20">
-                    {selectedNode.remediation}
-                  </p>
+                  {nodeConnections.outbound.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-mono text-zinc-500">Próximo Salto Lateral / Alvo:</span>
+                      {nodeConnections.outbound.map(({ node, link }) => (
+                        <div
+                          key={`out-${node?.id}`}
+                          onClick={() => node && setSelectedNode(node)}
+                          className="p-2 rounded-lg bg-[#181826] border border-[#2a2a3e] hover:border-indigo-500/50 cursor-pointer flex items-center justify-between gap-1 text-[11px]"
+                        >
+                          <span className="text-zinc-300 truncate max-w-[180px]">{node?.label}</span>
+                          <span className="text-[9px] font-mono text-indigo-300">{link.label.slice(0, 16)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1070,22 +1375,22 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
               {selectedNode.report && onSelectReport && (
                 <button
                   onClick={() => onSelectReport(selectedNode.report!)}
-                  className="w-full mt-2 py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold transition-all flex items-center justify-center gap-2"
+                  className="w-full mt-2 py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <span>Abrir Relatório Completo</span>
+                  <span>Abrir Relatório Completo ({selectedNode.report.id})</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
           ) : (
             <div className="bg-[#14141d] border border-[#272738] rounded-2xl p-6 shadow-xl text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto">
                 <Network className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Inspetor de Ameaças & Topologia</h4>
+                <h4 className="text-sm font-bold text-white">Inspetor de Infraestrutura & Pivoting</h4>
                 <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                  Clique em qualquer nó do grafo para auditar suas propriedades, o relatório associado, táticas MITRE ATT&CK, raio de explosão (blast radius) e medidas de quebra de cadeia de ataque.
+                  Clique em qualquer <strong>Domínio Alvo</strong>, <strong>Relatório</strong>, <strong>CVE</strong> ou <strong>Ponto de Salto</strong> no grafo para inspecionar conexões adjacentes, zonas de rede e técnicas MITRE ATT&CK.
                 </p>
               </div>
 
@@ -1095,7 +1400,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
                   Pontos de Estrangulamento (Choke Points):
                 </span>
                 <div className="space-y-1.5">
-                  {graphData.nodes.filter(n => n.chokePoint).map(cp => (
+                  {graphData.nodes.filter(n => n.chokePoint).slice(0, 4).map(cp => (
                     <div
                       key={cp.id}
                       onClick={() => setSelectedNode(cp)}
@@ -1103,7 +1408,7 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
                     >
                       <div>
                         <span className="text-xs font-bold text-white block">{cp.label}</span>
-                        <span className="text-[10px] font-mono text-zinc-400">{STAGE_CONFIG[cp.stage].label}</span>
+                        <span className="text-[10px] font-mono text-zinc-400">{cp.sublabel || STAGE_CONFIG[cp.stage].label}</span>
                       </div>
                       <ChevronRight className="w-4 h-4 text-zinc-500" />
                     </div>
@@ -1116,11 +1421,11 @@ export const AttackGraphStudio: React.FC<AttackGraphStudioProps> = ({
           {/* Kill Chain Stage Guide Card */}
           <div className="bg-[#121218] border border-[#20202c] rounded-2xl p-4 space-y-2.5">
             <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Como Funciona a Cadeia de Ataque</span>
+              <Info className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Conexão: Domínios ➔ Relatórios ➔ CVEs ➔ Movimentação Lateral</span>
             </span>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Vulnerabilidades isoladas (como um SSRF cego ou um IDOR) raramente representam o impacto total por si sós. O grafo demonstra como um invasor explora uma falha no <strong>Acesso Inicial</strong> para obter credenciais temporárias, executar <strong>Movimentação Lateral</strong> em serviços internos e atingir as <strong>Crown Jewels</strong> corporativas.
+              O grafo de força demonstra como o adversário não para no perímetro: a exploração de um relatório mapeado para uma CVE permite obter credenciais e efetuar <strong>saltos laterais na VPC interna</strong> (como acesso ao IMDSv1 na AWS ou tokens de microsserviço), alcançando ativos corporativos isolados da Internet.
             </p>
           </div>
         </div>

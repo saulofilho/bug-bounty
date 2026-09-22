@@ -1,6 +1,6 @@
 {
   "name": "Bug Bounty Manager & Vulnerability Tracker",
-  "description": "Plataforma completa para caçadores de recompensa e AppSec: gestão de vulnerabilidades, suíte de 24 ferramentas AppSec (Grafo de Ataque D3.js, Subdomain Takeover Analyzer, ReDoS Studio, Cloud SSRF Orchestrator, GraphQL Security Auditor, CVSS v4.0, Supply Chain Calculator, JWT Analyzer, CSP Studio, EPSS Matrix, CSRF PoC Studio, Multi-Encoder, Security Headers Auditor, DLP Sanitizer, PoC Builder, SLA Tracker, Macros, Detector de Duplicatas, Issue Exporter), Threat Intelligence global, simulador quantitativo FAIR, checklists OWASP e assinatura PGP.",
+  "description": "Plataforma completa para caçadores de recompensa e AppSec: gestão de vulnerabilidades, suíte de 27 ferramentas AppSec (CORS Misconfiguration Studio & Exploit Generator, HTTP Request Smuggling & Desync Inspector, OOB Collaborator Studio, Grafo de Ataque D3.js, Subdomain Takeover Analyzer, ReDoS Studio, Cloud SSRF Orchestrator, GraphQL Security Auditor, CVSS v4.0, Supply Chain Calculator, JWT Analyzer, CSP Studio, EPSS Matrix, CSRF PoC Studio, Multi-Encoder, Security Headers Auditor, DLP Sanitizer, PoC Builder, SLA Tracker, Macros, Detector de Duplicatas, Issue Exporter), Threat Intelligence global, simulador quantitativo FAIR, checklists OWASP e assinatura PGP.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

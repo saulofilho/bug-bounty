@@ -39,7 +39,9 @@ import {
   Shield,
   Network,
   Cpu,
-  Cloud
+  Cloud,
+  Split,
+  Radio
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
@@ -80,11 +82,17 @@ import { SubdomainTakeoverAnalyzer } from './SubdomainTakeoverAnalyzer';
 import { ReDoSStudio } from './ReDoSStudio';
 import { SsrfCloudOrchestrator } from './SsrfCloudOrchestrator';
 import { GraphQLSecurityAuditor } from './GraphQLSecurityAuditor';
+import { CorsStudio } from './CorsStudio';
+import { HttpRequestSmuggler } from './HttpRequestSmuggler';
+import { OobInteractionStudio } from './OobInteractionStudio';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
   | 'cvss-component'
   | 'attack-graph'
+  | 'cors-studio'
+  | 'request-smuggler'
+  | 'oob-collaborator'
   | 'subdomain-takeover'
   | 'redos-studio'
   | 'ssrf-cloud'
@@ -302,7 +310,10 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
   const navTabs: Array<{ id: ToolSubTab; label: string; icon: any; badge?: string; badgeColor?: string }> = [
     { id: 'cvss-v4', label: 'CVSS v4.0 Engine', icon: Calculator, badge: 'v4.0', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     { id: 'cvss-component', label: 'CVSS v4 Component Calculator', icon: Package, badge: 'Supply Chain / SCA', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-    { id: 'attack-graph', label: 'Attack Graph & Kill Chain', icon: Network, badge: 'D3.js / MITRE', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'attack-graph', label: 'Attack Graph & Lateral Movement', icon: Network, badge: 'D3.js Force / CVEs & Domínios', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'cors-studio', label: 'CORS Misconfiguration Studio', icon: Globe, badge: 'ACAC / Exploit HTML', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+    { id: 'request-smuggler', label: 'HTTP Request Smuggling & Desync', icon: Split, badge: 'CL.TE / H2.TE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'oob-collaborator', label: 'OOB & Collaborator Studio', icon: Radio, badge: 'Blind SSRF / DNS', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
     { id: 'subdomain-takeover', label: 'Subdomain Takeover Analyzer', icon: Globe, badge: 'DNS / CNAME', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
     { id: 'redos-studio', label: 'ReDoS & Regex Complexity', icon: Cpu, badge: 'Catastrophic O(2ⁿ)', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'ssrf-cloud', label: 'Cloud SSRF & Metadata Suite', icon: Cloud, badge: 'AWS / GCP / K8s', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
@@ -339,13 +350,13 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                 <span>DevSecOps & AppSec Suite</span>
               </span>
               <span className="text-zinc-500 text-xs">•</span>
-              <span className="text-zinc-400 font-mono text-xs">24 Ferramentas Integradas</span>
+              <span className="text-zinc-400 font-mono text-xs">27 Ferramentas Integradas</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
               <span>Central de Engenharia & AppSec</span>
             </h1>
             <p className="text-sm text-zinc-400 max-w-3xl leading-relaxed">
-              Automação de triagem, cálculo CVSS v4.0 e supply chain SCA, grafo de ataque interativo D3.js (Kill Chain & MITRE ATT&CK), auditor de subdomínios órfãos e CNAME takeover, laboratório ReDoS com detecção de backtracking catastrófico, orquestrador de SSRF em nuvem (AWS/GCP/Azure/K8s), auditor de segurança e introspecção GraphQL, auditoria JWT, gerador de CSP, matriz EPSS, PoC CSRF, encoders WAF, auditor de headers, SLA, ROI de bug bounty, DLP e integradores.
+              Automação de triagem, cálculo CVSS v4.0 e supply chain SCA, grafo de ataque interativo D3.js (Kill Chain & MITRE ATT&CK), auditoria de CORS e gerador de exploit PoC HTML, inspector de HTTP Request Smuggling (CL.TE/H2.TE), central OOB Collaborator para vulnerabilidades cegas (Blind SSRF/XXE/RCE), auditor de subdomínios órfãos e CNAME takeover, laboratório ReDoS com detecção de backtracking catastrófico, orquestrador de SSRF em nuvem (AWS/GCP/Azure/K8s), auditor de GraphQL, auditoria JWT, gerador de CSP, matriz EPSS, PoC CSRF, encoders WAF, auditor de headers, SLA, ROI de bug bounty, DLP e integradores.
             </p>
           </div>
 
@@ -1694,6 +1705,21 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
           selectedReportId={selectedReport?.id}
           onSelectReport={onSelectReport}
         />
+      )}
+
+      {/* --- 24. CORS Misconfiguration Studio & Exploit Generator --- */}
+      {activeTab === 'cors-studio' && (
+        <CorsStudio />
+      )}
+
+      {/* --- 25. HTTP Request Smuggling & Desync Inspector --- */}
+      {activeTab === 'request-smuggler' && (
+        <HttpRequestSmuggler />
+      )}
+
+      {/* --- 26. Out-of-Band (OOB) Interaction & Collaborator Studio --- */}
+      {activeTab === 'oob-collaborator' && (
+        <OobInteractionStudio />
       )}
 
       {/* --- 15. CSP Studio & Evaluator --- */}
