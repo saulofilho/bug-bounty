@@ -37,7 +37,9 @@ import {
   Crosshair,
   Globe,
   Shield,
-  Network
+  Network,
+  Cpu,
+  Cloud
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
@@ -74,11 +76,19 @@ import { CsrfPocStudio } from './CsrfPocStudio';
 import { PayloadEncoderDecoder } from './PayloadEncoderDecoder';
 import { SecurityHeadersAuditor } from './SecurityHeadersAuditor';
 import { AttackGraphStudio } from './AttackGraphStudio';
+import { SubdomainTakeoverAnalyzer } from './SubdomainTakeoverAnalyzer';
+import { ReDoSStudio } from './ReDoSStudio';
+import { SsrfCloudOrchestrator } from './SsrfCloudOrchestrator';
+import { GraphQLSecurityAuditor } from './GraphQLSecurityAuditor';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
   | 'cvss-component'
   | 'attack-graph'
+  | 'subdomain-takeover'
+  | 'redos-studio'
+  | 'ssrf-cloud'
+  | 'graphql-auditor'
   | 'jwt-analyzer'
   | 'csp-studio'
   | 'epss-prioritizer'
@@ -293,6 +303,10 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     { id: 'cvss-v4', label: 'CVSS v4.0 Engine', icon: Calculator, badge: 'v4.0', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     { id: 'cvss-component', label: 'CVSS v4 Component Calculator', icon: Package, badge: 'Supply Chain / SCA', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'attack-graph', label: 'Attack Graph & Kill Chain', icon: Network, badge: 'D3.js / MITRE', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'subdomain-takeover', label: 'Subdomain Takeover Analyzer', icon: Globe, badge: 'DNS / CNAME', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
+    { id: 'redos-studio', label: 'ReDoS & Regex Complexity', icon: Cpu, badge: 'Catastrophic O(2ⁿ)', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'ssrf-cloud', label: 'Cloud SSRF & Metadata Suite', icon: Cloud, badge: 'AWS / GCP / K8s', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'graphql-auditor', label: 'GraphQL Security Studio', icon: Layers, badge: 'Introspection / DoS', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
     { id: 'jwt-analyzer', label: 'JWT Security Analyzer', icon: KeyRound, badge: 'OWASP / None', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'csp-studio', label: 'CSP Studio & Evaluator', icon: ShieldCheck, badge: 'Level 3 / XSS', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'epss-prioritizer', label: 'CVSS v4 + EPSS Matrix', icon: Crosshair, badge: 'FIRST EPSS', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
@@ -325,13 +339,13 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                 <span>DevSecOps & AppSec Suite</span>
               </span>
               <span className="text-zinc-500 text-xs">•</span>
-              <span className="text-zinc-400 font-mono text-xs">20 Ferramentas Integradas</span>
+              <span className="text-zinc-400 font-mono text-xs">24 Ferramentas Integradas</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
               <span>Central de Engenharia & AppSec</span>
             </h1>
             <p className="text-sm text-zinc-400 max-w-3xl leading-relaxed">
-              Automação de triagem, cálculo CVSS v4.0 e supply chain SCA, grafo de ataque interativo D3.js (Kill Chain & MITRE ATT&CK), auditoria de segurança JWT, gerador e avaliador de CSP, priorização CVSS v4 vs. FIRST EPSS, gerador de PoC CSRF com matriz SameSite, canivete suíço de codificações (WAF evasion), auditor de cabeçalhos HTTP defensivos, catalogação CWE/OWASP, SLA, ROI de bug bounty, DLP e integradores.
+              Automação de triagem, cálculo CVSS v4.0 e supply chain SCA, grafo de ataque interativo D3.js (Kill Chain & MITRE ATT&CK), auditor de subdomínios órfãos e CNAME takeover, laboratório ReDoS com detecção de backtracking catastrófico, orquestrador de SSRF em nuvem (AWS/GCP/Azure/K8s), auditor de segurança e introspecção GraphQL, auditoria JWT, gerador de CSP, matriz EPSS, PoC CSRF, encoders WAF, auditor de headers, SLA, ROI de bug bounty, DLP e integradores.
             </p>
           </div>
 
@@ -1712,6 +1726,26 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
       {/* --- 19. Security Headers Auditor --- */}
       {activeTab === 'security-headers' && (
         <SecurityHeadersAuditor />
+      )}
+
+      {/* --- 20. Subdomain Takeover Analyzer --- */}
+      {activeTab === 'subdomain-takeover' && (
+        <SubdomainTakeoverAnalyzer initialSubdomain={selectedReport?.target} />
+      )}
+
+      {/* --- 21. ReDoS & Regex Catastrophic Backtracking Studio --- */}
+      {activeTab === 'redos-studio' && (
+        <ReDoSStudio />
+      )}
+
+      {/* --- 22. Cloud SSRF & Metadata Orchestrator --- */}
+      {activeTab === 'ssrf-cloud' && (
+        <SsrfCloudOrchestrator />
+      )}
+
+      {/* --- 23. GraphQL Security & Introspection Auditor --- */}
+      {activeTab === 'graphql-auditor' && (
+        <GraphQLSecurityAuditor />
       )}
     </div>
   );
