@@ -471,6 +471,29 @@ Cada página contém: modelos de pagamento suportados, exigências de KYC, polí
 
 ---
 
+## 📊 Dashboard de Risco Financeiro FAIR (Recharts Doughnut)
+
+Novo componente executivo de **Dashboard de Risco** que agrega quantitativamente todos os relatórios do portfólio utilizando a metodologia internacional **FAIR (Factor Analysis of Information Risk - ISO/IEC 27005)**:
+
+- 🍩 **Gráfico de Rosca Interativo (Recharts Doughnut Chart)**:
+  - Visualização da distribuição das vulnerabilidades correlacionada com a perda financeira anual esperada (**ALE** = Frequência de Perda × Magnitude).
+  - Três modos de exibição interativos: **Risco Financeiro Acumulado (ALE)**, **Contagem de Falhas** e **Tiers FAIR**.
+  - Centro da rosca com display de alta precisão mostrando o valor monetário total sob risco ou a contagem consolidada.
+  - Efeito hover dinâmico com realce de setor (`Sector`) e tooltip customizado com dados de ALE médio por achado, percentual de participação e impacto único.
+- 💵 **Indicadores Financeiros Chave (KPIs)**:
+  - **Perda Anual Esperada Total (ALE Acumulado)** e segregação de exposição ativa vs. mitigada.
+  - **Impacto Máximo Consolidado por Incidente (SLE Acumulado)**.
+  - **Prejuízo Financeiro Evitado (Economia Real)** por meio de correções e validações bem-sucedidas.
+  - **Múltiplo de ROI de Bug Bounty** (relação entre risco financeiro mitigado e total investido em recompensas).
+- 🎛️ **Controles e Calibração de Cenário**:
+  - Filtros de escopo: *Todas*, *Apenas Abertas (Risco Ativo)* ou *Apenas Mitigadas (Risco Evitado)*.
+  - Alternância instantânea de moeda: **USD ($)** ou **BRL (R$)**.
+  - Calibração de contexto empresarial (Receita de Startup/PME $10M, Mid-Market $50M ou Large Enterprise $250M).
+- 📑 **Parecer Executivo C-Level**: Botão para copiar instantaneamente um resumo executivo formatado para CISO, CFO e diretoria de segurança.
+- 🎯 **Top Maiores Exposições Individuais**: Cards detalhados com as vulnerabilidades que mais contribuem para a perda anual estimada, com acesso direto ao relatório.
+
+---
+
 ## 🎨 Temas Visual: Claro & Escuro (Dark / Light Mode)
 
 O BugSentinel suporta alternância dinâmica e instantânea de temas com persistência local:

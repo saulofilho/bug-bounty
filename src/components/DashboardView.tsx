@@ -33,7 +33,8 @@ import {
   Sparkles,
   ChevronRight,
   Calendar,
-  Scale
+  Scale,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
@@ -52,6 +53,7 @@ import { CvssComparisonTool } from './CvssComparisonTool';
 import { BreachImpactSimulator } from './BreachImpactSimulator';
 import { FairImpactSimulator } from './FairImpactSimulator';
 import { RiskSimulatorView } from './RiskSimulatorView';
+import { RiskDashboard } from './RiskDashboard';
 import { TargetRateLimitMonitor } from './TargetRateLimitMonitor';
 import { RateLimitMonitor } from './RateLimitMonitor';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
@@ -396,6 +398,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           >
             <MessageSquareWarning className="w-3.5 h-3.5 text-red-400" />
             <span>Sentiment Tracker</span>
+          </button>
+
+          <button
+            id="btn-dashboard-risk-dashboard"
+            onClick={() => document.getElementById('fair-risk-dashboard-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-amber-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ir para Dashboard de Risco Financeiro Acumulado & Severidade (FAIR Recharts)"
+          >
+            <PieChartIcon className="w-3.5 h-3.5 text-amber-400" />
+            <span>Dashboard de Risco</span>
           </button>
 
           <button
@@ -1217,6 +1229,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <ReportsTrendChart
         reports={reports}
         onNewReport={onNewReport}
+      />
+
+      {/* FAIR Risk Dashboard: Consolidated Portfolio Financial Risk (ALE/SLE) & Severity Distribution Recharts Doughnut */}
+      <RiskDashboard
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onSelectSeverity={(sev) => {
+          if (onSelectSeverity) {
+            onSelectSeverity(sev);
+          } else {
+            onNavigateTab('reports');
+          }
+        }}
+        onNavigateToReports={() => onNavigateTab('reports')}
       />
 
       {/* Recharts Doughnut Chart: Vulnerability Distribution by Severity (CRITICAL, HIGH, MEDIUM, LOW) */}

@@ -314,6 +314,47 @@ html.light .divide-zinc-700 {
   border-color: #e2e8f0 !important;
 }
 
+/* FAIR Risk Dashboard in Light Mode */
+html.light #fair-risk-dashboard-section {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light #fair-risk-dashboard-section .bg-\[\#0f1118\],
+html.light #fair-risk-dashboard-section .bg-\[\#0a0b0f\],
+html.light #fair-risk-dashboard-section .bg-\[\#0c0d12\],
+html.light #fair-risk-dashboard-section .bg-\[\#090b10\] {
+  background-color: #f8fafc !important;
+}
+
+html.light #fair-risk-dashboard-section .bg-\[\#121624\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light #fair-risk-dashboard-section .bg-\[\#141824\],
+html.light #fair-risk-dashboard-section .bg-\[\#181d2a\] {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light #fair-risk-dashboard-section .border-\[\#1e2334\],
+html.light #fair-risk-dashboard-section .border-\[\#1a1f2e\],
+html.light #fair-risk-dashboard-section .border-\[\#20273d\],
+html.light #fair-risk-dashboard-section .border-\[\#1c2234\],
+html.light #fair-risk-dashboard-section .border-\[\#262f44\],
+html.light #fair-risk-dashboard-section .border-\[\#2b354c\] {
+  border-color: #e2e8f0 !important;
+}
+
+html.light #fair-risk-dashboard-section h2,
+html.light #fair-risk-dashboard-section h3:not(.text-amber-300):not(.text-emerald-400):not(.text-cyan-400),
+html.light #fair-risk-dashboard-section h4,
+html.light #fair-risk-dashboard-section h5 {
+  color: #0f172a !important;
+}
+
 @keyframes criticalPulseGlow {
   0%, 100% {
     box-shadow: 0 0 16px -2px rgba(239, 68, 68, 0.45), 0 0 6px -1px rgba(220, 38, 38, 0.35);
