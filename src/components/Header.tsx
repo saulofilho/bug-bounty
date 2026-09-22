@@ -22,10 +22,13 @@ import {
   Radio,
   Sparkles,
   Settings,
-  Bell
+  Bell,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { UserAuthWidget } from './UserAuthWidget';
+import { useTheme } from '../context/ThemeContext';
 
 export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel' | 'notifications' | 'tools';
 
@@ -76,6 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
   const activeMobileTabRef = useRef<HTMLButtonElement>(null);
+  const { theme, resolvedTheme, toggleTheme } = useTheme();
   const usdToBrlRate = 5.45;
   const totalBRL = totalRewardedUSD * usdToBrlRate;
 
@@ -520,6 +524,28 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </button>
 
+              {/* Quick Action: Light / Dark Theme Toggle */}
+              <button
+                id="btn-header-theme-toggle"
+                type="button"
+                onClick={toggleTheme}
+                title={resolvedTheme === 'dark' ? 'Mudar para Tema Claro (Ctrl+Shift+L)' : 'Mudar para Tema Escuro (Ctrl+Shift+L)'}
+                aria-label="Alternar Tema Claro e Escuro"
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
+              >
+                {resolvedTheme === 'dark' ? (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-45 transition-transform" />
+                    <span className="hidden xl:inline">Claro</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-indigo-400 group-hover:-rotate-12 transition-transform" />
+                    <span className="hidden xl:inline">Escuro</span>
+                  </>
+                )}
+              </button>
+
               {/* Quick Actions Dropdown Menu Toggle */}
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -805,6 +831,28 @@ export const Header: React.FC<HeaderProps> = ({
                         <span className="text-[9px] font-mono text-purple-400">PAT API</span>
                       </button>
                     )}
+
+                    {/* Quick Menu: Theme Toggle */}
+                    <button
+                      type="button"
+                      id="btn-menu-theme-toggle"
+                      onClick={() => {
+                        setIsQuickMenuOpen(false);
+                        toggleTheme();
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-amber-300 hover:text-white hover:bg-amber-950/40 transition-colors text-left border-t border-[#222226] mt-1 pt-2"
+                      role="menuitem"
+                    >
+                      <div className="flex items-center gap-2">
+                        {resolvedTheme === 'dark' ? (
+                          <Sun className="w-3.5 h-3.5 text-amber-400" />
+                        ) : (
+                          <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                        )}
+                        <span>Tema: {resolvedTheme === 'dark' ? 'Mudar p/ Claro' : 'Mudar p/ Escuro'}</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-zinc-500">Ctrl+Shift+L</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -1053,6 +1101,28 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <BookOpen className={`w-4 h-4 shrink-0 ${currentTab === 'docs' ? 'text-emerald-400' : 'text-zinc-400'}`} />
             <span>Library</span>
+          </button>
+
+          {/* Mobile Theme Toggle Button */}
+          <button 
+            id="mobile-nav-theme-toggle"
+            type="button"
+            onClick={toggleTheme}
+            title={resolvedTheme === 'dark' ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
+            aria-label="Alternar Tema Claro e Escuro"
+            className="min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 text-amber-300 hover:text-white hover:bg-amber-950/30 border border-amber-500/20"
+          >
+            {resolvedTheme === 'dark' ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Claro</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>Escuro</span>
+              </>
+            )}
           </button>
         </div>
 

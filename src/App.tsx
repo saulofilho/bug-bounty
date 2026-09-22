@@ -33,6 +33,7 @@ import { exportReportsToCsv } from './utils/csvReportParser';
 import { Toaster } from 'react-hot-toast';
 import { notifyCriticalVulnerability, showSuccessToast, showInfoToast } from './utils/toastNotifications';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { INITIAL_REPORTS, INITIAL_TARGETS, INITIAL_DOCS } from './data/initialData';
 import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity } from './types';
 
@@ -1218,8 +1219,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

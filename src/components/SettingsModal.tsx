@@ -15,14 +15,19 @@ import {
   Trash2,
   Tag,
   Sliders,
-  Info
+  Info,
+  Palette,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { recordPlatformApiCall } from '../utils/apiRateLimiter';
+import { useTheme, ThemeMode } from '../context/ThemeContext';
 
 export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'github' | 'general';
+  initialTab?: 'github' | 'appearance' | 'general';
 }
 
 export const LOCAL_STORAGE_GITHUB_TOKEN_KEY = 'bbm_github_pat_token';
@@ -34,7 +39,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   initialTab = 'github'
 }) => {
-  const [activeTab, setActiveTab] = useState<'github' | 'general'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'github' | 'appearance' | 'general'>(initialTab);
+  const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
 
   // GitHub Settings State
   const [githubToken, setGithubToken] = useState('');
@@ -241,6 +247,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <button
             type="button"
+            id="tab-settings-appearance"
+            onClick={() => setActiveTab('appearance')}
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-mono font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === 'appearance'
+                ? 'border-amber-500 text-amber-300 bg-amber-500/10'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Palette className="w-4 h-4 text-amber-400" />
+            <span>Aparência & Tema</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 uppercase font-bold">
+              {resolvedTheme === 'dark' ? 'Escuro' : 'Claro'}
+            </span>
+          </button>
+
+          <button
+            type="button"
             id="tab-settings-general"
             onClick={() => setActiveTab('general')}
             className={`flex items-center gap-2 py-3 px-3 text-xs font-mono font-semibold border-b-2 transition-all cursor-pointer ${
@@ -439,6 +462,193 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <li>Gere um novo token selecionando a caixa de seleção <strong className="text-purple-300">repo</strong>.</li>
                   <li>Copie o código gerado e cole no campo acima para habilitar o envio direto de relatórios.</li>
                 </ol>
+              </div>
+
+            </div>
+          )}
+
+          {activeTab === 'appearance' && (
+            <div className="space-y-6 font-mono text-xs">
+              
+              {/* Header explanation */}
+              <div className="p-4 rounded-xl bg-[#121624] border border-[#20273d] space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold text-white">
+                    <Palette className="w-4 h-4 text-amber-400" />
+                    <span>Personalização Visual & Tema do BugSentinel</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                    resolvedTheme === 'dark' 
+                      ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40' 
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}>
+                    Ativo: {resolvedTheme === 'dark' ? '🌙 Escuro' : '☀️ Claro'}
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 leading-relaxed font-sans">
+                  Alterne entre a estética cyber dark de caçador de recompensas e o tema claro corporativo com alto contraste para leitura, relatórios e auditorias diurnas.
+                </p>
+              </div>
+
+              {/* Theme Selection Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                
+                {/* Dark Theme Card */}
+                <button
+                  type="button"
+                  id="btn-select-theme-dark"
+                  onClick={() => setTheme('dark')}
+                  className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between group cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-[#0f111a] border-emerald-500 ring-2 ring-emerald-500/30 shadow-lg shadow-black/40'
+                      : 'bg-[#0a0c12] border-[#20273d] hover:border-zinc-500 hover:bg-[#121522]'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="w-8 h-8 rounded-lg bg-[#181924] border border-[#2a2d42] flex items-center justify-center text-indigo-400">
+                        <Moon className="w-4 h-4" />
+                      </div>
+                      {theme === 'dark' && (
+                        <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                          SELECIONADO
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white text-sm">Cyber Dark</h4>
+                      <p className="text-[11px] text-zinc-400 font-sans mt-1">
+                        Estética hacker terminal com fundo preto (#050505) e alto contraste neon.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Visual Preview Swatch */}
+                  <div className="mt-4 p-2 rounded-lg bg-[#050505] border border-[#222228] flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-purple-400" />
+                    </div>
+                    <span className="text-[9px] text-zinc-400">#050505</span>
+                  </div>
+                </button>
+
+                {/* Light Theme Card */}
+                <button
+                  type="button"
+                  id="btn-select-theme-light"
+                  onClick={() => setTheme('light')}
+                  className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between group cursor-pointer ${
+                    theme === 'light'
+                      ? 'bg-[#181c28] border-amber-500 ring-2 ring-amber-500/30 shadow-lg shadow-black/40'
+                      : 'bg-[#0a0c12] border-[#20273d] hover:border-zinc-500 hover:bg-[#121522]'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <Sun className="w-4 h-4" />
+                      </div>
+                      {theme === 'light' && (
+                        <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                          SELECIONADO
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white text-sm">Clean Light</h4>
+                      <p className="text-[11px] text-zinc-400 font-sans mt-1">
+                        Layout suave (#f8fafc), texto escuro e bordas nítidas para ambientes claros.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Visual Preview Swatch */}
+                  <div className="mt-4 p-2 rounded-lg bg-slate-100 border border-slate-300 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-rose-600" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                    </div>
+                    <span className="text-[9px] text-slate-700">#F8FAFC</span>
+                  </div>
+                </button>
+
+                {/* System Auto Card */}
+                <button
+                  type="button"
+                  id="btn-select-theme-system"
+                  onClick={() => setTheme('system')}
+                  className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between group cursor-pointer ${
+                    theme === 'system'
+                      ? 'bg-[#181c28] border-cyan-500 ring-2 ring-cyan-500/30 shadow-lg shadow-black/40'
+                      : 'bg-[#0a0c12] border-[#20273d] hover:border-zinc-500 hover:bg-[#121522]'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <Monitor className="w-4 h-4" />
+                      </div>
+                      {theme === 'system' && (
+                        <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/30">
+                          SELECIONADO
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white text-sm">Automático (Sistema)</h4>
+                      <p className="text-[11px] text-zinc-400 font-sans mt-1">
+                        Segue as preferências de cor do SO (prefers-color-scheme).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Visual Preview Swatch */}
+                  <div className="mt-4 p-2 rounded-lg bg-gradient-to-r from-zinc-900 to-slate-200 border border-[#333] flex items-center justify-between">
+                    <span className="text-[9px] text-white pl-1">Auto</span>
+                    <span className="text-[9px] text-zinc-800 pr-1">OS</span>
+                  </div>
+                </button>
+
+              </div>
+
+              {/* Quick Toggle Button & Shortcuts */}
+              <div className="p-4 rounded-xl bg-[#0a0c12] border border-[#20273d] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-zinc-200 flex items-center gap-2">
+                    <span>Atalho Global de Alternância</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-[#1c2234] border border-[#28324e] text-[10px] text-purple-300">
+                      Ctrl + Shift + L
+                    </kbd>
+                    <span className="text-zinc-500 text-[11px]">ou</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-[#1c2234] border border-[#28324e] text-[10px] text-purple-300">
+                      Alt + Shift + T
+                    </kbd>
+                  </h4>
+                  <p className="text-[11px] text-zinc-400 font-sans">
+                    Alterne instantaneamente o tema a partir de qualquer tela ou formulário sem precisar abrir configurações.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="btn-settings-toggle-theme-now"
+                  onClick={toggleTheme}
+                  className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-2 justify-center transition-all shrink-0 cursor-pointer shadow-md"
+                >
+                  {resolvedTheme === 'dark' ? (
+                    <>
+                      <Sun className="w-4 h-4" />
+                      <span>Ativar Modo Claro</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-4 h-4" />
+                      <span>Ativar Modo Escuro</span>
+                    </>
+                  )}
+                </button>
               </div>
 
             </div>

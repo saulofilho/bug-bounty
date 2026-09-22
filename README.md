@@ -27,6 +27,7 @@
 - [Bibliotecas Técnicas: Payloads & Checklists](#-bibliotecas-técnicas-payloads--checklists)
 - [Módulos de Gráficos e Analytics (Recharts)](#-módulos-de-gráficos-e-analytics-recharts)
 - [Diretório de 14 Plataformas de Bug Bounty](#-diretório-de-14-plataformas-de-bug-bounty)
+- [Temas Visual: Claro & Escuro (Dark / Light Mode)](#-temas-visual-claro--escuro-dark--light-mode)
 - [Interface Responsiva & Acessibilidade Mobile](#-interface-responsiva--acessibilidade-mobile)
 - [Tecnologias Utilizadas](#-tecnologias-utilizadas)
 - [Instalação e Execução Local](#-instalação-e-execução-local)
@@ -467,6 +468,22 @@ Na aba **Sites**, consulte o guia detalhado das 14 principais plataformas globai
 14. **Google VRP (Vulnerability Reward Program)**: O renomado programa de recompensas do ecossistema Google, Android e Chrome.
 
 Cada página contém: modelos de pagamento suportados, exigências de KYC, políticas de *Safe Harbor*, prazos médios de triagem e estratégias para obter convites para programas privados (*private invites*).
+
+---
+
+## 🎨 Temas Visual: Claro & Escuro (Dark / Light Mode)
+
+O BugSentinel suporta alternância dinâmica e instantânea de temas com persistência local:
+
+- 🌙 **Cyber Dark (Escuro)**: Tema padrão de alto contraste inspirado em terminais e estações de trabalho de segurança ofensiva (`#050505`). Reduz a fadiga ocular durante longas sessões de hunting noturno.
+- ☀️ **Clean Light (Claro)**: Tema de alta legibilidade com paleta neutra e moderna (`#f8fafc`), superfícies brancas puras e bordas nítidas. Ideal para ambientes iluminados, leitura detalhada de PoCs, geração de relatórios para diretoria executiva e apresentações.
+- 💻 **Sincronização com o Sistema Operacional**: Opção de respeitar automaticamente o `prefers-color-scheme` do sistema.
+- ⌨️ **Atalhos Rápidos de Teclado**:
+  - `Ctrl + Shift + L` ou `Alt + Shift + T`: Alterna instantaneamente entre o modo claro e escuro de qualquer lugar da aplicação.
+- 📍 **Onde acessar**:
+  - Botão de alternância com ícones de Sol e Lua diretamente na barra superior do cabeçalho (*Header*).
+  - Aba dedicada **Aparência & Tema** dentro do menu de **Configurações**.
+  - Opção no menu de **Ações Rápidas (Quick Menu)** e na barra de navegação móvel.
 
 ---
 
