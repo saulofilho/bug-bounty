@@ -8,9 +8,9 @@ Bem-vindo ao manual operacional do **BugSentinel**, a estação de trabalho defi
 
 1. [Visão Geral & Primeiros Passos](#1-visão-geral--primeiros-passos)
 2. [Ciclo de Vida do Relatório (Do Recon ao Payout)](#2-ciclo-de-vida-do-relatório-do-recon-ao-payout)
-3. [Tutorial Detalhado das 36 Ferramentas da Suíte AppSec](#3-tutorial-detalhado-das-36-ferramentas-da-suíte-appsec)
+3. [Tutorial Detalhado das 37 Ferramentas da Suíte AppSec](#3-tutorial-detalhado-das-37-ferramentas-da-suíte-appsec)
    - [3.1. Calculadoras de Risco & Severidade (CVSS, EPSS & Supply Chain)](#31-calculadoras-de-risco--severidade)
-   - [3.2. Laboratório de Evasão de Filtros, Codificação & Ofuscação](#32-laboratório-de-evasão-de-filtros-codificação--ofuscação)
+   - [3.2. Laboratório de Evasão de Filtros, Fuzzing, Codificação & Ofuscação](#32-laboratório-de-evasão-de-filtros-fuzzing-codificação--ofuscação)
    - [3.3. Autenticação, Identidade & Controle de Acesso (OAuth, SAML, IDOR & IAM)](#33-autenticação-identidade--controle-de-acesso)
    - [3.4. Infraestrutura Web, Protocolos & Cache (Smuggling, Desync, Cache & CORS)](#34-infraestrutura-web-protocolos--cache)
    - [3.5. Ataques de Aplicação Avançados (Prototype Pollution, Race Condition & ReDoS)](#35-ataques-de-aplicação-avançados)
@@ -29,7 +29,7 @@ O **BugSentinel** funciona como uma Single Page Application (SPA) reativa e ráp
 * **📊 Dashboard**: Visão executiva com métricas de relatórios, gráficos de severidade, total de recompensas (bounties em USD e BRL), prazos de SLA e feed de atividades recentes.
 * **🎯 Programs (Alvos)**: Cadastro de escopos (*in-scope* / *out-of-scope*), plataformas associadas (HackerOne, Bugcrowd, Intigriti, etc.) e taxas de payout.
 * **📝 Reports**: Listagem e edição detalhada de vulnerabilidades, passos de reprodução em Markdown, vetores CVSS calculados e histórico de triagem.
-* **🛡️ AppSec Suite**: Central com 36 ferramentas técnicas para avaliação, testes de exploração, cálculos matemáticos de risco e remediação.
+* **🛡️ AppSec Suite**: Central com 37 ferramentas técnicas para avaliação, testes de exploração, cálculos matemáticos de risco e remediação.
 * **🌐 Threat Intel**: Radar mundial interativo de ciberameaças em tempo real e monitoramento de incidentes globais.
 * **💰 Risk Simulator**: Modelagem de perdas financeiras com os métodos quantitativos FAIR e simulador de custos de violação de dados.
 * **📚 Docs & Checklists**: Metodologias de teste de invasão (OWASP WSTG, ASVS, API Security Top 10) e bibliotecas de payloads prontos.
@@ -100,9 +100,30 @@ Acesse a aba **AppSec** na barra de navegação superior para abrir a central t�
 
 ---
 
-### 3.2. Laboratório de Evasão de Filtros, Codificação & Ofuscação
+### 3.2. Laboratório de Evasão de Filtros, Fuzzing, Codificação & Ofuscação
 
-#### 4. Payload Obfuscator (Cifra XOR, Base64 & URL Encoding)
+#### 4. Payload Fuzzer & Mutation Engine
+* **Objetivo:** Automatizar a geração e mutação de vetores de ataque para testes manuais e exportação de wordlists (Burp Suite Intruder, ffuf, wfuzz).
+* **Passo a Passo:**
+  1. Digite a URL alvo ou string de injeção contendo o marcador `{FUZZ}` (ex: `https://app.corp/search?q={FUZZ}` ou `{"user": "{FUZZ}"}`).
+  2. Escolha o modo de posicionamento:
+     - **{FUZZ} Marker**: substitui a tag pelo payload mutado;
+     - **Suffix / Prefix**: anexa ao final ou início do input base;
+     - **Raw Only**: gera apenas o payload de ataque puro;
+     - **Delim Wrap**: encapsula o payload com quebra de aspas para escape contextual.
+  3. Selecione as categorias de injeção aplicáveis:
+     - **SQL Injection**: Evasão de autenticação (`' OR 1=1--`), injeção UNION, time-based blind (`SLEEP(5)`);
+     - **Cross-Site Scripting (XSS)**: Payloads sem aspas, tags SVG onload, event handlers HTML5;
+     - **Path Traversal / LFI**: Sequências `../`, URL double encoded `%252e%252e%252f`, `/proc/self/environ`;
+     - **Command Injection**: Separadores de pipeline (`;`, `|`, `&&`, subshells `$()`);
+     - **Server-Side Template Injection (SSTI)**: Expressões Jinja2, Twig, Spring SpEL;
+     - **Cloud SSRF**: Endpoints AWS/GCP Metadata, decimal DWORD, loopback IPv6;
+     - **NoSQL / LDAP Injection**: Operadores MongoDB (`$ne`, `$regex`), injeções LDAP `*)(uid=*))(|(uid=*`.
+  4. Ative as estratégias de mutação para evasão de WAF:
+     - *URL Encode*, *Double URL Encode*, *All-Chars URL Encoding*, *Alternância de Caixa (sElEcT)*, *Quebra de Espaços (/\*\*/ e %0a)*, *Null Byte Injection (%00)*, *Unicode Homoglyphs*.
+  5. Visualize os resultados com estimativa de evasão de WAF, copie payloads específicos ou use **Copiar Tudo (Wordlist)** / **Exportar .TXT** para carregar diretamente no Intruder.
+
+#### 5. Payload Obfuscator (Cifra XOR, Base64 & URL Encoding)
 * **Objetivo:** Ofuscar strings e payloads de exploração para contornar assinaturas estáticas de WAFs (ModSecurity, Cloudflare WAF, AWS WAF).
 * **Passo a Passo:**
   1. Digite ou cole o payload no campo de texto (ex: `<script>alert(1)</script>` ou `UNION SELECT 1,2,3--`).

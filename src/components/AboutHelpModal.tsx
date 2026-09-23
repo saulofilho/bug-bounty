@@ -762,6 +762,26 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   </div>
                 </div>
 
+                {/* Tool 20 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-amber-400">
+                      <Zap className="w-4 h-4" />
+                      <span>20. Payload Fuzzer & Mutation Engine</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Fuzzing / WAF Evasion
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Permite definir uma string ou URL base com marcador <code>{`{FUZZ}`}</code> e selecionar técnicas de injeção comuns (SQLi, XSS, Path Traversal, CMDi, SSTI, SSRF, NoSQL) com transformações de mutação (URL encode, Double encode, quebras de whitespace, troca de caixa e evasões de aspas) para gerar listas de teste manual ou exportação para Burp Suite Intruder e ffuf.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Insira a URL ou payload com <code>{`{FUZZ}`}</code> (ou use um dos Presets rápidos).<br />2. Selecione as categorias de injeção (SQLi, XSS, Traversal, etc.) e mutações ativas.<br />3. Filtre os resultados e use <strong>Copiar Tudo (Wordlist)</strong> ou <strong>Exportar .TXT</strong> para seu fuzzer.</span>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}

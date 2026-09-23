@@ -96,6 +96,7 @@ import { RaceConditionStudio } from './RaceConditionStudio';
 import { MassAssignmentHppMatrix } from './MassAssignmentHppMatrix';
 import { SamlSecurityWorkbench } from './SamlSecurityWorkbench';
 import { CloudIamEscalationAuditor } from './CloudIamEscalationAuditor';
+import { PayloadFuzzerStudio } from './PayloadFuzzerStudio';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
@@ -112,6 +113,7 @@ export type ToolSubTab =
   | 'csp-studio'
   | 'epss-prioritizer'
   | 'csrf-poc-studio'
+  | 'payload-fuzzer'
   | 'payload-encoder'
   | 'payload-obfuscator'
   | 'oauth-inspector'
@@ -342,6 +344,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     { id: 'csp-studio', label: 'CSP Studio & Evaluator', icon: ShieldCheck, badge: 'Level 3 / XSS', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'epss-prioritizer', label: 'CVSS v4 + EPSS Matrix', icon: Crosshair, badge: 'FIRST EPSS', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
     { id: 'csrf-poc-studio', label: 'CSRF PoC Studio', icon: Globe, badge: 'SameSite Matrix', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'payload-fuzzer', label: 'Payload Fuzzer & Mutation Engine', icon: Zap, badge: 'Fuzz / WAF', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'payload-encoder', label: 'Base64, URL & Hex Encoder', icon: Binary, badge: 'Real-Time WAF', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
     { id: 'payload-obfuscator', label: 'Payload Obfuscator', icon: Lock, badge: 'XOR / B64 / URL', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'oauth-inspector', label: 'OAuth 2.0 & OIDC Inspector', icon: KeyRound, badge: 'CSRF / PKCE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
@@ -379,13 +382,13 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                 <span>DevSecOps & AppSec Suite</span>
               </span>
               <span className="text-zinc-500 text-xs">•</span>
-              <span className="text-zinc-400 font-mono text-xs">27 Ferramentas Integradas</span>
+              <span className="text-zinc-400 font-mono text-xs">37 Ferramentas Integradas</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
               <span>Central de Engenharia & AppSec</span>
             </h1>
             <p className="text-sm text-zinc-400 max-w-3xl leading-relaxed">
-              Automação de triagem, cálculo CVSS v4.0 e supply chain SCA, grafo de ataque interativo D3.js (Kill Chain & MITRE ATT&CK), auditoria de CORS e gerador de exploit PoC HTML, inspector de HTTP Request Smuggling (CL.TE/H2.TE), central OOB Collaborator para vulnerabilidades cegas (Blind SSRF/XXE/RCE), auditor de subdomínios órfãos e CNAME takeover, laboratório ReDoS com detecção de backtracking catastrófico, orquestrador de SSRF em nuvem (AWS/GCP/Azure/K8s), auditor de GraphQL, auditoria JWT, gerador de CSP, matriz EPSS, PoC CSRF, encoders WAF, auditor de headers, SLA, ROI de bug bounty, DLP e integradores.
+              Automação de triagem, fuzzer de payloads com mutações e bypass de WAF, cálculo CVSS v4.0 e supply chain SCA, grafo de ataque interativo D3.js (Kill Chain & MITRE ATT&CK), auditoria de CORS e gerador de exploit PoC HTML, inspector de HTTP Request Smuggling (CL.TE/H2.TE), central OOB Collaborator para vulnerabilidades cegas (Blind SSRF/XXE/RCE), auditor de subdomínios órfãos e CNAME takeover, laboratório ReDoS com detecção de backtracking catastrófico, orquestrador de SSRF em nuvem (AWS/GCP/Azure/K8s), auditor de GraphQL, auditoria JWT, gerador de CSP, matriz EPSS, PoC CSRF, encoders WAF, auditor de headers, SLA, ROI de bug bounty, DLP e integradores.
             </p>
           </div>
 
@@ -1781,6 +1784,18 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
         <CsrfPocStudio 
           reportId={selectedReport?.id} 
           targetEndpoint={selectedReport?.target ? `https://${selectedReport.target}/api/action` : undefined} 
+        />
+      )}
+
+      {/* --- 17.2. Payload Fuzzer & Mutation Engine --- */}
+      {activeTab === 'payload-fuzzer' && (
+        <PayloadFuzzerStudio 
+          initialTarget={selectedReport?.target}
+          onSendToPocBuilder={(url, payload) => {
+            setPocTarget(url);
+            if (payload) setPocBody(payload);
+            setActiveTab('poc-builder');
+          }}
         />
       )}
 
