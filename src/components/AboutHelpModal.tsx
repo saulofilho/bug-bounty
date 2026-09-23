@@ -365,17 +365,17 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
             </div>
           )}
 
-          {/* SECTION: APPSEC TOOLS (10 MÓDULOS) */}
+          {/* SECTION: APPSEC TOOLS (36 MÓDULOS) */}
           {activeSection === 'tools' && (
             <div className="space-y-5">
               <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 flex items-start gap-3.5">
                 <Sparkles className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-amber-300 font-mono flex items-center gap-2">
-                    <span>Central de Ferramentas AppSec & DevSecOps — 10 Módulos Integrados</span>
+                    <span>Central de Ferramentas AppSec & DevSecOps — 36 Módulos Integrados</span>
                   </h3>
                   <p className="text-zinc-300 text-xs leading-relaxed">
-                    A aba <strong>AppSec</strong> foi desenvolvida para unificar as tarefas essenciais de engenheiros de segurança e pesquisadores. Abaixo você confere o funcionamento e as instruções de uso de cada módulo:
+                    A aba <strong>AppSec</strong> foi desenvolvida para unificar as tarefas essenciais de engenheiros de segurança e pesquisadores. Para o manual operacional passo a passo de todas as 36 ferramentas, consulte também o arquivo <code>TUTORIAL.md</code> na raiz do projeto.
                   </p>
                 </div>
               </div>
@@ -579,6 +579,186 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
                     <span className="text-amber-400 font-bold block">Como usar:</span>
                     <span>1. Escolha a plataforma (Slack, Discord, Teams).<br />2. Insira o Webhook URL do seu canal de segurança.<br />3. Clique em Disparar Teste para validar o recebimento.</span>
+                  </div>
+                </div>
+
+                {/* Tool 11 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-amber-400">
+                      <Lock className="w-4 h-4" />
+                      <span>11. Payload Obfuscator</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      XOR / Pipeline
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Cifra strings e exploits com chave XOR configurável e pipeline de múltiplas transformações (URL, Base64, Hex) para contornar assinaturas estáticas de WAFs.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Digite o payload e defina a chave secreta XOR.<br />2. Ative etapas no pipeline encadeado.<br />3. Copie o payload e os snippets em Python/Node.js.</span>
+                  </div>
+                </div>
+
+                {/* Tool 12 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-sky-400">
+                      <Key className="w-4 h-4" />
+                      <span>12. OAuth 2.0 & OIDC Inspector</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                      SSO Security
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Audita URLs de autorização contra falhas de State CSRF, uso do fluxo depreciado Implicit Grant, ausência de PKCE S256 e manipulação de redirect_uri.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Cole a URL de autorização do alvo.<br />2. Analise os alertas de entropia de state e PKCE.<br />3. Obtenha a nota de conformidade e guia de remediação.</span>
+                  </div>
+                </div>
+
+                {/* Tool 13 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-rose-400">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>13. BOLA / IDOR Matrix</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      OWASP API #1
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Mapeador de autorização multi-inquilino (*cross-tenant / cross-user*) e scanner de previsibilidade e entropia de identificadores (sequenciais vs UUID v1 vs UUID v4).
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Alterne entre perfis de teste (Usuário A vs B).<br />2. Cole um ID de recurso para auditar a entropia.<br />3. Copie o padrão seguro de consulta com ORM.</span>
+                  </div>
+                </div>
+
+                {/* Tool 14 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-purple-400">
+                      <Layers className="w-4 h-4" />
+                      <span>14. Web Cache Poisoning & Deception</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      CDN / Caching
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Diagnóstico de envenenamento de cache via cabeçalhos não-chaveados (*unkeyed headers*) e Web Cache Deception através de extensões estáticas na CDN.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Configure o caminho testado e adicione extensões estáticas.<br />2. Teste unkeyed headers como X-Forwarded-Host.<br />3. Aplique as regras de Cache-Control recomendadas.</span>
+                  </div>
+                </div>
+
+                {/* Tool 15 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-yellow-400">
+                      <Terminal className="w-4 h-4" />
+                      <span>15. Prototype Pollution & Gadgets</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+                      Node.js / DOM
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Audita mutações em `Object.prototype` causadas por deep merge e mapeia cadeias de gadgets para escalonamento a DOM XSS e Node.js RCE (child_process/EJS).
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Insira o JSON com chaves como __proto__.<br />2. Inspecione gadgets para RCE no Node.js.<br />3. Copie as proteções com Object.freeze e Object.create(null).</span>
+                  </div>
+                </div>
+
+                {/* Tool 16 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-orange-400">
+                      <Zap className="w-4 h-4" />
+                      <span>16. Race Condition & Concurrency</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                      TOCTOU / Mutex
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Simulador interativo de condições de corrida em transações financeiras (saques duplicados) e resgate de cupons, comparando bloqueios pessimistas e idempotência.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Ajuste saldo, valor do saque e número de threads.<br />2. Compare execução sem travas vs SELECT ... FOR UPDATE.<br />3. Teste chaves atômicas de idempotência com Redis.</span>
+                  </div>
+                </div>
+
+                {/* Tool 17 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-emerald-400">
+                      <Sliders className="w-4 h-4" />
+                      <span>17. Mass Assignment & HPP Matrix</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Over-Posting / HPP
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Detecta injeção de atributos restritos em entidades de modelo e apresenta matriz de precedência de parâmetros HTTP repetidos entre diferentes frameworks web.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Cole o payload para auditar campos de admin/saldo.<br />2. Insira query params repetidos e compare Node vs PHP vs Flask.<br />3. Adote DTOs com validação estrita no backend.</span>
+                  </div>
+                </div>
+
+                {/* Tool 18 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-indigo-400">
+                      <FileText className="w-4 h-4" />
+                      <span>18. SAML 2.0 & XML Workbench</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      SSO / XSW
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Auditoria de asserções SAML, integridade de assinaturas XML ds:Signature, detecção de SHA-1 obsoleto e catálogo detalhado das 8 variantes de XML Signature Wrapping.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Cole o XML da resposta SAML.<br />2. Revise assinaturas, Audience e NameID.<br />3. Consulte as mitigações contra variantes XSW 1-8 e XXE.</span>
+                  </div>
+                </div>
+
+                {/* Tool 19 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-rose-400">
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>19. AWS IAM Privilege Escalation</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      Cloud IAM
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Audita políticas JSON da AWS contra os 21 vetores clássicos de escalonamento a Administrador (iam:CreatePolicyVersion, PassRole com EC2/Lambda, etc.).
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Cole a política IAM JSON no editor.<br />2. Analise os métodos de escalonamento identificados.<br />3. Aplique Permission Boundaries e SCPs recomendados.</span>
                   </div>
                 </div>
 

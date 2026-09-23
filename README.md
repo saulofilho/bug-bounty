@@ -16,8 +16,9 @@
 ## 📋 Sumário
 
 - [Visão Geral](#-visão-geral)
-- [Central de Ferramentas AppSec & DevSecOps (10 Módulos)](#-central-de-ferramentas-appsec--devsecops-10-módulos)
-- [Como Usar as Novas Ferramentas (Guia Prático)](#-como-usar-as-novas-ferramentas-guia-prático)
+- [Central de Ferramentas AppSec & DevSecOps (36 Módulos)](#-central-de-ferramentas-appsec--devsecops-36-módulos)
+- [Guia de Uso Passo a Passo (Tutorial das Ferramentas)](#-guia-de-uso-passo-a-passo-tutorial-das-ferramentas)
+- [Manual Completo (TUTORIAL.md)](#-manual-completo-tutorialmd)
 - [Categorias de Impacto & Legenda de Triagem Rápida (Fast Triage)](#-categorias-de-impacto--legenda-de-triagem-rápida-fast-triage)
 - [Monitores de Rate Limits de APIs e Alvos](#-monitores-de-rate-limits-de-apis-e-alvos)
 - [Análise de Sentimento nas Interações de Triagem](#-análise-de-sentimento-nas-interações-de-triagem)
@@ -51,7 +52,7 @@ A plataforma cobre todas as fases do ciclo de vida de vulnerabilidades:
 
 ---
 
-## 🛠️ Central de Ferramentas AppSec & DevSecOps (27 Módulos)
+## 🛠️ Central de Ferramentas AppSec & DevSecOps (36 Módulos)
 
 Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de utilitários técnicos:
 
@@ -72,22 +73,33 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 | **13** | **CVSS v4 + FIRST EPSS Matrix** | Priorização baseada em probabilidade de ameaça em circulação | Matriz 2D correlacionando severidade inerente (CVSS v4.0) com probabilidade estatística de exploração ativa em 30 dias (FIRST EPSS), com cálculo dinâmico de SLAs (P0 a P3). |
 | **14** | **CSRF PoC Studio** | Gerador de Provas de Conceito de Cross-Site Request Forgery | Criação de exploits HTML autocontidos com submissão automática via iframe oculto, suporte a truque JSON (`text/plain`), avaliação de navegabilidade com cookies `SameSite (Lax, Strict, None)` e download `.html`. |
 | **15** | **Payload Multi-Encoder / Decoder** | Canivete suíço de codificações e evasão de filtros WAF | Conversão instantânea e simultânea em URL Encode, Double URL, Base64/Base64URL, Hexadecimal (`\x41`, `0x41`), HTML Entities, Unicode Escape (`\u0041`), SQL `CHAR()` e PowerShell `-Enc`. |
-| **16** | **Security Headers Auditor** | Análise e hardening de cabeçalhos HTTP de segurança | Inspeção de HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, detecção de fingerprint em `Server`/`X-Powered-By` e gerador de configs seguras. |
-| **17** | **Mapeador CWE / OWASP Top 10** | Padronização taxonômica de vulnerabilidades | Catálogo das Top CWEs (2023/2024), correlação com OWASP Top 10 2021, descrições detalhadas, exemplos de código vulnerável e guia de mitigação. |
-| **18** | **Construtor de PoC & HTTP** | Geração rápida de requisições de reprodução | Exportação instantânea em comando `cURL`, script em `Python Requests` e requisição `Raw HTTP/1.1` com headers e payloads estruturados. |
-| **19** | **Monitor de SLA de Triagem** | Acompanhamento de conformidade de prazos | Rastreamento de MTTA (*Mean Time to Acknowledge*) e MTTR (*Mean Time to Resolve*); contagem regressiva para breach com base na severidade (Crítico: 24h/7d; Alto: 48h/14d). |
-| **20** | **Macros de Resposta Rápida** | Comunicação padronizada para triadores e hunters | Templates pré-configurados (Solicitação de PoC, Confirmação de Triagem, Notificação de Duplicata, Concessão de Bounty) com interpolação de variáveis dinâmicas (`{hunter}`, `{report_title}`, `{bounty}`, `{cvss}`). |
-| **21** | **Detector de Duplicatas** | Prevenção de relatórios duplicados | Comparador de similaridade de texto (Jaccard + Levenshtein), verificação de correspondência de endpoint e parâmetros vulneráveis em relação aos relatórios já existentes. |
-| **22** | **Matriz & Orçamento de Bounties** | Cálculo justo de recompensas e orçamento | Definição por Criticidade do Ativo (*Tier 1: Core/Auth/Payment*, *Tier 2: API/Customer*, *Tier 3: Marketing/Docs*) e simulação de impacto financeiro no orçamento anual. |
-| **23** | **Calculadora de ROI de Programas & Yield** | Priorização de plataformas e programas de bug bounty | Avaliação de Retorno sobre Investimento (ROI) correlacionando histórico de payouts pagos ($) vs. amplitude de cobertura, saturação de pesquisadores e velocidade de triagem, estimando o rendimento por hora (`$/hora`) do pesquisador. |
-| **24** | **Exportador para Issue Trackers** | Conversão para times de desenvolvimento | Geração de tickets prontos em Markdown técnico para **Jira**, **GitHub Issues** e **GitLab Issues** com passos de reprodução, impacto de negócio e sugestões de correção. |
-| **25** | **Sanitizador DLP (Segredos & PII)** | Proteção antes do envio de relatórios | Scanner em tempo real que detecta e ofusca chaves AWS (`AKIA...`), tokens de acesso GitHub (`ghp_...`), JWTs, senhas em URLs, chaves privadas RSA/OpenSSH e emails. |
-| **26** | **Guia de Remediação de Segredos** | Resposta a incidentes de credenciais vazadas | Procedimento padronizado (SOP) com checklist interativo para rotacionar credenciais, revogar no console de provedores (OpenAI e AWS), auditar telemetria no CloudTrail/Usage Dashboard e encerrar alertas do GitHub Secret Scanning. |
-| **27** | **Simulador de Webhooks** | Notificações e automação de alertas | Disparo e teste de payloads estruturados para **Slack**, **Discord** e **Microsoft Teams**, simulando avisos automáticos de vulnerabilidades críticas. |
+| **16** | **Payload Obfuscator** | Ofuscação multi-camadas contra assinaturas estáticas | Cifra XOR de chave variável (1-32 chars) com saída Hex e Base64; gerador de snippets em Python, Node.js e Bash; pipeline sequencial combinando URL Encode, Double URL, Base64 e XOR em cascata. |
+| **17** | **OAuth 2.0 & OIDC Security Inspector** | Auditoria profunda de URLs de autorização e fluxos SSO | Detecção de CSRF por ausência ou baixa entropia de `state`, identificação do fluxo depreciado *Implicit Grant*, conformidade com PKCE (RFC 7636) e validação estrita de `redirect_uri` contra path traversal e wildcards. |
+| **18** | **BOLA / IDOR Authorization Matrix** | Diagnóstico de Broken Object Level Authorization (OWASP API #1) | Matriz interativa de segregação de acesso multi-inquilino (*cross-tenant / cross-user*), scanner de previsibilidade de identificadores (IDs sequenciais vs UUID v1 com vazamento de MAC/timestamp vs UUID v4 seguro) e código de remediação ORM. |
+| **19** | **Web Cache Poisoning & Cache Deception Studio** | Diagnóstico de cache HTTP em CDNs e proxies reversos | Simulação de envenenamento por cabeçalhos não-chaveados (*unkeyed headers* como `X-Forwarded-Host`); análise de Web Cache Deception via delimitadores estáticos (`;style.css`, `.js`, `.ico`) e regras `Cache-Control: no-store`. |
+| **20** | **Prototype Pollution & Gadget Chains Studio** | Auditoria de mutação de objetos em JavaScript e Node.js | Inspeciona deep merges e clonagens recursivas vulneráveis a sobrescrita de `Object.prototype`; catálogo de gadgets conhecidos para escalonamento a DOM XSS e Node.js RCE (`child_process.fork` via `execArgv` e EJS `outputFunctionName`). |
+| **21** | **Race Condition & Concurrency Studio** | Simulação de concorrência e falhas TOCTOU em APIs | Simulador em tempo real de saques duplicados e resgate múltiplo de cupons; comparador de cenários sem bloqueio vs. bloqueio pessimista (`SELECT ... FOR UPDATE`) vs. chaves atômicas de idempotência com Redis. |
+| **22** | **Mass Assignment & Parameter Pollution (HPP)** | Auditoria de Over-Posting e precedência de parâmetros HTTP | Verificação de injeção de campos protegidos (`role`, `is_admin`, `balance`); matriz de divergência de precedência entre frameworks backend (Node.js/Express, PHP, Python/Flask, ASP.NET) para evasão de WAFs. |
+| **23** | **SAML 2.0 & XML Signature Workbench** | Auditoria de asserções SAML e segurança de Enterprise SSO | Validação de assinaturas XML (`ds:Signature`), restrição de destinatário (`AudienceRestriction`), expiração temporal, detecção de algoritmos legados (SHA-1) e catálogo das 8 variantes de XML Signature Wrapping (XSW 1 a XSW 8). |
+| **24** | **AWS IAM Privilege Escalation Auditor** | Auditoria de escalonamento a Administrador na AWS | Analisador de políticas JSON contra os 21 vetores clássicos de escalonamento IAM (`iam:CreatePolicyVersion`, `iam:AttachUserPolicy`, `iam:PassRole` com EC2/Lambda) e recomendações de *Permission Boundaries* e SCPs. |
+| **25** | **Security Headers Auditor** | Análise e hardening de cabeçalhos HTTP de segurança | Inspeção de HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, detecção de fingerprint em `Server`/`X-Powered-By` e gerador de configs seguras. |
+| **26** | **Mapeador CWE / OWASP Top 10** | Padronização taxonômica de vulnerabilidades | Catálogo das Top CWEs (2023/2024), correlação com OWASP Top 10 2021, descrições detalhadas, exemplos de código vulnerável e guia de mitigação. |
+| **27** | **Construtor de PoC & HTTP** | Geração rápida de requisições de reprodução | Exportação instantânea em comando `cURL`, script em `Python Requests` e requisição `Raw HTTP/1.1` com headers e payloads estruturados. |
+| **28** | **Monitor de SLA de Triagem** | Acompanhamento de conformidade de prazos | Rastreamento de MTTA (*Mean Time to Acknowledge*) e MTTR (*Mean Time to Resolve*); contagem regressiva para breach com base na severidade (Crítico: 24h/7d; Alto: 48h/14d). |
+| **29** | **Macros de Resposta Rápida** | Comunicação padronizada para triadores e hunters | Templates pré-configurados (Solicitação de PoC, Confirmação de Triagem, Notificação de Duplicata, Concessão de Bounty) com interpolação de variáveis dinâmicas (`{hunter}`, `{report_title}`, `{bounty}`, `{cvss}`). |
+| **30** | **Detector de Duplicatas** | Prevenção de relatórios duplicados | Comparador de similaridade de texto (Jaccard + Levenshtein), verificação de correspondência de endpoint e parâmetros vulneráveis em relação aos relatórios já existentes. |
+| **31** | **Matriz & Orçamento de Bounties** | Cálculo justo de recompensas e orçamento | Definição por Criticidade do Ativo (*Tier 1: Core/Auth/Payment*, *Tier 2: API/Customer*, *Tier 3: Marketing/Docs*) e simulação de impacto financeiro no orçamento anual. |
+| **32** | **Calculadora de ROI de Programas & Yield** | Priorização de plataformas e programas de bug bounty | Avaliação de Retorno sobre Investimento (ROI) correlacionando histórico de payouts pagos ($) vs. amplitude de cobertura, saturação de pesquisadores e velocidade de triagem, estimando o rendimento por hora (`$/hora`) do pesquisador. |
+| **33** | **Exportador para Issue Trackers** | Conversão para times de desenvolvimento | Geração de tickets prontos em Markdown técnico para **Jira**, **GitHub Issues** e **GitLab Issues** com passos de reprodução, impacto de negócio e sugestões de correção. |
+| **34** | **Sanitizador DLP (Segredos & PII)** | Proteção antes do envio de relatórios | Scanner em tempo real que detecta e ofusca chaves AWS (`AKIA...`), tokens de acesso GitHub (`ghp_...`), JWTs, senhas em URLs, chaves privadas RSA/OpenSSH e emails. |
+| **35** | **Guia de Remediação de Segredos** | Resposta a incidentes de credenciais vazadas | Procedimento padronizado (SOP) com checklist interativo para rotacionar credenciais, revogar no console de provedores (OpenAI e AWS), auditar telemetria no CloudTrail/Usage Dashboard e encerrar alertas do GitHub Secret Scanning. |
+| **36** | **Simulador de Webhooks** | Notificações e automação de alertas | Disparo e teste de payloads estruturados para **Slack**, **Discord** e **Microsoft Teams**, simulando avisos automáticos de vulnerabilidades críticas. |
 
 ---
 
-## 📖 Como Usar as Novas Ferramentas (Guia Prático)
+## 📖 Guia de Uso Passo a Passo (Tutorial das Ferramentas)
+
+> 💡 **Dica:** Um manual completo com a documentação de todos os 36 módulos, fluxo de triagem e políticas de segurança está disponível no arquivo dedicado [TUTORIAL.md](./TUTORIAL.md).
 
 ### 1. Como Avaliar uma Vulnerabilidade com o CVSS v4.0
 1. Acesse a aba **AppSec** > selecione **CVSS v4.0 Calculator**.
@@ -303,6 +315,99 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
    - Use os botões de simulação rápida (`+DNS`, `+HTTP`, `+LDAP`) para testar o fluxo de ingestão.
 5. **Decodificador Integrado de Dados Exfiltrados**:
    - Decodifique instantaneamente subdomínios em formato hexadecimal (ex: `726f6f74` ➔ `root`), strings Base64 e codificação de URL.
+
+### 16. Como Ofuscar Payloads com Cifras XOR e Multi-Camadas (Payload Obfuscator)
+1. Na aba **AppSec**, selecione **Payload Obfuscator**.
+2. **Cifra XOR Dinâmica**:
+   - Digite o payload alvo (ex: `<script>alert(1)</script>` ou `UNION SELECT 1,2,3--`).
+   - Insira uma chave de criptografia de 1 a 32 caracteres (ex: `secKey2026`).
+   - Obtenha a saída criptografada em Hexadecimal (`\x0b\x0e...`) e em Base64, além de snippets prontos para decodificação em Python, Node.js e Bash.
+3. **Pipeline de Transformação Sequencial**:
+   - Ative transformações encadeadas em cascata: *URL Encode Simples* ➔ *Double URL* ➔ *Base64* ➔ *Cifra XOR*.
+   - Visualize a evolução do payload após cada etapa e copie a saída final ofuscada para contornar assinaturas estáticas de WAFs.
+
+### 17. Como Auditar Fluxos OAuth 2.0 e OIDC (OAuth Security Inspector)
+1. Na aba **AppSec**, selecione **OAuth 2.0 & OIDC Inspector**.
+2. Cole a URL de autorização emitida pela aplicação ou escolha entre os cenários pré-configurados (Google SSO, GitHub OAuth, Implicit Flow Legado, URL sem Proteção State).
+3. **Diagnóstico Automatizado de Riscos**:
+   - **Parâmetro `state`**: Alerta crítico se o parâmetro estiver ausente ou com baixa entropia (<16 chars), indicando vulnerabilidade a Account Takeover (ATO) via login CSRF.
+   - **Fluxo Implicit (`response_type=token`)**: Emite aviso de depreciação conforme o OAuth 2.1 e risco de vazamento de token via fragmento de URL no histórico do navegador.
+   - **PKCE (RFC 7636)**: Verifica a presença de `code_challenge` e `code_challenge_method`, alertando caso utilize o método frágil `plain` em vez de `S256`.
+   - **Redirect URI Manipulation**: Detecta se o endpoint de callback possui curingas (*wildcards*) ou permite manipulação por *path traversal* (`/callback/../../attacker`).
+4. Consulte a pontuação de conformidade e o snippet de configuração segura para o provedor de identidade.
+
+### 18. Como Analisar Quebra de Autorização BOLA / IDOR e Previsibilidade de IDs (BOLA Matrix)
+1. Na aba **AppSec**, selecione **BOLA / IDOR Matrix**.
+2. **Matriz de Permissões Multi-Inquilino**:
+   - Alterne entre perfis de teste (Usuário A, Usuário B, Admin de Tenant, Usuário Anônimo) e inspecione endpoints protegidos (`GET /api/v1/invoices/:id`).
+   - Verifique se o backend valida a propriedade do objeto (`resource.ownerId === request.user.id`) ou se concede acesso indevido cruzado entre contas.
+3. **Analisador de Entropia de Identificadores**:
+   - Cole um identificador emitido pelo sistema (ex: `10042`, UUID v1 ou UUID v4).
+   - O scanner detecta identificadores sequenciais fáceis de enumerar, UUID v1 (que expõe o timestamp exato e o endereço MAC físico da placa de rede do servidor), ou confirma UUID v4 criptograficamente aleatório.
+4. Utilize os exemplos seguros de consulta com ORM que incluem o `userId` na cláusula `WHERE`.
+
+### 19. Como Diagnosticar Web Cache Poisoning e Web Cache Deception (Web Cache Security Studio)
+1. Na aba **AppSec**, selecione **Web Cache Poisoning & Deception**.
+2. **Auditoria de Web Cache Deception**:
+   - Configure o caminho testado (ex: `/profile/settings`) e anexe extensões estáticas (`;style.css`, `.js`, `.ico`).
+   - O simulador diagnostica se o backend processa a requisição dinâmica autenticada enquanto a CDN (Cloudflare, Akamai, CloudFront) armazena em cache o conteúdo sensível devido à extensão final no caminho da URL.
+3. **Simulador de Envenenamento por Cabeçalhos Não-Chaveados (*Unkeyed Headers*)**:
+   - Insira cabeçalhos como `X-Forwarded-Host: attacker.com` ou `X-Original-URL`.
+   - Analise se a resposta gerada com scripts externos é indexada na Cache Key e servida a usuários legítimos.
+4. Aplique a diretriz de cabeçalho `Cache-Control: no-store, private` para proteger respostas sensíveis.
+
+### 20. Como Auditar Prototype Pollution e Explorar Gadgets Node.js (Prototype Pollution Studio)
+1. Na aba **AppSec**, selecione **Prototype Pollution & Gadgets**.
+2. **Laboratório de Teste de Merge Recursivo**:
+   - Insira um payload JSON contendo chaves como `__proto__`, `constructor.prototype` ou `prototype`.
+   - O motor avalia se uma operação de *deep merge* ou atribuição de caminho (ex: versões vulneráveis de `lodash.merge` ou `deep-extend`) propagará as chaves para `Object.prototype`.
+3. **Catálogo de Gadgets para Escalonamento de Impacto**:
+   - **Node.js `child_process.fork` RCE**: Injeção da flag `--eval` no array `execArgv` do processo filho.
+   - **EJS Template Engine RCE**: Sobrescrita da propriedade `outputFunctionName` durante a compilação do template.
+   - **Client-Side DOM XSS**: Poluição de propriedades `src` ou resolvedores de transporte assíncrono.
+4. Aplique os métodos de mitigação: `Object.freeze(Object.prototype)`, `Object.create(null)` e a flag `--disable-proto=delete`.
+
+### 21. Como Simular e Prevenir Condições de Corrida e Falhas TOCTOU (Race Condition Studio)
+1. Na aba **AppSec**, selecione **Race Condition & Concurrency**.
+2. **Configuração do Cenário (Ex: Saque Financeiro)**:
+   - Defina o Saldo Inicial (`$100`), o Valor por Saque (`$80`) e o número de Requisições Simultâneas (5 threads paralelas).
+3. **Simulação de Vulnerabilidade TOCTOU**:
+   - No modo sem bloqueio, comprove como todas as 5 requisições leem o saldo antes do primeiro commit, permitindo sacar `$400` de uma conta com `$100` e gerando saldo negativo de `-$300`!
+4. **Controles Defensivos**:
+   - Ative o **Bloqueio Pessimista de Banco (`SELECT ... FOR UPDATE`)** para serializar as transações.
+   - Ative a **Chave de Idempotência (`Idempotency-Key` via Redis)** para descartar chamadas duplicadas na mesma janela temporal.
+   - Copie o snippet de operação atômica em SQL em linha única com validação na cláusula `WHERE`.
+
+### 22. Como Detectar Mass Assignment (Over-Posting) e Poluição de Parâmetros HPP (Mass Assignment Matrix)
+1. Na aba **AppSec**, selecione **Mass Assignment & HPP Matrix**.
+2. **Aba Mass Assignment**:
+   - Insira o payload JSON enviado pelo cliente no cadastro ou edição de usuário.
+   - O analisador inspeciona a presença de campos restritos (`role: "admin"`, `is_admin: true`, `balance: 99999`, `subscription_tier: "enterprise"`).
+   - Alerta sobre o antipattern de repassar `req.body` diretamente para `prisma.user.update()` sem um DTO rígido.
+3. **Aba Precedência HPP (HTTP Parameter Pollution)**:
+   - Digite uma query string com parâmetros repetidos (`id=1&action=view&id=2`).
+   - Veja a tabela comparativa de comportamento entre motores: Node.js/Express (gera array), PHP/Apache (pega o último), Python/Flask (pega o primeiro) e ASP.NET (concatena com vírgula), demonstrando técnicas de bypass de WAF.
+
+### 23. Como Inspecionar Asserções SAML 2.0 e XML Signature Wrapping XSW (SAML Security Workbench)
+1. Na aba **AppSec**, selecione **SAML 2.0 & XML Workbench**.
+2. **Auditoria de Resposta SAML**:
+   - Cole o documento XML da resposta SAML (`samlp:Response`).
+   - O auditor valida a presença do elemento `NameID`, assinaturas digitais (`ds:Signature`), restrição de destinatário (`AudienceRestriction`), algoritmos de hash legados (SHA-1) e janela temporal (`NotBefore`/`NotOnOrAfter`).
+3. **Matriz de Variantes XSW (1 a 8)**:
+   - Compreenda as técnicas de *XML Signature Wrapping*: como invasores clonam uma asserção assinada legítima e a reposicionam na árvore XML, inserindo uma asserção forjada sem assinatura que é consumida pelo Service Provider.
+4. Aplique as regras de endurecimento: rejeitar mensagens com mais de uma tag `<saml:Assertion>` e desabilitar declarações DTD no parser contra XXE.
+
+### 24. Como Auditar Escalonamento de Privilégios em Políticas IAM na AWS (Cloud IAM Escalation Auditor)
+1. Na aba **AppSec**, selecione **AWS IAM Privilege Escalation**.
+2. **Auditoria de Políticas JSON**:
+   - Cole o documento de política IAM no editor.
+   - O motor mapeia as permissões contra os **21 métodos clássicos de escalonamento de privilégios IAM** (pesquisa da Rhino Security Labs).
+   - Identifica combinações críticas como:
+     - `iam:CreatePolicyVersion` (criação de versão de política com permissão `*` definida como default);
+     - `iam:AttachUserPolicy` (anexação da política `AdministratorAccess`);
+     - `iam:PassRole` com `ec2:RunInstances` (inicialização de instância EC2 com perfil privilegiado para roubo de token via IMDS);
+     - `iam:PassRole` com `lambda:CreateFunction` (execução arbitrária de comandos em funções Lambda com Roles de admin).
+3. Aplique as diretrizes de governança recomendadas com *Permission Boundaries* e *Service Control Policies (SCPs)*.
 
 ---
 
