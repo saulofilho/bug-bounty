@@ -335,7 +335,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     { id: 'attack-graph', label: 'Attack Graph & Lateral Movement', icon: Network, badge: 'D3.js Force / CVEs & Domínios', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'cors-studio', label: 'CORS Misconfiguration Studio', icon: Globe, badge: 'ACAC / Exploit HTML', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
     { id: 'request-smuggler', label: 'HTTP Request Smuggling & Desync', icon: Split, badge: 'CL.TE / H2.TE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'oob-collaborator', label: 'OOB & Collaborator Studio', icon: Radio, badge: 'Blind SSRF / DNS', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'oob-collaborator', label: 'OOB (Out-of-Band) Collaborator', icon: Radio, badge: 'DNS / HTTP Logs', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
     { id: 'subdomain-takeover', label: 'Subdomain Takeover Analyzer', icon: Globe, badge: 'DNS / CNAME', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
     { id: 'redos-studio', label: 'ReDoS & Regex Complexity', icon: Cpu, badge: 'Catastrophic O(2ⁿ)', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'ssrf-cloud', label: 'Cloud SSRF & Metadata Suite', icon: Cloud, badge: 'AWS / GCP / K8s', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
@@ -1760,9 +1760,16 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
         <HttpRequestSmuggler />
       )}
 
-      {/* --- 26. Out-of-Band (OOB) Interaction & Collaborator Studio --- */}
+      {/* --- 26. Out-of-Band (OOB) Collaborator Studio --- */}
       {activeTab === 'oob-collaborator' && (
-        <OobInteractionStudio />
+        <OobInteractionStudio 
+          initialTarget={selectedReport?.target}
+          onSendToPocBuilder={(url, payload) => {
+            setPocTarget(url);
+            if (payload) setPocBody(payload);
+            setActiveTab('poc-builder');
+          }}
+        />
       )}
 
       {/* --- 15. CSP Studio & Evaluator --- */}

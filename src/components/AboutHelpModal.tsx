@@ -129,7 +129,7 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Ferramentas AppSec</span>
             <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-              10 Módulos
+              21 Módulos
             </span>
           </button>
           <button
@@ -779,6 +779,26 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
                     <span className="text-amber-400 font-bold block">Como usar:</span>
                     <span>1. Insira a URL ou payload com <code>{`{FUZZ}`}</code> (ou use um dos Presets rápidos).<br />2. Selecione as categorias de injeção (SQLi, XSS, Traversal, etc.) e mutações ativas.<br />3. Filtre os resultados e use <strong>Copiar Tudo (Wordlist)</strong> ou <strong>Exportar .TXT</strong> para seu fuzzer.</span>
+                  </div>
+                </div>
+
+                {/* Tool 21 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-cyan-400">
+                      <Radio className="w-4 h-4" />
+                      <span>21. OOB (Out-of-Band) Collaborator</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      DNS / HTTP Logs
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Gera hostnames e URLs únicos para comprovação empírica de vulnerabilidades cegas (Blind SSRF, Blind XXE, Blind RCE via DNS, Blind SQLi, Log4Shell e Blind XSS) e captura o feed em tempo real de requisições externas com IP de origem, cabeçalhos, parâmetros e decodificação automática de dados exfiltrados.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Copie o hostname ou URL único gerado com tag de teste customizada.<br />2. Escolha entre os vetores de injeção OOB (DNS lookup, HTTP GET/POST, XXE DTD, SQLi, JNDI).<br />3. Acompanhe a lista de interações externas, inspecione requisições em detalhes e exporte logs em JSON/CSV.</span>
                   </div>
                 </div>
 

