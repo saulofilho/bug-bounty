@@ -28,7 +28,8 @@ import {
   Copy,
   EyeOff,
   DollarSign,
-  Share2
+  Share2,
+  Crosshair
 } from 'lucide-react';
 
 interface AboutHelpModalProps {
@@ -129,7 +130,7 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Ferramentas AppSec</span>
             <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-              21 Módulos
+              22 Módulos
             </span>
           </button>
           <button
@@ -799,6 +800,26 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
                     <span className="text-amber-400 font-bold block">Como usar:</span>
                     <span>1. Copie o hostname ou URL único gerado com tag de teste customizada.<br />2. Escolha entre os vetores de injeção OOB (DNS lookup, HTTP GET/POST, XXE DTD, SQLi, JNDI).<br />3. Acompanhe a lista de interações externas, inspecione requisições em detalhes e exporte logs em JSON/CSV.</span>
+                  </div>
+                </div>
+
+                {/* Tool 22 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-rose-400">
+                      <Crosshair className="w-4 h-4" />
+                      <span>22. Threat Visualizer</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      D3.js / CVE & Reports
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Mapeia os principais vetores de ataque e relações entre vulnerabilidades comuns conectando relatórios ativos, CVEs associados (NVD/EPSS), taxonomias CWE e domínios de ativos corporativos. Inclui simulação física interativa em D3.js com drag & zoom, radar de densidade de risco e encadeamento de explorações multietapas (Exploit Chains).
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Alterne entre a <strong>Topologia Força D3.js</strong>, a <strong>Matriz de Ameaça (Recharts)</strong> ou as <strong>Cadeias de Exploração</strong>.<br />2. Utilize filtros por Vetor de Ataque, Severidade, CVSS e busca por termos para isolar subsistemas.<br />3. Clique em qualquer nó (Relatório, CVE, Vetor ou Ativo) para inspecionar métricas, descrição e disparar geração de PoC.<br />4. Exporte o grafo visual em SVG ou a matriz de relacionamentos em JSON.</span>
                   </div>
                 </div>
 

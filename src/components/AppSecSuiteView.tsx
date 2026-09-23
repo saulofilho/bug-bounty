@@ -80,6 +80,7 @@ import { CsrfPocStudio } from './CsrfPocStudio';
 import { PayloadEncoderDecoder } from './PayloadEncoderDecoder';
 import { SecurityHeadersAuditor } from './SecurityHeadersAuditor';
 import { AttackGraphStudio } from './AttackGraphStudio';
+import { ThreatVisualizer } from './ThreatVisualizer';
 import { SubdomainTakeoverAnalyzer } from './SubdomainTakeoverAnalyzer';
 import { ReDoSStudio } from './ReDoSStudio';
 import { SsrfCloudOrchestrator } from './SsrfCloudOrchestrator';
@@ -102,6 +103,7 @@ export type ToolSubTab =
   | 'cvss-v4' 
   | 'cvss-component'
   | 'attack-graph'
+  | 'threat-visualizer'
   | 'cors-studio'
   | 'request-smuggler'
   | 'oob-collaborator'
@@ -333,6 +335,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     { id: 'cvss-v4', label: 'CVSS v4.0 Engine', icon: Calculator, badge: 'v4.0', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     { id: 'cvss-component', label: 'CVSS v4 Component Calculator', icon: Package, badge: 'Supply Chain / SCA', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'attack-graph', label: 'Attack Graph & Lateral Movement', icon: Network, badge: 'D3.js Force / CVEs & Domínios', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'threat-visualizer', label: 'Threat Visualizer', icon: Crosshair, badge: 'D3.js / CVE & Reports', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
     { id: 'cors-studio', label: 'CORS Misconfiguration Studio', icon: Globe, badge: 'ACAC / Exploit HTML', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
     { id: 'request-smuggler', label: 'HTTP Request Smuggling & Desync', icon: Split, badge: 'CL.TE / H2.TE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'oob-collaborator', label: 'OOB (Out-of-Band) Collaborator', icon: Radio, badge: 'DNS / HTTP Logs', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
@@ -1747,6 +1750,23 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
           reports={reports}
           selectedReportId={selectedReport?.id}
           onSelectReport={onSelectReport}
+        />
+      )}
+
+      {/* --- 27. Threat Visualizer: D3.js & Recharts Vulnerability Relationships --- */}
+      {activeTab === 'threat-visualizer' && (
+        <ThreatVisualizer 
+          reports={reports}
+          selectedReportId={selectedReport?.id}
+          onSelectReport={(report) => {
+            setSelectedReportId(report.id);
+            if (onSelectReport) onSelectReport(report);
+          }}
+          onNavigateToPoc={(url, payload) => {
+            setPocTarget(url);
+            if (payload) setPocBody(payload);
+            setActiveTab('poc-builder');
+          }}
         />
       )}
 
