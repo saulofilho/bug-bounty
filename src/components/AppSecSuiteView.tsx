@@ -85,6 +85,7 @@ import { GraphQLSecurityAuditor } from './GraphQLSecurityAuditor';
 import { CorsStudio } from './CorsStudio';
 import { HttpRequestSmuggler } from './HttpRequestSmuggler';
 import { OobInteractionStudio } from './OobInteractionStudio';
+import { PayloadObfuscatorStudio } from './PayloadObfuscatorStudio';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
@@ -102,6 +103,7 @@ export type ToolSubTab =
   | 'epss-prioritizer'
   | 'csrf-poc-studio'
   | 'payload-encoder'
+  | 'payload-obfuscator'
   | 'security-headers'
   | 'cwe-owasp' 
   | 'poc-builder' 
@@ -322,7 +324,8 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     { id: 'csp-studio', label: 'CSP Studio & Evaluator', icon: ShieldCheck, badge: 'Level 3 / XSS', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'epss-prioritizer', label: 'CVSS v4 + EPSS Matrix', icon: Crosshair, badge: 'FIRST EPSS', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
     { id: 'csrf-poc-studio', label: 'CSRF PoC Studio', icon: Globe, badge: 'SameSite Matrix', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'payload-encoder', label: 'Payload Multi-Encoder', icon: Binary, badge: 'WAF Evasion', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'payload-encoder', label: 'Base64, URL & Hex Encoder', icon: Binary, badge: 'Real-Time WAF', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'payload-obfuscator', label: 'Payload Obfuscator', icon: Lock, badge: 'XOR / B64 / URL', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'security-headers', label: 'Security Headers Auditor', icon: Shield, badge: 'HSTS / CSP / MIME', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     { id: 'cwe-owasp', label: 'CWE & OWASP Top 10', icon: Layers, badge: 'A01-A10', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'poc-builder', label: 'PoC Request & Encoders', icon: Terminal, badge: 'cURL / Py', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
@@ -1071,6 +1074,17 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                   <div className="text-xs font-mono text-emerald-300 truncate">{encodedHex}</div>
                 </div>
               </div>
+
+              <button
+                type="button"
+                id="btn-open-full-encoder-suite"
+                onClick={() => setActiveTab('payload-encoder')}
+                className="w-full mt-3 py-2 px-3 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 active:scale-[0.98] border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              >
+                <Binary className="w-3.5 h-3.5" />
+                <span>Abrir Suíte Completa: Base64, URL & Hex Real-Time</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
             </div>
           </div>
         </div>
@@ -1747,6 +1761,11 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
       {/* --- 18. Payload Multi-Encoder / Decoder --- */}
       {activeTab === 'payload-encoder' && (
         <PayloadEncoderDecoder />
+      )}
+
+      {/* --- 18.2. Payload Obfuscator (XOR, Base64 & URL Encoding) --- */}
+      {activeTab === 'payload-obfuscator' && (
+        <PayloadObfuscatorStudio />
       )}
 
       {/* --- 19. Security Headers Auditor --- */}
