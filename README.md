@@ -326,19 +326,28 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 5. **Decodificador de Dados Exfiltrados (OOB Data Workbench)**:
    - Decodifique instantaneamente dados capturados nos formatos **Hex Subdomain** (ex: `726f6f74` ➔ `root`), **Base64** e **URL Decoded**.
 
-### 16. Como Gerar Testes de Injeção com o Fuzzer de Payloads & Evasão de WAF (Payload Fuzzer)
+### 16. Como Gerar Testes de Injeção com o Fuzzer de Parâmetros de URL & Payloads (Payload Fuzzer)
 1. Na aba **AppSec**, selecione **Payload Fuzzer & Mutation Engine**.
-2. **Definição de Template Base & Marcador `{FUZZ}`**:
-   - Insira a URL alvo ou payload base onde deseja realizar a injeção (ex: `https://alvo.com/api/v1/search?q={FUZZ}&page=1` ou `{"query": "{FUZZ}"}`).
-   - Escolha o modo de posicionamento: *{FUZZ} Marker* (substituição do marcador), *Suffix* (anexar ao final), *Prefix* (inserir no início), *Raw Only* (apenas payload puro) ou *Delim Wrap* (escape entre aspas).
-   - Use os **Presets Rápidos** (URL Query Param, JSON Auth, File Download LFI, SSRF Webhook ou Polyglot).
-3. **Seleção de Técnicas de Injeção**:
-   - Habilite as categorias de ataque desejadas: **SQLi** (Auth bypass, UNION, Time-based blind), **XSS** (DOM/Reflected, SVG onload, onerror, template literals), **Path Traversal** (`../`, `..\`, `/proc/self/environ`, wrappers PHP), **Command Injection** (operadores `;`, `|`, subshell `$()`), **SSTI** (Jinja2, Twig, Spring SpEL), **SSRF** (AWS/GCP metadata, IPv6 loopback, decimal DWORD) ou **NoSQL/LDAP**.
+2. **Modo Especializado: URL Parameter Fuzzing**:
+   - Insira a URL do endpoint HTTP (ex: `https://alvo.com/api/v1/download?file=report.pdf&user=admin&theme=dark`).
+   - O motor decompõe automaticamente a query string em parâmetros interativos: selecione o parâmetro alvo (ex: `file`) com um clique ou adicione novos parâmetros inline.
+   - Ative **Auto URL Encode** para codificação automática de caracteres reservados (%20, %22, %27, %3C, %3E, etc.).
+   - Configure a **Matriz de Directory Traversal**:
+     - *Encodings de Travessia*: `../` (Raw), `%2e%2e%2f` (Full URL), `..%2f` (Slash Only), `%2e%2e/` (Dot Only), `%252e%252e%252f` (Double URL), `....//` (Non-Recursive Strip Bypass), `..\\` / `..%5c` / `%2e%2e%5c` (Windows), `%c0%ae%c0%ae%c0%af` (Overlong UTF-8) e `%u002e%u002e%u002f` (16-bit Unicode).
+     - *Profundidades de Recursão*: 3x, 6x (Linux Root), 8x e 12x (Chroot Escape).
+     - *Arquivos Alvo Sensíveis*: `/etc/passwd`, `/etc/shadow`, `/proc/self/environ`, `windows/win.ini`, `.env`, `~/.aws/credentials`, `php://filter`.
+     - *Bypass de Extensão / Null-Byte*: `%00`, `%00.png`, `%00.jpg`, `%2500.pdf`.
+   - Inspecione a **Pré-Visualização em Tempo Real** com a URL final montada e o parâmetro injetado em destaque.
+   - Use os **Presets Rápidos para Parâmetros**: *LFI / Traversal Pack*, *WAF Evasion (%2e%2e%2f)*, *Null-Byte (%00.png)*, *SQLi Param* e *SSRF Param*.
+3. **Modo Clássico: Template Base & Marcador `{FUZZ}`**:
+   - Defina qualquer template com marcador `{FUZZ}` (ex: headers, JSON body ou endpoints REST).
+   - Escolha o modo de posicionamento: *{FUZZ} Marker*, *Suffix*, *Prefix*, *Raw Only* ou *Delim Wrap*.
+4. **Seleção de Técnicas de Injeção & Evasões WAF**:
+   - Habilite as categorias de ataque desejadas: **Path Traversal**, **SQLi**, **XSS**, **Command Injection**, **SSTI**, **SSRF** ou **NoSQL/LDAP**.
    - Adicione **Seeds Customizados** com facilidade para fuzzing de payloads próprios.
-4. **Estratégias de Mutação & Evasão WAF**:
-   - Selecione as transformações ativas: *URL Encode*, *Double URL Encode*, *All-Chars URL*, *Case Alternation (sElEcT)*, *Whitespace Tampering (/\*\*/ & %0a)*, *Null Byte (%00)*, *Quote Wrap* ou *Unicode Fullwidth Homoglyphs*.
 5. **Exportação & Integração**:
-   - Copie payloads individuais ou utilize **Copiar Tudo (Wordlist)** e **Exportar .TXT** para alimentar diretamente ferramentas como **Burp Suite Intruder**, **ffuf** ou **wfuzz**.
+   - Copie URLs completas montadas, copie apenas o payload do parâmetro ou envie diretamente para o **PoC Request Builder**.
+   - Utilize **Copiar URLs (Wordlist)** e **Exportar URLs (.txt)** para alimentar diretamente ferramentas como **Burp Suite Intruder**, **ffuf** ou **wfuzz**.
    - Exporte a lista completa em formato estruturado **JSON** com metadados para relatórios.
 
 ### 17. Como Mapear Vetores de Ataque e Relações de Vulnerabilidade (Threat Visualizer)
@@ -449,6 +458,20 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
      - `iam:PassRole` com `ec2:RunInstances` (inicialização de instância EC2 com perfil privilegiado para roubo de token via IMDS);
      - `iam:PassRole` com `lambda:CreateFunction` (execução arbitrária de comandos em funções Lambda com Roles de admin).
 3. Aplique as diretrizes de governança recomendadas com *Permission Boundaries* e *Service Control Policies (SCPs)*.
+
+### 25. Como Monitorar Callbacks em Tempo Real no Feed de Interações OOB (Payload Interaction Log)
+1. Na aba **AppSec**, selecione **Payload Interaction Log**.
+2. **Feed em Tempo Real & Histórico de Requisições Externas**:
+   - Monitore a chegada de requisições disparadas pelos payloads injetados do **OOB Collaborator** (DNS, HTTP GET, HTTPS POST, LDAP JNDI e SMTP).
+   - Cada evento é exibido com carimbo de tempo UTC, protocolo em cores distintas, IP de origem, ASN/localização geográfica, resolução DNS reversa (PTR) e status de verificação.
+3. **Decodificação de Dados Exfiltrados**:
+   - Dados transmitidos pelo alvo através de consultas DNS (subdomínios) ou requisições HTTP são decodificados automaticamente de Hexadecimal, Base64 e URL-encoding.
+4. **Inspeção Detalhada (Deep Callback Inspector)**:
+   - Clique em qualquer linha do histórico para inspecionar cabeçalhos HTTP completos, query strings e corpo JSON da requisição.
+5. **Geração de Evidências & Despacho**:
+   - Copie o bloco de prova em Markdown com 1 clique para inclusão em relatórios do HackerOne, Bugcrowd ou Jira.
+   - Envie o endpoint e corpo capturado diretamente para o **PoC Request Builder** para replicação manual.
+   - Exporte o histórico consolidado de interações para **JSON** ou **CSV**.
 
 ---
 

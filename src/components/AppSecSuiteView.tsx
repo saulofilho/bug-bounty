@@ -43,7 +43,8 @@ import {
   Split,
   Radio,
   Users,
-  Zap
+  Zap,
+  Activity
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
@@ -98,6 +99,7 @@ import { MassAssignmentHppMatrix } from './MassAssignmentHppMatrix';
 import { SamlSecurityWorkbench } from './SamlSecurityWorkbench';
 import { CloudIamEscalationAuditor } from './CloudIamEscalationAuditor';
 import { PayloadFuzzerStudio } from './PayloadFuzzerStudio';
+import { PayloadInteractionLog } from './PayloadInteractionLog';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
@@ -107,6 +109,7 @@ export type ToolSubTab =
   | 'cors-studio'
   | 'request-smuggler'
   | 'oob-collaborator'
+  | 'payload-interaction-log'
   | 'subdomain-takeover'
   | 'redos-studio'
   | 'ssrf-cloud'
@@ -339,6 +342,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     { id: 'cors-studio', label: 'CORS Misconfiguration Studio', icon: Globe, badge: 'ACAC / Exploit HTML', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
     { id: 'request-smuggler', label: 'HTTP Request Smuggling & Desync', icon: Split, badge: 'CL.TE / H2.TE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'oob-collaborator', label: 'OOB (Out-of-Band) Collaborator', icon: Radio, badge: 'DNS / HTTP Logs', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'payload-interaction-log', label: 'Payload Interaction Log', icon: Activity, badge: 'Real-Time OOB', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     { id: 'subdomain-takeover', label: 'Subdomain Takeover Analyzer', icon: Globe, badge: 'DNS / CNAME', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
     { id: 'redos-studio', label: 'ReDoS & Regex Complexity', icon: Cpu, badge: 'Catastrophic O(2ⁿ)', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'ssrf-cloud', label: 'Cloud SSRF & Metadata Suite', icon: Cloud, badge: 'AWS / GCP / K8s', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
@@ -1789,6 +1793,19 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
             if (payload) setPocBody(payload);
             setActiveTab('poc-builder');
           }}
+          onNavigateToInteractionLog={() => setActiveTab('payload-interaction-log')}
+        />
+      )}
+
+      {/* --- 27. Payload Interaction Log (Real-time OOB Callback Feed) --- */}
+      {activeTab === 'payload-interaction-log' && (
+        <PayloadInteractionLog 
+          onNavigateToPoc={(url, payload) => {
+            setPocTarget(url);
+            if (payload) setPocBody(payload);
+            setActiveTab('poc-builder');
+          }}
+          onNavigateToCollaborator={() => setActiveTab('oob-collaborator')}
         />
       )}
 

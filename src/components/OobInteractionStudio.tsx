@@ -31,34 +31,29 @@ import {
   Server,
   Lock,
   Mail,
-  X
+  X,
+  Activity
 } from 'lucide-react';
+import { 
+  OobInteraction, 
+  getOobInteractions, 
+  addOobInteraction, 
+  deleteOobInteraction, 
+  subscribeToOobInteractions 
+} from '../services/oobInteractionStore';
 
-export interface OobInteraction {
-  id: string;
-  timestamp: string;
-  protocol: 'DNS' | 'HTTP' | 'HTTPS' | 'LDAP' | 'SMTP';
-  sourceIp: string;
-  sourceReverseDns?: string;
-  geoEstimate?: string;
-  subdomainOrPath: string;
-  httpMethod?: 'GET' | 'POST' | 'PUT' | 'HEAD' | 'OPTIONS';
-  queryParameters?: Record<string, string>;
-  headers?: Record<string, string>;
-  requestBody?: string;
-  dataExfiltrated?: string;
-  decodedData?: string;
-  correlatedTag?: string;
-}
+export type { OobInteraction };
 
 interface OobInteractionStudioProps {
   initialTarget?: string;
   onSendToPocBuilder?: (url: string, payload?: string) => void;
+  onNavigateToInteractionLog?: () => void;
 }
 
 export const OobInteractionStudio: React.FC<OobInteractionStudioProps> = ({
   initialTarget,
-  onSendToPocBuilder
+  onSendToPocBuilder,
+  onNavigateToInteractionLog
 }) => {
   // Token & Collaborator Host Configuration
   const [tokenPrefix, setTokenPrefix] = useState<string>('recon');
@@ -89,72 +84,15 @@ export const OobInteractionStudio: React.FC<OobInteractionStudioProps> = ({
     return `${cleanPrefix}-${tokenRandom}.${domain}`;
   }, [tokenPrefix, tokenRandom, selectedServerDomain, customServerDomain]);
 
-  // Seed default interactions
-  const [interactions, setInteractions] = useState<OobInteraction[]>([
-    {
-      id: 'int-001',
-      timestamp: '2026-09-23 10:14:02 UTC',
-      protocol: 'DNS',
-      sourceIp: '198.51.100.44',
-      sourceReverseDns: 'resolver.corp-outbound.net',
-      geoEstimate: 'US (AWS us-east-1)',
-      subdomainOrPath: `726f6f74.${activeDomain}`,
-      dataExfiltrated: '726f6f74',
-      decodedData: 'root (Hex decoded)',
-      correlatedTag: 'recon-rce'
-    },
-    {
-      id: 'int-002',
-      timestamp: '2026-09-23 10:14:05 UTC',
-      protocol: 'HTTP',
-      sourceIp: '198.51.100.44',
-      sourceReverseDns: 'nat-gateway.corp-outbound.net',
-      geoEstimate: 'US (AWS us-east-1)',
-      httpMethod: 'GET',
-      subdomainOrPath: `/callback?token=${tokenRandom}&user=root&arch=x86_64`,
-      queryParameters: {
-        token: tokenRandom,
-        user: 'root',
-        arch: 'x86_64'
-      },
-      headers: {
-        'User-Agent': 'curl/8.4.0',
-        'Host': activeDomain,
-        'Accept': '*/*',
-        'X-Forwarded-For': '10.0.12.55'
-      },
-      dataExfiltrated: 'user=root&arch=x86_64',
-      decodedData: 'User: root | Arch: x86_64',
-      correlatedTag: 'recon-http'
-    },
-    {
-      id: 'int-003',
-      timestamp: '2026-09-23 10:15:30 UTC',
-      protocol: 'HTTPS',
-      sourceIp: '203.0.113.88',
-      sourceReverseDns: 'webhook-worker.target-infra.cloud',
-      geoEstimate: 'DE (Frankfurt)',
-      httpMethod: 'POST',
-      subdomainOrPath: `/api/v1/pingback?ref=ssrf-check`,
-      queryParameters: {
-        ref: 'ssrf-check'
-      },
-      headers: {
-        'User-Agent': 'Java/17.0.8 (Apache-HttpClient/4.5.14)',
-        'Host': activeDomain,
-        'Content-Type': 'application/json',
-        'X-Originating-IP': '10.200.4.12'
-      },
-      requestBody: JSON.stringify({
-        status: 'received',
-        backendNode: 'internal-worker-03',
-        iamRole: 'arn:aws:iam::123456789012:role/WorkerNodeRole'
-      }, null, 2),
-      dataExfiltrated: 'WorkerNodeRole',
-      decodedData: 'IAM Role: WorkerNodeRole',
-      correlatedTag: 'ssrf-webhook'
-    }
-  ]);
+  // Seed default interactions from central store and sync reactively
+  const [interactions, setInteractions] = useState<OobInteraction[]>(() => getOobInteractions());
+
+  useEffect(() => {
+    const unsubscribe = subscribeToOobInteractions((updated) => {
+      setInteractions(updated);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const regenerateToken = () => {
     const newRandom = Math.random().toString(36).substring(2, 8);
@@ -264,7 +202,7 @@ export const OobInteractionStudio: React.FC<OobInteractionStudioProps> = ({
       };
     }
 
-    setInteractions(prev => [newInt, ...prev]);
+    addOobInteraction(newInt);
   };
 
   // Filtered interactions
@@ -537,6 +475,18 @@ ${interaction.requestBody ? `\n#### Corpo da Requisição:\n\`\`\`json\n${intera
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {onNavigateToInteractionLog && (
+              <button
+                type="button"
+                onClick={onNavigateToInteractionLog}
+                className="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                title="Abrir o histórico detalhado e feed do Payload Interaction Log"
+              >
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Ver Interaction Log</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={regenerateToken}

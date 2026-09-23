@@ -768,18 +768,18 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 font-mono font-bold text-xs text-amber-400">
                       <Zap className="w-4 h-4" />
-                      <span>20. Payload Fuzzer & Mutation Engine</span>
+                      <span>20. Payload Fuzzer & URL Parameter Engine</span>
                     </span>
                     <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      Fuzzing / WAF Evasion
+                      URL Fuzzing / LFI & WAF
                     </span>
                   </div>
                   <p className="text-zinc-300 text-xs leading-relaxed">
-                    Permite definir uma string ou URL base com marcador <code>{`{FUZZ}`}</code> e selecionar técnicas de injeção comuns (SQLi, XSS, Path Traversal, CMDi, SSTI, SSRF, NoSQL) com transformações de mutação (URL encode, Double encode, quebras de whitespace, troca de caixa e evasões de aspas) para gerar listas de teste manual ou exportação para Burp Suite Intruder e ffuf.
+                    Fuzzer avançado especializado em <strong>fuzzing de parâmetros de URL</strong> e templates com marcador <code>{`{FUZZ}`}</code>. Inclui analisador automático de query strings, seleção interativa de parâmetros alvo, codificação automática de URL (%20, %22, %27, etc.) e matriz completa de evasão de <strong>Directory Traversal</strong> (<code>../</code>, <code>%2e%2e%2f</code>, <code>..%2f</code>, <code>%2e%2e/</code>, <code>%252e%252e%252f</code>, <code>....//</code>, Unicode UTF-8 overlong e Null-Bytes <code>%00.png</code>) para auditoria de LFI, SQLi, CMDi e SSRF.
                   </p>
                   <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
                     <span className="text-amber-400 font-bold block">Como usar:</span>
-                    <span>1. Insira a URL ou payload com <code>{`{FUZZ}`}</code> (ou use um dos Presets rápidos).<br />2. Selecione as categorias de injeção (SQLi, XSS, Traversal, etc.) e mutações ativas.<br />3. Filtre os resultados e use <strong>Copiar Tudo (Wordlist)</strong> ou <strong>Exportar .TXT</strong> para seu fuzzer.</span>
+                    <span>1. Cole a URL com parâmetros (ex: <code>?file=report.pdf&user=admin</code>) no modo <strong>URL Parameter Fuzzing</strong>.<br />2. Selecione o parâmetro desejado (ex: <code>file</code>) e ative os encodings de travessia (ex: <code>%2e%2e%2f</code>, <code>..%2f</code>) e saltos (3x a 12x).<br />3. Copie URLs completas montadas, envie para o PoC Builder ou exporte wordlists para Burp Intruder / ffuf.</span>
                   </div>
                 </div>
 
@@ -823,6 +823,26 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   </div>
                 </div>
 
+                {/* Tool 23 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-cyan-400">
+                      <Radio className="w-4 h-4" />
+                      <span>23. Payload Interaction Log</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      Real-Time OOB / DNS & HTTP Feed
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Painel dedicado de monitoramento em tempo real e histórico cronológico de todas as requisições externas e resoluções recebidas pelos servidores do OOB Collaborator (consultas DNS UDP/53, requisições HTTP GET/POST, webhooks HTTPS, lookups LDAP JNDI e SMTP). Exibe telemetria de IP de origem, ASN/geolocalização, PTR reverso, cabeçalhos HTTP completos e decodificação automática de dados exfiltrados (Hex, Base64 e URL).
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Gere um payload com identificador exclusivo no <strong>OOB Collaborator</strong> e injete no parâmetro ou cabeçalho do alvo sob teste.<br />2. Acompanhe a chegada instantânea dos callbacks no <strong>Payload Interaction Log</strong> com badge pulsante e filtros por protocolo.<br />3. Clique em qualquer evento para abrir o <strong>Callback Inspector</strong> (cabeçalhos brutos, query strings e corpo JSON).<br />4. Copie o bloco de evidência em Markdown com 1 clique para inclusão imediata no relatório ou envie o endpoint para o PoC Request Builder.</span>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
@@ -851,6 +871,10 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   <div className="p-2 bg-black/40 rounded border border-[#222] flex justify-between items-center">
                     <span className="text-zinc-400">bounty_docs_v2</span>
                     <span className="text-emerald-400">Checklists e documentação metodológica</span>
+                  </div>
+                  <div className="p-2 bg-black/40 rounded border border-[#222] flex justify-between items-center">
+                    <span className="text-zinc-400">bugsentinel_oob_interactions_v1</span>
+                    <span className="text-emerald-400">Histórico de requisições externas do OOB Collaborator</span>
                   </div>
                 </div>
               </div>
