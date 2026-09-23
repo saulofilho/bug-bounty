@@ -41,7 +41,9 @@ import {
   Cpu,
   Cloud,
   Split,
-  Radio
+  Radio,
+  Users,
+  Zap
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor } from '../utils/formatters';
@@ -86,6 +88,14 @@ import { CorsStudio } from './CorsStudio';
 import { HttpRequestSmuggler } from './HttpRequestSmuggler';
 import { OobInteractionStudio } from './OobInteractionStudio';
 import { PayloadObfuscatorStudio } from './PayloadObfuscatorStudio';
+import { OAuthSecurityInspector } from './OAuthSecurityInspector';
+import { IdorBolaMatrix } from './IdorBolaMatrix';
+import { WebCacheSecurityStudio } from './WebCacheSecurityStudio';
+import { PrototypePollutionStudio } from './PrototypePollutionStudio';
+import { RaceConditionStudio } from './RaceConditionStudio';
+import { MassAssignmentHppMatrix } from './MassAssignmentHppMatrix';
+import { SamlSecurityWorkbench } from './SamlSecurityWorkbench';
+import { CloudIamEscalationAuditor } from './CloudIamEscalationAuditor';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
@@ -104,6 +114,14 @@ export type ToolSubTab =
   | 'csrf-poc-studio'
   | 'payload-encoder'
   | 'payload-obfuscator'
+  | 'oauth-inspector'
+  | 'idor-bola'
+  | 'cache-security'
+  | 'proto-pollution'
+  | 'race-condition'
+  | 'mass-assignment'
+  | 'saml-workbench'
+  | 'iam-escalation'
   | 'security-headers'
   | 'cwe-owasp' 
   | 'poc-builder' 
@@ -326,6 +344,14 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     { id: 'csrf-poc-studio', label: 'CSRF PoC Studio', icon: Globe, badge: 'SameSite Matrix', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
     { id: 'payload-encoder', label: 'Base64, URL & Hex Encoder', icon: Binary, badge: 'Real-Time WAF', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
     { id: 'payload-obfuscator', label: 'Payload Obfuscator', icon: Lock, badge: 'XOR / B64 / URL', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'oauth-inspector', label: 'OAuth 2.0 & OIDC Inspector', icon: KeyRound, badge: 'CSRF / PKCE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'idor-bola', label: 'BOLA / IDOR Matrix', icon: Users, badge: 'OWASP API #1', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+    { id: 'cache-security', label: 'Web Cache Poisoning & Deception', icon: Globe, badge: 'RFC 7234', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'proto-pollution', label: 'Prototype Pollution & Gadgets', icon: Cpu, badge: 'Client/RCE', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+    { id: 'race-condition', label: 'Race Condition & Concurrency', icon: Zap, badge: 'TOCTOU / Locks', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'mass-assignment', label: 'Mass Assignment & HPP Matrix', icon: Package, badge: 'Over-Posting', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'saml-workbench', label: 'SAML 2.0 & XML Workbench', icon: ShieldCheck, badge: 'XSW 1-8', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+    { id: 'iam-escalation', label: 'AWS IAM Privilege Escalation', icon: Cloud, badge: 'Admin Esc', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
     { id: 'security-headers', label: 'Security Headers Auditor', icon: Shield, badge: 'HSTS / CSP / MIME', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     { id: 'cwe-owasp', label: 'CWE & OWASP Top 10', icon: Layers, badge: 'A01-A10', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
     { id: 'poc-builder', label: 'PoC Request & Encoders', icon: Terminal, badge: 'cURL / Py', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
@@ -1766,6 +1792,46 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
       {/* --- 18.2. Payload Obfuscator (XOR, Base64 & URL Encoding) --- */}
       {activeTab === 'payload-obfuscator' && (
         <PayloadObfuscatorStudio />
+      )}
+
+      {/* --- 18.3. OAuth 2.0 & OIDC Security Inspector --- */}
+      {activeTab === 'oauth-inspector' && (
+        <OAuthSecurityInspector />
+      )}
+
+      {/* --- 18.4. BOLA / IDOR Authorization Matrix --- */}
+      {activeTab === 'idor-bola' && (
+        <IdorBolaMatrix />
+      )}
+
+      {/* --- 18.5. Web Cache Poisoning & Deception Studio --- */}
+      {activeTab === 'cache-security' && (
+        <WebCacheSecurityStudio />
+      )}
+
+      {/* --- 18.6. Prototype Pollution & Gadgets Studio --- */}
+      {activeTab === 'proto-pollution' && (
+        <PrototypePollutionStudio />
+      )}
+
+      {/* --- 18.7. Race Condition & Concurrency Studio --- */}
+      {activeTab === 'race-condition' && (
+        <RaceConditionStudio />
+      )}
+
+      {/* --- 18.8. Mass Assignment & HPP Matrix --- */}
+      {activeTab === 'mass-assignment' && (
+        <MassAssignmentHppMatrix />
+      )}
+
+      {/* --- 18.9. SAML 2.0 & XML Workbench --- */}
+      {activeTab === 'saml-workbench' && (
+        <SamlSecurityWorkbench />
+      )}
+
+      {/* --- 18.10. AWS IAM Privilege Escalation Auditor --- */}
+      {activeTab === 'iam-escalation' && (
+        <CloudIamEscalationAuditor />
       )}
 
       {/* --- 19. Security Headers Auditor --- */}
