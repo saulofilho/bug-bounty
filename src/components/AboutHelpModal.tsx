@@ -843,6 +843,26 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
                   </div>
                 </div>
 
+                {/* Tool 24 */}
+                <div className="p-4 rounded-xl bg-[#121212] border border-[#242424] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-mono font-bold text-xs text-cyan-400">
+                      <Binary className="w-4 h-4" />
+                      <span>24. Base64, URL & Hex Real-Time Encoder / Decoder</span>
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      Real-Time WAF Evasion
+                    </span>
+                  </div>
+                  <p className="text-zinc-300 text-xs leading-relaxed">
+                    Workbench utilitário de conversão em tempo real e engenharia reversa para criação e análise de payloads ofuscados. Suporta codificação simultânea para Base64 (Standard, URL-safe, JavaScript eval, Bash pipe, Data URI), URL Encoding (Standard, Double, Triple, Full %XX, Traversal) e Hexadecimal (C-Style, SQL literal, CHAR, Raw), com medidor de entropia Shannon, desempacotador recursivo de camadas e sincronização bidirecional 4-Way.
+                  </p>
+                  <div className="text-[11px] text-zinc-400 font-mono bg-[#0a0a0a] p-2.5 rounded-lg border border-[#1f1f1f] space-y-1">
+                    <span className="text-amber-400 font-bold block">Como usar:</span>
+                    <span>1. Selecione o modo <strong>Codificar Payload</strong> para forjar variantes de Base64, URL e Hex em tempo real a partir de presets categorizados (SQLi, XSS, RCE, LFI, SSRF).<br />2. Utilize o modo <strong>Decodificar & Analisar</strong> para colar qualquer string ofuscada e inspecionar o diagnóstico automático de formato e remoção de camadas recursivas.<br />3. Experimente a <strong>Sincronização 4-Way</strong> para digitar em qualquer caixa (Plaintext, B64, URL, Hex) e ver as demais atualizarem simultaneamente.<br />4. Envie o resultado diretamente para o <strong>PoC Request Builder</strong> ou <strong>Payload Fuzzer</strong> com 1 clique.</span>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}

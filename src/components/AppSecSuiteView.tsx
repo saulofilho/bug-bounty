@@ -1845,7 +1845,20 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
 
       {/* --- 18. Payload Multi-Encoder / Decoder --- */}
       {activeTab === 'payload-encoder' && (
-        <PayloadEncoderDecoder />
+        <PayloadEncoderDecoder 
+          initialPayload={selectedReport?.description}
+          onSendToPocBuilder={(url, payload) => {
+            if (url) setPocTarget(url);
+            if (payload) setPocBody(payload);
+            setActiveTab('poc-builder');
+          }}
+          onSendToFuzzer={(payload) => {
+            setActiveTab('payload-fuzzer');
+          }}
+          onSendToOobCollaborator={() => {
+            setActiveTab('oob-collaborator');
+          }}
+        />
       )}
 
       {/* --- 18.2. Payload Obfuscator (XOR, Base64 & URL Encoding) --- */}
