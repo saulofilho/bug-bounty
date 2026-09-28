@@ -1066,7 +1066,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                         </span>
                       )}
 
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${sevBadge.bg} ${sevBadge.text} ${sevBadge.border} ${
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold tabular-nums border ${sevBadge.bg} ${sevBadge.text} ${sevBadge.border} ${
                         isCritical ? 'border-red-500/60 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse' : ''
                       }`}>
                         {report.severity} {report.cvssScore}
@@ -1076,7 +1076,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
                       {isCritical && (
                         <span 
-                          className="px-2 py-0.5 rounded bg-red-950/70 text-red-300 border border-red-500/40 text-[10px] font-mono font-medium flex items-center gap-1 shadow-sm"
+                          className="px-2 py-0.5 rounded bg-red-950/70 text-red-300 border border-red-500/40 text-[10px] font-mono font-medium flex items-center gap-1 shadow-sm tabular-nums"
                           title={`Data de criação: ${report.createdAt}`}
                         >
                           <Clock className="w-3 h-3 text-red-400 shrink-0" />
@@ -1101,23 +1101,20 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                         </button>
                       )}
 
-                      <span className="text-xs font-mono text-zinc-400 bg-[#121212] px-2 py-0.5 rounded border border-[#262626]">
-                        {report.platform}
-                      </span>
-
-                      <span className="text-xs font-mono text-zinc-400">
-                        Alvo: <strong className="text-zinc-200">{report.target}</strong>
-                      </span>
-
-                      {report.cveIds.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          {report.cveIds.map(cve => (
-                            <span key={cve} className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-mono border border-blue-500/20">
-                              {cve}
+                      {/* Clean metadata strip without pill-slop */}
+                      <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
+                        <span className="text-zinc-300 font-semibold">{report.platform}</span>
+                        <span className="text-zinc-600" aria-hidden="true">·</span>
+                        <span>alvo: <strong className="text-zinc-200">{report.target}</strong></span>
+                        {report.cveIds.length > 0 && (
+                          <>
+                            <span className="text-zinc-600" aria-hidden="true">·</span>
+                            <span className="text-blue-400 font-mono text-[11px] font-semibold">
+                              {report.cveIds.join(', ')}
                             </span>
-                          ))}
-                        </div>
-                      )}
+                          </>
+                        )}
+                      </div>
 
                       {/* Interactive Automatic Tags (Extracted from Title/Summary) & Manual Tags */}
                       {(autoTags.length > 0 || (report.tags && report.tags.length > 0)) && (

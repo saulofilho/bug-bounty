@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+:root {
+  --color-canvas: #050505;
+  --color-surface-base: #0c0d12;
+  --color-surface-card: #121217;
+  --color-surface-elevated: #181822;
+  --color-border-subtle: #22222e;
+  --color-border-medium: #2c2d3d;
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
+  --color-brand-emerald: #10b981;
+}
+
+html.light {
+  --color-canvas: #f8fafc;
+  --color-surface-base: #ffffff;
+  --color-surface-card: #ffffff;
+  --color-surface-elevated: #f1f5f9;
+  --color-border-subtle: #e2e8f0;
+  --color-border-medium: #cbd5e1;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-brand-emerald: #059669;
+}
+
 @layer base {
   body {
     background-color: #050505;
@@ -11,6 +37,25 @@
   html.light body {
     background-color: #f8fafc;
     color: #0f172a;
+  }
+
+  /* Universal accessible keyboard focus ring */
+  *:focus-visible {
+    outline: 2px solid #10b981;
+    outline-offset: 2px;
+  }
+
+  html.light *:focus-visible {
+    outline: 2px solid #059669;
+    outline-offset: 2px;
+  }
+
+  /* Tabular Numerals for metrics, IDs, currency, and timestamps */
+  .font-mono,
+  .tabular-nums,
+  table td,
+  table th {
+    font-variant-numeric: tabular-nums;
   }
 
   ::-webkit-scrollbar {
@@ -42,6 +87,14 @@
   html.light ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
   }
+}
+
+/* Micro-interaction utility */
+.interactive-scale {
+  transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s ease, border-color 0.15s ease;
+}
+.interactive-scale:active {
+  transform: scale(0.975);
 }
 
 /* ==========================================================================

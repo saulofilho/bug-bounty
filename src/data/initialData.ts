@@ -668,6 +668,38 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     timeline: [
       { id: "t1", date: getDaysAgoDate(345), title: "Submissão", type: "creation" }
     ]
+  },
+  {
+    id: "REP-2024-020",
+    title: "Authentication Bypass em API de Pagamentos via JWT Key Confusion (RS256 para HS256)",
+    target: "api.finpay-global.com",
+    platform: "HackerOne",
+    vulnerabilityType: "JWT Authentication Bypass",
+    severity: "CRITICAL",
+    status: "REWARDED",
+    cvssVector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+    cvssScore: 9.4,
+    cwe: "CWE-347: Improper Verification of Cryptographic Signature",
+    cveIds: [],
+    tags: ["#jwt", "#auth-bypass", "#critical", "#rs256-hs256"],
+    summary: "O serviço de validação de tokens aceita o algoritmo simétrico HS256 utilizando a chave pública RSA exposta em /.well-known/jwks.json como segredo HMAC, permitindo forjar tokens administrativos arbitrários.",
+    stepsToReproduce: [
+      "1. Obtenha a chave pública em /.well-known/jwks.json.",
+      "2. Altere o cabeçalho alg do JWT de RS256 para HS256 e defina role=SUPER_ADMIN.",
+      "3. Assine o token via HMAC-SHA256 usando a chave pública PEM e envie no header Authorization."
+    ],
+    proofOfConcept: "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    businessImpact: "Comprometimento administrativo total e aprovação não autorizada de transações financeiras.",
+    remediation: "Restringir explicitamente a lista de algoritmos permitidos no verificador JWT apenas para ['RS256'].",
+    bountyAmount: 4500,
+    currency: "USD",
+    createdAt: getDaysAgoDate(0),
+    updatedAt: getDaysAgoDate(0),
+    timeline: [
+      { id: "t1", date: getDaysAgoDate(0), title: "Relatório Submetido Hoje", notes: "Submissão crítica com PoC funcional.", type: "creation", hoursSpent: 2.5 },
+      { id: "t2", date: getDaysAgoDate(0), title: "Hotfix Aplicado & Crítico Resolvido", notes: "Mitigação emergencial implantada pela equipe da FinPay.", type: "status_change", hoursSpent: 1.0 },
+      { id: "t3", date: getDaysAgoDate(0), title: "Bounty Concedido Hoje ($4,500)", notes: "Recompensa máxima creditada no mesmo dia devido à severidade crítica.", type: "bounty", hoursSpent: 0.5 }
+    ]
   }
 ];
 

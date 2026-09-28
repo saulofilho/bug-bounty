@@ -29,7 +29,8 @@ import {
   EyeOff,
   DollarSign,
   Share2,
-  Crosshair
+  Crosshair,
+  Binary
 } from 'lucide-react';
 
 interface AboutHelpModalProps {

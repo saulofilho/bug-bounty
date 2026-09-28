@@ -57,6 +57,7 @@ import { RiskDashboard } from './RiskDashboard';
 import { TargetRateLimitMonitor } from './TargetRateLimitMonitor';
 import { RateLimitMonitor } from './RateLimitMonitor';
 import { BugBountyDirectoryView } from './BugBountyDirectoryView';
+import { DailyActivitySummary } from './DailyActivitySummary';
 import { WeeklySummary } from './WeeklySummary';
 import { StatusBadge } from './StatusBadge';
 import { ReportNotificationPanel } from './ReportNotificationPanel';
@@ -78,6 +79,8 @@ import { VulnerabilityRiskMatrix } from './VulnerabilityRiskMatrix';
 import { BountyPayoutTracker } from './BountyPayoutTracker';
 import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
 import { VulnerabilityImpactLegend } from './VulnerabilityImpactLegend';
+import { VulnerabilityAndBountyAnalyticsPanel } from './VulnerabilityAndBountyAnalyticsPanel';
+import { BaseCard } from './BaseCard';
 import { TimelineEvent } from '../types';
 import { NavTab } from './Header';
 
@@ -537,6 +540,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
+      {/* Daily Activity Summary Card: Reports Created Today, Criticals Resolved, Total Bounties Earned Today */}
+      <DailyActivitySummary
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+        onUpdateStatus={onUpdateStatus}
+      />
+
       {/* Prominent Weekly Summary (Last 7 Days: Submissions & Rewards Earned) */}
       <WeeklySummary
         reports={reports}
@@ -546,7 +557,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       />
 
       {/* DevSecOps & AppSec Tools Suite Quick Launch Card */}
-      <div className="bg-gradient-to-r from-[#14141e] via-[#111119] to-[#161624] border border-[#262638] rounded-xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg hover:border-emerald-500/40 transition-all">
+      <BaseCard
+        elevation="gradient-cyber"
+        border="subtle"
+        rounded="lg"
+        padding="md"
+        hover="border"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
         <div className="flex items-start sm:items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-inner">
             <Sparkles className="w-5 h-5" />
@@ -555,7 +573,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-bold text-white">Central de Ferramentas AppSec & DevSecOps</span>
               <span className="px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30">
-                10 MÓDULOS ATIVOS
+                40 FERRAMENTAS INTEGRADAS
               </span>
             </div>
             <p className="text-xs text-zinc-400">
@@ -572,14 +590,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <span>Abrir Ferramentas AppSec</span>
           <ChevronRight className="w-4 h-4" />
         </button>
-      </div>
+      </BaseCard>
 
       {/* Primary KPI Metrics Grid - Sophisticated Dark Architecture */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* Total Bounties / Earnings with 30-Day Sparkline */}
-        <div 
-          className="bg-[#121212] border border-[#262626] hover:border-emerald-500/40 transition-colors p-4 rounded-lg flex flex-col justify-between"
+        <BaseCard 
+          elevation="card"
+          border="default"
+          rounded="md"
+          padding="sm"
+          hover="border"
+          className="flex flex-col justify-between"
           id="kpi-card-total-bounties"
         >
           <div>
@@ -599,7 +622,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <ChevronRight className="w-2.5 h-2.5" />
               </button>
             </div>
-            <h3 className="text-3xl font-light text-white font-mono">
+            <h3 className="text-3xl font-light text-white font-mono tabular-nums">
               {formatCurrency(totalEarnedUSD, 'USD')}
             </h3>
             <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">{formatCurrency(totalEarnedBRL, 'BRL')} estimado</p>
@@ -612,7 +635,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               onOpenDetailedView={() => document.getElementById('bounty-30day-sparkline-section')?.scrollIntoView({ behavior: 'smooth' })}
             />
           </div>
-        </div>
+        </BaseCard>
 
         {/* Critical Findings */}
         {(() => {
@@ -624,15 +647,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           const latestCriticalReport = reports.filter(r => r.severity === 'CRITICAL').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
           return (
-            <div 
+            <BaseCard 
+              elevation="card"
+              border={isCriticalActive ? 'critical' : 'default'}
+              rounded="md"
+              padding="sm"
+              interactive
+              hover="border"
               onClick={() => {
                 if (onSelectSeverity) onSelectSeverity('CRITICAL');
                 else onNavigateTab('reports');
               }}
-              className={`p-4 rounded-lg transition-all relative overflow-hidden cursor-pointer ${
+              className={`transition-all relative overflow-hidden ${
                 isCriticalActive 
                   ? 'bg-gradient-to-br from-red-950/40 via-[#161012] to-[#121212] critical-vuln-card-glow' 
-                  : 'bg-[#121212] border border-[#262626]'
+                  : ''
               }`}
               title="Clique para filtrar apenas vulnerabilidades CRITICAL"
             >
@@ -723,12 +752,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   )}
                 </div>
               )}
-            </div>
+            </BaseCard>
           );
         })()}
 
         {/* Triage Efficiency Metric Card */}
-        <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
+        <BaseCard 
+          elevation="card" 
+          border="default" 
+          rounded="md" 
+          padding="sm" 
+          hover="border" 
+          className="flex flex-col justify-between"
+        >
           <div>
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-zinc-500 uppercase flex items-center gap-1">
@@ -740,11 +776,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
             </div>
             <div className="flex items-baseline gap-1.5">
-              <h3 className="text-3xl font-light text-cyan-400 font-mono">
+              <h3 className="text-3xl font-light text-cyan-400 font-mono tabular-nums">
                 {triageEfficiency.avgDaysToTriage > 0 ? `${triageEfficiency.avgDaysToTriage.toFixed(1)}` : '—'}
               </h3>
               <span className="text-xs font-mono text-zinc-400">dias</span>
-              <span className="text-[10px] font-mono text-zinc-500">(~{triageEfficiency.avgHoursToTriage}h)</span>
+              <span className="text-[10px] font-mono text-zinc-500 tabular-nums">(~{triageEfficiency.avgHoursToTriage}h)</span>
             </div>
           </div>
           <div className="mt-2">
@@ -755,41 +791,74 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               />
             </div>
             <div className="mt-1.5 text-[10px] text-zinc-400 flex items-center justify-between font-mono">
-              <span className="text-cyan-300">{triageEfficiency.slaUnder48hPercent}% &le; 48h</span>
-              <span className="text-emerald-400 font-bold">{triageEfficiency.avgDaysToClose.toFixed(1)}d fechamento</span>
+              <span className="text-cyan-300 tabular-nums">{triageEfficiency.slaUnder48hPercent}% &le; 48h</span>
+              <span className="text-emerald-400 font-bold tabular-nums">{triageEfficiency.avgDaysToClose.toFixed(1)}d fechamento</span>
             </div>
           </div>
-        </div>
+        </BaseCard>
 
         {/* CVE ID Reservations / Tracked */}
-        <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg">
+        <BaseCard 
+          elevation="card" 
+          border="default" 
+          rounded="md" 
+          padding="sm" 
+          hover="border" 
+          className="flex flex-col justify-between"
+        >
           <p className="text-xs text-zinc-500 uppercase mb-1">CVE ID Reservations</p>
-          <h3 className="text-3xl font-light text-blue-400 font-mono">
+          <h3 className="text-3xl font-light text-blue-400 font-mono tabular-nums">
             {String(reports.reduce((acc, r) => acc + (r.cveIds?.length || 0), 0)).padStart(2, '0')}
           </h3>
           <div className="mt-2 text-[10px] text-zinc-400 font-mono truncate">
             Tracking: {reports.find(r => r.cveIds?.length > 0)?.cveIds[0] || 'CVE-2024-21413'}...
           </div>
-        </div>
+        </BaseCard>
 
         {/* Submission Success Rate */}
-        <div className="bg-[#121212] border border-[#262626] p-4 rounded-lg">
+        <BaseCard 
+          elevation="card" 
+          border="default" 
+          rounded="md" 
+          padding="sm" 
+          hover="border" 
+          className="flex flex-col justify-between"
+        >
           <p className="text-xs text-zinc-500 uppercase mb-1">Submission Success Rate</p>
-          <h3 className="text-3xl font-light text-emerald-400 font-mono">
+          <h3 className="text-3xl font-light text-emerald-400 font-mono tabular-nums">
             {acceptanceRate}%
           </h3>
           <div className="mt-2 text-[10px] text-zinc-400 flex items-center justify-between">
             <span>High reputation score</span>
-            <span className="text-emerald-400 font-mono">{resolvedOrRewardedCount}/{reports.length} valid</span>
+            <span className="text-emerald-400 font-mono tabular-nums">{resolvedOrRewardedCount}/{reports.length} valid</span>
           </div>
-        </div>
+        </BaseCard>
 
       </section>
 
+      {/* Recharts Analytics Panel: Severity Distribution (Pie/Bar) & Temporal Evolution of Rewards (Line) */}
+      <VulnerabilityAndBountyAnalyticsPanel
+        reports={reports}
+        onSelectSeverity={(sev) => {
+          if (onSelectSeverity) {
+            onSelectSeverity(sev);
+          } else {
+            onNavigateTab('reports');
+          }
+        }}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+      />
+
       {/* Recharts Line Chart: Monthly Trend of Discovered Vulnerabilities based on createdAt */}
-      <section
+      <BaseCard
+        as="section"
         id="monthly-vulnerabilities-trend-section"
-        className="bg-[#121212] border border-[#262626] rounded-xl overflow-hidden shadow-lg p-5 sm:p-6"
+        elevation="card"
+        border="default"
+        rounded="xl"
+        padding="lg"
+        className="overflow-hidden"
       >
         {/* Header with Title, Description, and Interactive Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-[#262626]">
@@ -1046,7 +1115,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             )}
           </div>
         </div>
-      </section>
+      </BaseCard>
 
       {/* 30-Day Bounty Sparkline & Financial Velocity Intelligence Panel */}
       <BountySparklineChart

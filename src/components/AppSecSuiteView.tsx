@@ -12,6 +12,7 @@ import {
   EyeOff, 
   Bell, 
   Search, 
+  X,
   ExternalLink, 
   Sparkles, 
   ArrowRight, 
@@ -100,6 +101,8 @@ import { SamlSecurityWorkbench } from './SamlSecurityWorkbench';
 import { CloudIamEscalationAuditor } from './CloudIamEscalationAuditor';
 import { PayloadFuzzerStudio } from './PayloadFuzzerStudio';
 import { PayloadInteractionLog } from './PayloadInteractionLog';
+import { DefensiveValidationWorkbench } from './DefensiveValidationWorkbench';
+import { BaseCard } from './BaseCard';
 
 export type ToolSubTab = 
   | 'cvss-v4' 
@@ -118,6 +121,7 @@ export type ToolSubTab =
   | 'csp-studio'
   | 'epss-prioritizer'
   | 'csrf-poc-studio'
+  | 'defense-workbench'
   | 'payload-fuzzer'
   | 'payload-encoder'
   | 'payload-obfuscator'
@@ -141,6 +145,8 @@ export type ToolSubTab =
   | 'dlp-sanitizer' 
   | 'secret-remediation'
   | 'webhooks';
+
+export type ToolCategory = 'ALL' | 'DEFENSE' | 'TESTING' | 'PROTOCOL' | 'VULN_LOGIC' | 'TRIAGE';
 
 interface AppSecSuiteViewProps {
   reports: VulnerabilityReport[];
@@ -197,6 +203,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
 
   // Payload encoders
   const [encoderInput, setEncoderInput] = useState('<script>alert(1)</script>');
+  const [defenseCustomInput, setDefenseCustomInput] = useState<string>('');
   const encodedUrl = useMemo(() => encodeURIComponent(encoderInput), [encoderInput]);
   const encodedBase64 = useMemo(() => {
     try { return btoa(encoderInput); } catch { return 'Invalid input'; }
@@ -334,52 +341,77 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
     }, 600);
   };
 
-  const navTabs: Array<{ id: ToolSubTab; label: string; icon: any; badge?: string; badgeColor?: string }> = [
-    { id: 'cvss-v4', label: 'CVSS v4.0 Engine', icon: Calculator, badge: 'v4.0', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-    { id: 'cvss-component', label: 'CVSS v4 Component Calculator', icon: Package, badge: 'Supply Chain / SCA', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-    { id: 'attack-graph', label: 'Attack Graph & Lateral Movement', icon: Network, badge: 'D3.js Force / CVEs & Domínios', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-    { id: 'threat-visualizer', label: 'Threat Visualizer', icon: Crosshair, badge: 'D3.js / CVE & Reports', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
-    { id: 'cors-studio', label: 'CORS Misconfiguration Studio', icon: Globe, badge: 'ACAC / Exploit HTML', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
-    { id: 'request-smuggler', label: 'HTTP Request Smuggling & Desync', icon: Split, badge: 'CL.TE / H2.TE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'oob-collaborator', label: 'OOB (Out-of-Band) Collaborator', icon: Radio, badge: 'DNS / HTTP Logs', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
-    { id: 'payload-interaction-log', label: 'Payload Interaction Log', icon: Activity, badge: 'Real-Time OOB', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-    { id: 'subdomain-takeover', label: 'Subdomain Takeover Analyzer', icon: Globe, badge: 'DNS / CNAME', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
-    { id: 'redos-studio', label: 'ReDoS & Regex Complexity', icon: Cpu, badge: 'Catastrophic O(2ⁿ)', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'ssrf-cloud', label: 'Cloud SSRF & Metadata Suite', icon: Cloud, badge: 'AWS / GCP / K8s', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
-    { id: 'graphql-auditor', label: 'GraphQL Security Studio', icon: Layers, badge: 'Introspection / DoS', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-    { id: 'jwt-analyzer', label: 'JWT Security Analyzer', icon: KeyRound, badge: 'OWASP / None', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'csp-studio', label: 'CSP Studio & Evaluator', icon: ShieldCheck, badge: 'Level 3 / XSS', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-    { id: 'epss-prioritizer', label: 'CVSS v4 + EPSS Matrix', icon: Crosshair, badge: 'FIRST EPSS', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
-    { id: 'csrf-poc-studio', label: 'CSRF PoC Studio', icon: Globe, badge: 'SameSite Matrix', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'payload-fuzzer', label: 'Payload Fuzzer & Mutation Engine', icon: Zap, badge: 'Fuzz / WAF', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'payload-encoder', label: 'Base64, URL & Hex Encoder', icon: Binary, badge: 'Real-Time WAF', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
-    { id: 'payload-obfuscator', label: 'Payload Obfuscator', icon: Lock, badge: 'XOR / B64 / URL', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'oauth-inspector', label: 'OAuth 2.0 & OIDC Inspector', icon: KeyRound, badge: 'CSRF / PKCE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'idor-bola', label: 'BOLA / IDOR Matrix', icon: Users, badge: 'OWASP API #1', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
-    { id: 'cache-security', label: 'Web Cache Poisoning & Deception', icon: Globe, badge: 'RFC 7234', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
-    { id: 'proto-pollution', label: 'Prototype Pollution & Gadgets', icon: Cpu, badge: 'Client/RCE', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-    { id: 'race-condition', label: 'Race Condition & Concurrency', icon: Zap, badge: 'TOCTOU / Locks', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'mass-assignment', label: 'Mass Assignment & HPP Matrix', icon: Package, badge: 'Over-Posting', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-    { id: 'saml-workbench', label: 'SAML 2.0 & XML Workbench', icon: ShieldCheck, badge: 'XSW 1-8', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-    { id: 'iam-escalation', label: 'AWS IAM Privilege Escalation', icon: Cloud, badge: 'Admin Esc', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
-    { id: 'security-headers', label: 'Security Headers Auditor', icon: Shield, badge: 'HSTS / CSP / MIME', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-    { id: 'cwe-owasp', label: 'CWE & OWASP Top 10', icon: Layers, badge: 'A01-A10', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-    { id: 'poc-builder', label: 'PoC Request & Encoders', icon: Terminal, badge: 'cURL / Py', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-    { id: 'sla-tracker', label: 'SLA & MTTR/MTTT', icon: Clock, badge: `${slaOverview.overallComplianceRatePct}%`, badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-    { id: 'triage-macros', label: 'Triage Macros', icon: MessageSquareCode, badge: `${DEFAULT_TRIAGE_MACROS.length}`, badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-    { id: 'duplicate-detector', label: 'Duplicate Cross-Matcher', icon: Copy, badge: 'AI/Token', badgeColor: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' },
-    { id: 'bounty-matrix', label: 'Bounty Matrix & Budget', icon: DollarSign, badge: `${budgetSimulation.programRoiRatio}x ROI`, badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-    { id: 'program-roi', label: 'Program ROI & Yield Prioritizer', icon: TrendingUp, badge: 'Hunter Yield', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-    { id: 'issue-exporter', label: 'Issue Tracker Export', icon: Share2, badge: 'Jira/GH', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-    { id: 'dlp-sanitizer', label: 'DLP & Token Redactor', icon: EyeOff, badge: '100% Client', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
-    { id: 'secret-remediation', label: 'Secret Remediation Guide', icon: Key, badge: 'Batch & SOP', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
-    { id: 'webhooks', label: 'Webhooks & SIEM', icon: Bell, badge: 'Simulador', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+  const [suiteCategory, setSuiteCategory] = useState<ToolCategory>('ALL');
+  const [suiteSearchQuery, setSuiteSearchQuery] = useState<string>('');
+
+  const navTabs: Array<{ id: ToolSubTab; label: string; icon: any; category: ToolCategory; badge?: string; badgeColor?: string }> = [
+    { id: 'cvss-v4', label: 'CVSS v4.0 Engine', icon: Calculator, category: 'TRIAGE', badge: 'v4.0', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'cvss-component', label: 'CVSS v4 Component Calculator', icon: Package, category: 'TRIAGE', badge: 'Supply Chain / SCA', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'attack-graph', label: 'Attack Graph & Lateral Movement', icon: Network, category: 'VULN_LOGIC', badge: 'D3.js Force / CVEs & Domínios', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'threat-visualizer', label: 'Threat Visualizer', icon: Crosshair, category: 'VULN_LOGIC', badge: 'D3.js / CVE & Reports', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+    { id: 'cors-studio', label: 'CORS Misconfiguration Studio', icon: Globe, category: 'PROTOCOL', badge: 'ACAC / Exploit HTML', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+    { id: 'request-smuggler', label: 'HTTP Request Smuggling & Desync', icon: Split, category: 'PROTOCOL', badge: 'CL.TE / H2.TE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'oob-collaborator', label: 'OOB (Out-of-Band) Collaborator', icon: Radio, category: 'TESTING', badge: 'DNS / HTTP Logs', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'payload-interaction-log', label: 'Payload Interaction Log', icon: Activity, category: 'TESTING', badge: 'Real-Time OOB', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'subdomain-takeover', label: 'Subdomain Takeover Analyzer', icon: Globe, category: 'PROTOCOL', badge: 'DNS / CNAME', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
+    { id: 'redos-studio', label: 'ReDoS & Regex Complexity', icon: Cpu, category: 'VULN_LOGIC', badge: 'Catastrophic O(2ⁿ)', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'ssrf-cloud', label: 'Cloud SSRF & Metadata Suite', icon: Cloud, category: 'PROTOCOL', badge: 'AWS / GCP / K8s', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'graphql-auditor', label: 'GraphQL Security Studio', icon: Layers, category: 'PROTOCOL', badge: 'Introspection / DoS', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+    { id: 'jwt-analyzer', label: 'JWT Security Analyzer', icon: KeyRound, category: 'PROTOCOL', badge: 'OWASP / None', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'csp-studio', label: 'CSP Studio & Evaluator', icon: ShieldCheck, category: 'DEFENSE', badge: 'Level 3 / XSS', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'epss-prioritizer', label: 'CVSS v4 + EPSS Matrix', icon: Crosshair, category: 'TRIAGE', badge: 'FIRST EPSS', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
+    { id: 'csrf-poc-studio', label: 'CSRF PoC Studio', icon: Globe, category: 'TESTING', badge: 'SameSite Matrix', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'defense-workbench', label: 'Hardening & Validação de Entrada', icon: ShieldCheck, category: 'DEFENSE', badge: 'Defesa / WAF', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'payload-fuzzer', label: 'Payload Fuzzer & Mutation Engine', icon: Zap, category: 'TESTING', badge: 'Fuzz / WAF', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'payload-encoder', label: 'Base64, URL & Hex Encoder', icon: Binary, category: 'TESTING', badge: 'Real-Time WAF', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'payload-obfuscator', label: 'Payload Obfuscator', icon: Lock, category: 'TESTING', badge: 'XOR / B64 / URL', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'oauth-inspector', label: 'OAuth 2.0 & OIDC Inspector', icon: KeyRound, category: 'PROTOCOL', badge: 'CSRF / PKCE', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'idor-bola', label: 'BOLA / IDOR Matrix', icon: Users, category: 'VULN_LOGIC', badge: 'OWASP API #1', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+    { id: 'cache-security', label: 'Web Cache Poisoning & Deception', icon: Globe, category: 'PROTOCOL', badge: 'RFC 7234', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    { id: 'proto-pollution', label: 'Prototype Pollution & Gadgets', icon: Cpu, category: 'VULN_LOGIC', badge: 'Client/RCE', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+    { id: 'race-condition', label: 'Race Condition & Concurrency', icon: Zap, category: 'VULN_LOGIC', badge: 'TOCTOU / Locks', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'mass-assignment', label: 'Mass Assignment & HPP Matrix', icon: Package, category: 'VULN_LOGIC', badge: 'Over-Posting', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'saml-workbench', label: 'SAML 2.0 & XML Workbench', icon: ShieldCheck, category: 'PROTOCOL', badge: 'XSW 1-8', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+    { id: 'iam-escalation', label: 'AWS IAM Privilege Escalation', icon: Cloud, category: 'VULN_LOGIC', badge: 'Admin Esc', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
+    { id: 'security-headers', label: 'Security Headers Auditor', icon: Shield, category: 'DEFENSE', badge: 'HSTS / CSP / MIME', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'cwe-owasp', label: 'CWE & OWASP Top 10', icon: Layers, category: 'TRIAGE', badge: 'A01-A10', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    { id: 'poc-builder', label: 'PoC Request & Encoders', icon: Terminal, category: 'TESTING', badge: 'cURL / Py', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    { id: 'sla-tracker', label: 'SLA & MTTR/MTTT', icon: Clock, category: 'TRIAGE', badge: `${slaOverview.overallComplianceRatePct}%`, badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+    { id: 'triage-macros', label: 'Triage Macros', icon: MessageSquareCode, category: 'TRIAGE', badge: `${DEFAULT_TRIAGE_MACROS.length}`, badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+    { id: 'duplicate-detector', label: 'Duplicate Cross-Matcher', icon: Copy, category: 'TRIAGE', badge: 'AI/Token', badgeColor: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' },
+    { id: 'bounty-matrix', label: 'Bounty Matrix & Budget', icon: DollarSign, category: 'TRIAGE', badge: `${budgetSimulation.programRoiRatio}x ROI`, badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'program-roi', label: 'Program ROI & Yield Prioritizer', icon: TrendingUp, category: 'TRIAGE', badge: 'Hunter Yield', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'issue-exporter', label: 'Issue Tracker Export', icon: Share2, category: 'TRIAGE', badge: 'Jira/GH', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+    { id: 'dlp-sanitizer', label: 'DLP & Token Redactor', icon: EyeOff, category: 'DEFENSE', badge: '100% Client', badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+    { id: 'secret-remediation', label: 'Secret Remediation Guide', icon: Key, category: 'DEFENSE', badge: 'Batch & SOP', badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
+    { id: 'webhooks', label: 'Webhooks & SIEM', icon: Bell, category: 'TRIAGE', badge: 'Simulador', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
   ];
+
+  const categoryOptions = [
+    { id: 'ALL' as ToolCategory, label: 'Todas as Ferramentas', count: navTabs.length },
+    { id: 'DEFENSE' as ToolCategory, label: 'Defesa & Hardening', count: navTabs.filter(t => t.category === 'DEFENSE').length },
+    { id: 'TESTING' as ToolCategory, label: 'Fuzzing & PoC', count: navTabs.filter(t => t.category === 'TESTING').length },
+    { id: 'PROTOCOL' as ToolCategory, label: 'Protocolos & Web', count: navTabs.filter(t => t.category === 'PROTOCOL').length },
+    { id: 'VULN_LOGIC' as ToolCategory, label: 'Lógica & Nuvem', count: navTabs.filter(t => t.category === 'VULN_LOGIC').length },
+    { id: 'TRIAGE' as ToolCategory, label: 'Métricas & Triagem', count: navTabs.filter(t => t.category === 'TRIAGE').length },
+  ];
+
+  const filteredNavTabs = useMemo(() => {
+    return navTabs.filter(tab => {
+      const matchesCategory = suiteCategory === 'ALL' || tab.category === suiteCategory;
+      const query = suiteSearchQuery.toLowerCase().trim();
+      const matchesSearch = !query || 
+        tab.label.toLowerCase().includes(query) || 
+        (tab.badge && tab.badge.toLowerCase().includes(query)) ||
+        tab.id.toLowerCase().includes(query);
+      return matchesCategory && matchesSearch;
+    });
+  }, [navTabs, suiteCategory, suiteSearchQuery]);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Banner Header */}
-      <div className="bg-[#121216] border border-[#22222b] rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+      <BaseCard elevation="elevated" rounded="xl" padding="lg" className="relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -389,7 +421,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                 <span>DevSecOps & AppSec Suite</span>
               </span>
               <span className="text-zinc-500 text-xs">•</span>
-              <span className="text-zinc-400 font-mono text-xs">37 Ferramentas Integradas</span>
+              <span className="text-zinc-400 font-mono text-xs">40 Ferramentas Integradas</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
               <span>Central de Engenharia & AppSec</span>
@@ -400,7 +432,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
           </div>
 
           {/* Quick Report Selector Context */}
-          <div className="bg-[#17171f] border border-[#2a2a38] rounded-xl p-3 shrink-0 flex flex-col gap-1.5 min-w-[260px]">
+          <BaseCard elevation="subtle" border="medium" rounded="lg" padding="sm" className="shrink-0 flex flex-col gap-1.5 min-w-[260px]">
             <label className="text-[11px] font-mono font-bold text-zinc-400 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-emerald-400" />
               <span>Relatório Ativo em Contexto:</span>
@@ -425,38 +457,109 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                 </option>
               ))}
             </select>
+          </BaseCard>
+        </div>
+      </BaseCard>
+
+      {/* Category Filter & Search Toolbar */}
+      <BaseCard elevation="card" rounded="xl" padding="sm" className="space-y-3 shadow-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 md:pb-0">
+            {categoryOptions.map(cat => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSuiteCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                  suiteCategory === cat.id
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'bg-[#181822] text-zinc-400 hover:text-zinc-200 border border-[#282837]'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/30 font-bold opacity-80 tabular-nums">
+                  {cat.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Quick Filter Search Input */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="relative w-full md:w-64">
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Filtrar ferramentas (ex: fuzzer, cvss, cors)..."
+                value={suiteSearchQuery}
+                onChange={(e) => setSuiteSearchQuery(e.target.value)}
+                className="w-full bg-[#181824] border border-[#2e2e40] rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-zinc-500 font-mono focus:outline-none focus:border-emerald-500 transition-colors"
+              />
+              {suiteSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSuiteSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-0.5 rounded cursor-pointer"
+                  title="Limpar busca"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            <span className="text-[11px] font-mono text-zinc-500 hidden sm:inline whitespace-nowrap tabular-nums">
+              {filteredNavTabs.length}/{navTabs.length}
+            </span>
           </div>
         </div>
-      </div>
 
-      {/* Navigation Sub-Tabs Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-[#22222b]">
-        {navTabs.map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
+        {/* Navigation Sub-Tabs Pills */}
+        {filteredNavTabs.length > 0 ? (
+          <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-1 scrollbar-none">
+            {filteredNavTabs.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  id={`tab-btn-${tab.id}`}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                      : 'bg-[#161622] text-zinc-400 border border-[#252535] hover:text-zinc-200 hover:bg-[#1e1e2d]'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-zinc-500'}`} />
+                  <span>{tab.label}</span>
+                  {tab.badge && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded border font-bold ${tab.badgeColor || 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-4 text-center rounded-xl bg-[#161620] border border-dashed border-[#2b2b3a] text-xs font-mono text-zinc-400 space-y-2">
+            <p>Nenhuma ferramenta encontrada com os filtros atuais ("{suiteSearchQuery}").</p>
             <button
-              key={tab.id}
-              id={`tab-btn-${tab.id}`}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer ${
-                isActive
-                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                  : 'bg-[#14141c] text-zinc-400 border border-[#23232f] hover:text-zinc-200 hover:bg-[#1a1a24]'
-              }`}
+              onClick={() => {
+                setSuiteSearchQuery('');
+                setSuiteCategory('ALL');
+              }}
+              className="px-3 py-1 rounded-lg bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold hover:bg-emerald-600/50 transition-colors cursor-pointer"
             >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-zinc-500'}`} />
-              <span>{tab.label}</span>
-              {tab.badge && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded border font-bold ${tab.badgeColor || 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
-                  {tab.badge}
-                </span>
-              )}
+              Resetar Filtros
             </button>
-          );
-        })}
-      </div>
+          </div>
+        )}
+      </BaseCard>
 
       {/* ========================================================================= */}
       {/* TAB 1: CVSS v4.0 Engine */}
@@ -464,7 +567,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
       {activeTab === 'cvss-v4' && (
         <div className="space-y-6">
           {/* Quick Switch Banner to Supply Chain Component Calculator */}
-          <div className="bg-gradient-to-r from-[#131726] via-[#101422] to-[#0c0f1a] border border-[#232d4b] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+          <BaseCard elevation="gradient-cyber" border="subtle" rounded="xl" padding="md" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center shrink-0">
                 <Package className="w-5 h-5 text-indigo-400" />
@@ -491,11 +594,11 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
               <span>Abrir Component Calculator</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
-          </div>
+          </BaseCard>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left 2 Cols: Metric Controls */}
-            <div className="lg:col-span-2 space-y-5 bg-[#121218] border border-[#22222d] rounded-2xl p-5">
+            <BaseCard elevation="card" rounded="xl" padding="md" className="lg:col-span-2 space-y-5">
               <div className="flex items-center justify-between border-b border-[#1e1e28] pb-3">
                 <div className="flex items-center gap-2">
                   <Calculator className="w-4 h-4 text-emerald-400" />
@@ -699,12 +802,12 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                   </div>
                 </div>
               </div>
-            </div>
+            </BaseCard>
 
             {/* Right Column: Calculated Score & Comparison */}
             <div className="space-y-5">
               {/* Score Display Card */}
-              <div className="bg-[#121218] border border-[#22222d] rounded-2xl p-6 text-center space-y-4">
+              <BaseCard elevation="card" rounded="xl" padding="lg" className="text-center space-y-4">
                 <span className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wider">Pontuação CVSS v4.0</span>
                 <div className="flex items-baseline justify-center gap-2">
                   <span className={`text-6xl font-black font-mono ${
@@ -759,10 +862,10 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                     <span>{copiedKey === 'applied-v4' ? 'Vetor v4.0 Aplicado!' : `Aplicar a ${selectedReport.id}`}</span>
                   </button>
                 )}
-              </div>
+              </BaseCard>
 
               {/* Equivalence Classes (EQ1-EQ6) breakdown */}
-              <div className="bg-[#121218] border border-[#22222d] rounded-2xl p-5 space-y-3">
+              <BaseCard elevation="card" rounded="xl" padding="md" className="space-y-3">
                 <h3 className="text-xs font-mono font-bold text-zinc-300 flex items-center gap-1.5">
                   <Sliders className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Macro Vetores de Equivalência (EQ1 - EQ6)</span>
@@ -793,7 +896,7 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
                     <div className="font-bold text-zinc-300">{v4Result.eqValues.eq6}</div>
                   </div>
                 </div>
-              </div>
+              </BaseCard>
             </div>
           </div>
         </div>
@@ -1831,6 +1934,18 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
         />
       )}
 
+      {/* --- 17.1. Defensive Hardening & Input Validation Workbench --- */}
+      {activeTab === 'defense-workbench' && (
+        <DefensiveValidationWorkbench 
+          initialInput={defenseCustomInput || selectedReport?.description}
+          onSendToPocBuilder={(url, payload) => {
+            if (url) setPocTarget(url);
+            if (payload) setPocBody(payload);
+            setActiveTab('poc-builder');
+          }}
+        />
+      )}
+
       {/* --- 17.2. Payload Fuzzer & Mutation Engine --- */}
       {activeTab === 'payload-fuzzer' && (
         <PayloadFuzzerStudio 
@@ -1839,6 +1954,10 @@ export const AppSecSuiteView: React.FC<AppSecSuiteViewProps> = ({
             setPocTarget(url);
             if (payload) setPocBody(payload);
             setActiveTab('poc-builder');
+          }}
+          onNavigateToDefense={(payload) => {
+            setDefenseCustomInput(payload);
+            setActiveTab('defense-workbench');
           }}
         />
       )}
