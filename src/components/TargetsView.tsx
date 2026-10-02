@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { TargetProgram, PlatformName } from '../types';
 import { formatCurrency } from '../utils/formatters';
+import { useLanguage } from '../context/LanguageContext';
 
 interface TargetsViewProps {
   targets: TargetProgram[];
@@ -28,6 +29,7 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
   onAddTarget,
   onNewReportForTarget
 }) => {
+  const { t } = useLanguage();
   const [selectedTargetForAi, setSelectedTargetForAi] = useState<TargetProgram | null>(null);
   const [aiReconResult, setAiReconResult] = useState<any | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -110,10 +112,10 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
         <div>
           <h1 className="text-xl sm:text-2xl font-light uppercase tracking-tight text-white flex items-center gap-2">
             <Target className="w-5 h-5 text-emerald-400" />
-            <span>Alvos & Programas de Bug Bounty</span>
+            <span>{t('targets.title', 'Alvos & Programas de Bug Bounty')}</span>
           </h1>
           <p className="text-xs text-zinc-400">
-            Acompanhe escopos autorizados, limites de teste e descubra vetores de ataque prioritários com IA
+            {t('targets.subtitle', 'Acompanhe escopos autorizados, limites de teste e descubra vetores de ataque prioritários com IA')}
           </p>
         </div>
 
@@ -122,7 +124,7 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
           className="flex items-center gap-2 px-3.5 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95 shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Adicionar Programa / Alvo</span>
+          <span>{t('targets.addTarget', 'Adicionar Programa / Alvo')}</span>
         </button>
       </div>
 
@@ -160,7 +162,7 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
                 </div>
 
                 <div className="text-right">
-                  <span className="text-[10px] text-zinc-500 uppercase font-mono block tracking-wider">Faixa de Bounties</span>
+                  <span className="text-[10px] text-zinc-500 uppercase font-mono block tracking-wider">{t('targets.bountyRange', 'Faixa de Bounties')}</span>
                   <span className="text-xs font-semibold font-mono text-emerald-400">{target.bountyRange}</span>
                 </div>
               </div>
@@ -170,7 +172,7 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
                 <div className="p-2.5 rounded bg-[#121212] border border-[#262626] space-y-1">
                   <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
                     <CheckCircle className="w-3.5 h-3.5" />
-                    <span>Dentro do Escopo (In-Scope):</span>
+                    <span>{t('targets.inScope', 'Dentro do Escopo (In-Scope)')}:</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {target.inScope.map((scope, idx) => (
@@ -184,7 +186,7 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
                 <div className="p-2.5 rounded bg-[#121212] border border-[#262626] space-y-1">
                   <div className="flex items-center gap-1.5 text-rose-400 font-semibold text-[11px]">
                     <XCircle className="w-3.5 h-3.5" />
-                    <span>Fora do Escopo (Out-of-Scope):</span>
+                    <span>{t('targets.outScope', 'Fora do Escopo (Out-of-Scope)')}:</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {target.outOfScope.map((scope, idx) => (

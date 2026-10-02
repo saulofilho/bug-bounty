@@ -184,11 +184,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#222224] bg-[#09090b]/95 backdrop-blur-md transition-all">
-      <div className="w-full max-w-[1800px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
-        <div className="flex items-center justify-between h-16 gap-2 sm:gap-3 xl:gap-4">
+      <div className="w-full max-w-[1800px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4 w-full min-w-0">
           
           {/* Left: Logo & Desktop Navigation */}
-          <div className="flex items-center gap-2 sm:gap-3 xl:gap-5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 xl:gap-4 min-w-0 flex-1 overflow-hidden">
             {/* Logo & Brand */}
             <div 
               className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none shrink-0 group py-1" 
@@ -213,42 +213,51 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-sm sm:text-base font-bold tracking-tight uppercase text-emerald-400 whitespace-nowrap">
                   BugSentinel
                 </span>
-                <span className="text-zinc-500 font-normal text-xs hidden min-[440px]:inline">.io</span>
+                <span className="text-zinc-500 font-normal text-xs hidden min-[480px]:inline">.io</span>
                 <span className="text-[9px] font-mono tracking-widest px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700/50 hidden 2xl:inline">
                   PRO
                 </span>
               </div>
             </div>
 
-            {/* Desktop Navigation Tabs - Displayed on lg (1024px+) with responsive spacing to prevent full screen break */}
-            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 2xl:gap-2 text-xs font-medium uppercase tracking-wider text-zinc-400 h-16 shrink min-w-0 overflow-x-auto no-scrollbar">
+            {/* Desktop Navigation Tabs - Resilient, horizontal scrolling, never collapses items */}
+            <nav 
+              id="desktop-nav-menu"
+              role="tablist"
+              aria-label="Menu principal de navegação"
+              className="hidden lg:flex items-center gap-1 xl:gap-1.5 text-xs font-medium uppercase tracking-wider text-zinc-400 h-10 min-w-0 overflow-x-auto no-scrollbar scroll-smooth py-0.5"
+            >
               <button
                 id="nav-dashboard"
+                role="tab"
+                aria-selected={currentTab === 'dashboard'}
                 onClick={() => onTabChange('dashboard')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
                   currentTab === 'dashboard'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                    ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
                 }`}
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
+                <LayoutDashboard className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'dashboard' ? 'text-emerald-400' : 'text-zinc-400'}`} />
                 <span>{t('nav.dashboard', 'Dashboard')}</span>
               </button>
 
               <button
                 id="nav-reports"
+                role="tab"
+                aria-selected={currentTab === 'reports'}
                 onClick={() => onTabChange('reports')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
                   currentTab === 'reports'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                    ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
                 }`}
               >
-                <FileText className="w-3.5 h-3.5" />
+                <FileText className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'reports' ? 'text-emerald-400' : 'text-zinc-400'}`} />
                 <span>{t('nav.reports', 'Reports')}</span>
                 {searchQuery ? (
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold border ${
+                    className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold border ${
                       (reportsMatchingCount ?? 0) > 0
                         ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/30'
                         : 'bg-red-950/60 text-red-300 border-red-500/30'
@@ -258,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({
                     {reportsMatchingCount}
                   </span>
                 ) : activeReportsCount > 0 ? (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300 font-mono">
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
                     {activeReportsCount}
                   </span>
                 ) : null}
@@ -266,71 +275,65 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 id="nav-cve"
+                role="tab"
+                aria-selected={currentTab === 'cve'}
                 onClick={() => onTabChange('cve')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
                   currentTab === 'cve'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                    ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
                 }`}
               >
-                <Database className="w-3.5 h-3.5" />
+                <Database className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'cve' ? 'text-emerald-400' : 'text-zinc-400'}`} />
                 <span>{t('nav.cve', 'CVE-DB')}</span>
               </button>
 
               <button
                 id="nav-targets"
+                role="tab"
+                aria-selected={currentTab === 'targets'}
                 onClick={() => onTabChange('targets')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
                   currentTab === 'targets'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                    ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
                 }`}
               >
-                <Target className="w-3.5 h-3.5" />
+                <Target className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'targets' ? 'text-emerald-400' : 'text-zinc-400'}`} />
                 <span>{t('nav.targets', 'Programs')}</span>
               </button>
 
               <button
-                id="nav-docs"
-                onClick={() => onTabChange('docs')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
-                  currentTab === 'docs'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                id="nav-tools"
+                role="tab"
+                aria-selected={currentTab === 'tools'}
+                onClick={() => onTabChange('tools')}
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
+                  currentTab === 'tools'
+                    ? 'text-amber-300 font-bold bg-amber-500/15 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
                 }`}
               >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>{t('nav.docs', 'Library')}</span>
-              </button>
-
-              <button
-                id="nav-platforms"
-                onClick={() => onTabChange('platforms')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
-                  currentTab === 'platforms'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span className="hidden xl:inline">{t('nav.platforms', 'Sites & Ganhos')}</span>
-                <span className="xl:hidden">{t('nav.platformsShort', 'Sites')}</span>
-                <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">
-                  14
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{t('nav.appsecShort', 'AppSec')}</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
+                  10
                 </span>
               </button>
 
               <button
                 id="nav-threat-intel"
+                role="tab"
+                aria-selected={currentTab === 'threat-intel'}
                 onClick={() => onTabChange('threat-intel')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
                   currentTab === 'threat-intel'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                    ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
                 }`}
               >
-                <Radio className="w-3.5 h-3.5" />
-                <span>{t('nav.threatIntel', 'Threat Intel')}</span>
+                <Radio className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'threat-intel' ? 'text-emerald-400 animate-pulse' : 'text-zinc-400'}`} />
+                <span>{t('nav.intelShort', 'Intel')}</span>
                 <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
                   LIVE
                 </span>
@@ -338,46 +341,65 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 id="nav-notifications"
+                role="tab"
+                aria-selected={currentTab === 'notifications'}
                 onClick={() => onTabChange('notifications')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
                   currentTab === 'notifications'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                    ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
                 }`}
               >
-                <Bell className="w-3.5 h-3.5" />
-                <span>{t('nav.notifications', 'Notificações')}</span>
+                <Bell className={`w-3.5 h-3.5 shrink-0 ${unreadNotificationsCount > 0 ? 'text-rose-400' : currentTab === 'notifications' ? 'text-emerald-400' : 'text-zinc-400'}`} />
+                <span>{t('nav.alertsShort', 'Alertas')}</span>
                 {unreadNotificationsCount > 0 && (
-                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-mono font-bold animate-pulse">
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-mono font-bold animate-pulse">
                     {unreadNotificationsCount}
                   </span>
                 )}
               </button>
 
               <button
-                id="nav-tools"
-                onClick={() => onTabChange('tools')}
-                className={`h-full flex items-center gap-1.5 px-2 xl:px-2.5 transition-all relative whitespace-nowrap shrink-0 ${
-                  currentTab === 'tools'
-                    ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold'
-                    : 'hover:text-white hover:bg-zinc-900/40 rounded-t'
+                id="nav-platforms"
+                role="tab"
+                aria-selected={currentTab === 'platforms'}
+                onClick={() => onTabChange('platforms')}
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
+                  currentTab === 'platforms'
+                    ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>{t('nav.tools', 'Ferramentas AppSec')}</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
-                  10
+                <Globe className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'platforms' ? 'text-emerald-400' : 'text-zinc-400'}`} />
+                <span>{t('nav.platformsShort', 'Sites')}</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">
+                  14
                 </span>
+              </button>
+
+              <button
+                id="nav-docs"
+                role="tab"
+                aria-selected={currentTab === 'docs'}
+                onClick={() => onTabChange('docs')}
+                className={`h-9 flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-mono tracking-wide uppercase transition-all whitespace-nowrap shrink-0 active:scale-95 ${
+                  currentTab === 'docs'
+                    ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
+                }`}
+              >
+                <BookOpen className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'docs' ? 'text-emerald-400' : 'text-zinc-400'}`} />
+                <span>{t('nav.docs', 'Library')}</span>
               </button>
             </nav>
           </div>
 
-          {/* Right: Search + Quick Action Toolbar + CTA */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Right: Search + Quick Action Toolbar + User Auth */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
             
             {/* Global Reports Search Bar */}
-            <div className="relative w-28 min-[380px]:w-36 sm:w-44 md:w-48 lg:w-36 xl:w-44 2xl:w-60 group shrink min-w-[110px]">
-              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
+            <div className="relative w-24 min-[380px]:w-32 min-[480px]:w-36 sm:w-44 md:w-48 lg:w-40 xl:w-48 2xl:w-60 group shrink-0">
+              <div className="absolute inset-y-0 left-0 pl-2 sm:pl-2.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
                 <Search className="w-3.5 h-3.5" />
               </div>
 
@@ -389,7 +411,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onChange={handleSearchInputChange}
                 onKeyDown={handleSearchKeyDown}
                 placeholder={t('header.searchPlaceholder', 'Buscar alvo, CVE...')}
-                className="w-full pl-8 pr-8 sm:pr-12 py-1.5 bg-[#121214] hover:bg-[#161618] border border-[#262628] group-focus-within:border-emerald-500/60 group-focus-within:bg-[#0e0e10] rounded-lg text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all font-mono"
+                className="w-full pl-7 sm:pl-8 pr-7 sm:pr-10 py-1.5 bg-[#121214] hover:bg-[#161618] border border-[#262628] group-focus-within:border-emerald-500/60 group-focus-within:bg-[#0e0e10] rounded-lg text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all font-mono"
                 title="Filtrar relatórios por título, alvo ou tipo (/ ou Ctrl+K)"
               />
 
@@ -430,88 +452,86 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Segmented Quick Actions Toolbar */}
-            <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 bg-[#121214] border border-[#262628] rounded-lg shadow-sm">
+            <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 bg-[#121214] border border-[#262628] rounded-lg shadow-sm shrink-0">
               
-              {/* Quick Action: Add Target */}
-              {onOpenAddTarget && (
-                <button
-                  id="btn-quick-add-target"
-                  type="button"
-                  onClick={onOpenAddTarget}
-                  title="Adicionar Novo Alvo / Programa (Alt+T)"
-                  aria-label="Adicionar Novo Alvo"
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap"
-                >
-                  <Target className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span className="hidden 2xl:inline">Add Target</span>
-                </button>
-              )}
+              {/* Ultra-wide Direct Secondary Shortcuts (only on 2xl: >= 1536px; on others, accessible cleanly in Quick Menu) */}
+              <div className="hidden 2xl:flex items-center gap-0.5">
+                {onOpenAddTarget && (
+                  <button
+                    id="btn-quick-add-target"
+                    type="button"
+                    onClick={onOpenAddTarget}
+                    title="Adicionar Novo Alvo / Programa (Alt+T)"
+                    aria-label="Adicionar Novo Alvo"
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
+                  >
+                    <Target className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <span>{t('header.addTarget', 'Add Target')}</span>
+                  </button>
+                )}
 
-              {/* Quick Action: Sign Report (PGP) */}
-              {onOpenPgp && (
-                <button
-                  id="btn-quick-sign-report"
-                  type="button"
-                  onClick={onOpenPgp}
-                  title="Assinar Relatório Criptograficamente com PGP (Alt+S)"
-                  aria-label="Assinar Relatório com PGP"
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap"
-                >
-                  <Key className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span className="hidden 2xl:inline">Sign PGP</span>
-                </button>
-              )}
+                {onOpenPgp && (
+                  <button
+                    id="btn-quick-sign-report"
+                    type="button"
+                    onClick={onOpenPgp}
+                    title="Assinar Relatório Criptograficamente com PGP (Alt+S)"
+                    aria-label="Assinar Relatório com PGP"
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
+                  >
+                    <Key className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <span>{t('header.signPgp', 'Sign PGP')}</span>
+                  </button>
+                )}
 
-              {/* Quick Action: CVSS Calculator */}
-              {onOpenCvssCalculator && (
-                <button
-                  id="btn-quick-cvss-calc"
-                  type="button"
-                  onClick={onOpenCvssCalculator}
-                  title="Calculadora de Gravidade CVSS v3.1 (Alt+C)"
-                  aria-label="Calculadora CVSS v3.1"
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap"
-                >
-                  <Calculator className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span className="hidden xl:inline">CVSS Calc</span>
-                </button>
-              )}
+                {onOpenCvssCalculator && (
+                  <button
+                    id="btn-quick-cvss-calc"
+                    type="button"
+                    onClick={onOpenCvssCalculator}
+                    title="Calculadora de Gravidade CVSS v3.1 (Alt+C)"
+                    aria-label="Calculadora CVSS v3.1"
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
+                  >
+                    <Calculator className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <span>{t('header.cvssCalc', 'CVSS Calc')}</span>
+                  </button>
+                )}
 
-              {/* Quick Action: Welcome / Mock Mode */}
-              {onOpenWelcomeModal && (
-                <button
-                  id="btn-header-welcome-modal"
-                  type="button"
-                  onClick={onOpenWelcomeModal}
-                  title="Conhecer a plataforma ou alternar entre dados de demonstração (mock) e ambiente zerado"
-                  aria-label="Conhecer a Plataforma e Dados Mock"
-                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border whitespace-nowrap cursor-pointer ${
-                    isMockActive
-                      ? 'bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 border-cyan-500/40 hover:border-cyan-400'
-                      : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-500/40 hover:border-emerald-400'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
-                  <span className="hidden xl:inline">{isMockActive ? 'Mock Ativo' : 'Plataforma Zerada'}</span>
-                </button>
-              )}
+                {onOpenWelcomeModal && (
+                  <button
+                    id="btn-header-welcome-modal"
+                    type="button"
+                    onClick={onOpenWelcomeModal}
+                    title="Conhecer a plataforma ou alternar entre dados de demonstração (mock) e ambiente zerado"
+                    aria-label="Conhecer a Plataforma e Dados Mock"
+                    className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border whitespace-nowrap cursor-pointer ${
+                      isMockActive
+                        ? 'bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 border-cyan-500/40 hover:border-cyan-400'
+                        : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-500/40 hover:border-emerald-400'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
+                    <span>{isMockActive ? t('header.mockActive', 'Mock Ativo') : t('header.mockEmpty', 'Plataforma Zerada')}</span>
+                  </button>
+                )}
 
-              {/* Quick Action: Settings / GitHub Token */}
-              {onOpenSettings && (
-                <button
-                  id="btn-header-settings-modal"
-                  type="button"
-                  onClick={onOpenSettings}
-                  title="Configurações & Token GitHub (PAT)"
-                  aria-label="Configurações do Sistema"
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
-                >
-                  <Settings className="w-3.5 h-3.5 text-purple-400 group-hover:rotate-45 transition-transform" />
-                  <span className="hidden xl:inline">Configurações</span>
-                </button>
-              )}
+                {onOpenSettings && (
+                  <button
+                    id="btn-header-settings-modal"
+                    type="button"
+                    onClick={onOpenSettings}
+                    title="Configurações & Token GitHub (PAT)"
+                    aria-label="Configurações do Sistema"
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-purple-400 group-hover:rotate-45 transition-transform" />
+                    <span>{t('header.settings', 'Configurações')}</span>
+                  </button>
+                )}
+              </div>
 
-              {/* Quick Action: Notifications Hub */}
+              {/* Quick Action: Notifications Hub (hidden on <sm because mobile tab bar has it) */}
               <button
                 id="btn-header-notifications"
                 type="button"
@@ -524,16 +544,16 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
                 title={`Central de Notificações & E-mails Mock (${unreadNotificationsCount} não lidos)`}
                 aria-label="Central de Notificações"
-                className={`relative flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border whitespace-nowrap cursor-pointer ${
+                className={`hidden sm:flex relative items-center gap-1 px-1.5 sm:px-2 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border whitespace-nowrap cursor-pointer ${
                   unreadNotificationsCount > 0
                     ? 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border-rose-500/40 hover:border-rose-400'
                     : 'hover:bg-[#1e1e22] text-zinc-300 hover:text-white border-transparent hover:border-[#333338]'
                 }`}
               >
                 <Bell className={`w-3.5 h-3.5 ${unreadNotificationsCount > 0 ? 'text-rose-400 animate-bounce' : 'text-indigo-400 group-hover:scale-110 transition-transform'}`} />
-                <span className="hidden xl:inline">Notificações</span>
+                <span className="hidden 2xl:inline">{t('nav.notifications', 'Notificações')}</span>
                 {unreadNotificationsCount > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-mono font-bold">
+                  <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-mono font-bold leading-none">
                     {unreadNotificationsCount}
                   </span>
                 )}
@@ -542,24 +562,24 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Language Switcher Component */}
               <LanguageSwitcher variant="compact" />
 
-              {/* Quick Action: Light / Dark Theme Toggle */}
+              {/* Quick Action: Light / Dark Theme Toggle (hidden on <sm because mobile tab bar has it) */}
               <button
                 id="btn-header-theme-toggle"
                 type="button"
                 onClick={toggleTheme}
                 title={resolvedTheme === 'dark' ? 'Mudar para Tema Claro (Ctrl+Shift+L)' : 'Mudar para Tema Escuro (Ctrl+Shift+L)'}
                 aria-label="Alternar Tema Claro e Escuro"
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
+                className="hidden sm:flex items-center gap-1 px-1.5 sm:px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all group font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
               >
                 {resolvedTheme === 'dark' ? (
                   <>
                     <Sun className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-45 transition-transform" />
-                    <span className="hidden xl:inline">{t('header.themeLight', 'Claro')}</span>
+                    <span className="hidden 2xl:inline">{t('header.themeLight', 'Claro')}</span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-3.5 h-3.5 text-indigo-400 group-hover:-rotate-12 transition-transform" />
-                    <span className="hidden xl:inline">{t('header.themeDark', 'Escuro')}</span>
+                    <span className="hidden 2xl:inline">{t('header.themeDark', 'Escuro')}</span>
                   </>
                 )}
               </button>
@@ -573,26 +593,26 @@ export const Header: React.FC<HeaderProps> = ({
                   title="Menu de Ações Rápidas do BugSentinel"
                   aria-expanded={isQuickMenuOpen}
                   aria-label="Ações Rápidas"
-                  className={`flex items-center gap-1 px-1.5 sm:px-2 py-1.5 rounded-md transition-all font-mono text-[11px] uppercase tracking-wider border whitespace-nowrap ${
+                  className={`flex items-center gap-1 px-1.5 sm:px-2 py-1.5 rounded-md transition-all font-mono text-[11px] uppercase tracking-wider border whitespace-nowrap cursor-pointer ${
                     isQuickMenuOpen
                       ? 'bg-emerald-950/40 text-emerald-300 border-emerald-500/40'
                       : 'hover:bg-[#1e1e22] text-zinc-400 hover:text-zinc-200 border-transparent hover:border-[#333338]'
                   }`}
                 >
                   <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden 2xl:inline font-medium">Quick</span>
+                  <span className="hidden sm:inline font-medium">Quick</span>
                   <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform ${isQuickMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown Menu Modal */}
                 {isQuickMenuOpen && (
                   <div 
-                    className="absolute right-0 mt-2 w-56 rounded-xl bg-[#111114] border border-[#2d2d32] shadow-2xl z-50 p-1.5 text-xs font-sans animate-fadeIn"
+                    className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-xl bg-[#111114] border border-[#2d2d32] shadow-2xl z-50 p-1.5 text-xs font-sans animate-fadeIn"
                     role="menu"
                   >
                     <div className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 border-b border-[#222226] mb-1 flex items-center justify-between">
-                      <span>Ações Rápidas</span>
-                      <span className="text-[9px] text-zinc-600">Atalhos</span>
+                      <span>{t('header.quickActions', 'Ações Rápidas')}</span>
+                      <span className="text-[9px] text-zinc-600">{t('header.shortcuts', 'Atalhos')}</span>
                     </div>
 
                     {onOpenAddTarget && (
@@ -607,7 +627,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <div className="flex items-center gap-2">
                           <Target className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                          <span>Adicionar Alvo / Escopo</span>
+                          <span>{t('header.addScope', 'Adicionar Alvo / Escopo')}</span>
                         </div>
                         <kbd className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">Alt+T</kbd>
                       </button>
@@ -625,7 +645,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <div className="flex items-center gap-2">
                           <Key className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                          <span>Assinar Relatório PGP</span>
+                          <span>{t('header.signReport', 'Assinar Relatório PGP')}</span>
                         </div>
                         <kbd className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">Alt+S</kbd>
                       </button>
@@ -643,7 +663,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <div className="flex items-center gap-2">
                           <Calculator className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                          <span>Calculadora CVSS v3.1</span>
+                          <span>{t('header.cvssCalcTitle', 'Calculadora CVSS v3.1')}</span>
                         </div>
                         <kbd className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">Alt+C</kbd>
                       </button>
@@ -660,7 +680,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <PlusCircle className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                        <span>Novo Relatório</span>
+                        <span>{t('header.newReport', 'Novo Relatório')}</span>
                       </div>
                       <kbd className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">Alt+N</kbd>
                     </button>
@@ -680,7 +700,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <Bell className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-                        <span>Central de Notificações</span>
+                        <span>{t('header.notifHub', 'Central de Notificações')}</span>
                       </div>
                       {unreadNotificationsCount > 0 && (
                         <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-600 text-white font-bold">
@@ -702,7 +722,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <Database className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Base de Vulnerabilidades (CVE)</span>
+                        <span>{t('header.cveBase', 'Base de Vulnerabilidades (CVE)')}</span>
                       </div>
                     </button>
 
@@ -717,7 +737,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Biblioteca & Checklists</span>
+                        <span>{t('header.docsChecklists', 'Biblioteca & Checklists')}</span>
                       </div>
                     </button>
 
@@ -732,7 +752,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Sites de Bug Bounty & Ganhos</span>
+                        <span>{t('header.platformsEarnings', 'Sites de Bug Bounty & Ganhos')}</span>
                       </div>
                       <span className="text-[9px] font-mono text-emerald-400">14 sites</span>
                     </button>
@@ -748,7 +768,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <Radio className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Threat Intelligence Feeds</span>
+                        <span>{t('header.threatIntelLive', 'Threat Intelligence Feeds')}</span>
                       </div>
                       <span className="text-[9px] font-mono text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1 py-0.2 rounded font-bold">LIVE</span>
                     </button>
@@ -881,19 +901,21 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={onNewReport}
                 title="Criar Novo Relatório de Vulnerabilidade (Alt+N)"
-                className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] uppercase tracking-wider px-2 sm:px-3 py-1.5 rounded-md transition-all font-bold shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] uppercase tracking-wider px-2 sm:px-3 py-1.5 rounded-md transition-all font-bold shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">New Report</span>
-                <span className="sm:hidden">Novo</span>
+                <span className="hidden min-[480px]:inline">New Report</span>
+                <span className="min-[480px]:hidden">Novo</span>
               </button>
             </div>
 
             {/* Firebase Auth User Status / Login Widget */}
-            <UserAuthWidget />
+            <div className="shrink-0">
+              <UserAuthWidget />
+            </div>
 
             {/* Wallet Balance (on Large screens) */}
-            <div className="hidden 2xl:flex flex-col items-end text-right pl-1">
+            <div className="hidden 2xl:flex flex-col items-end text-right pl-1 shrink-0">
               <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-mono">Bounty Balance</span>
               <div className="flex items-baseline gap-1">
                 <span className="text-xs font-mono text-emerald-400 font-semibold">{formatCurrency(totalRewardedUSD, 'USD')}</span>
@@ -907,14 +929,14 @@ export const Header: React.FC<HeaderProps> = ({
                 id="btn-about-help-header"
                 onClick={onOpenAbout}
                 title="Central de Ajuda, Guia & Sobre os Dados Mock"
-                className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg bg-[#121214] hover:bg-[#1b1b1e] border border-[#262628] text-zinc-400 hover:text-white transition-all"
+                className="hidden 2xl:flex items-center justify-center w-8 h-8 rounded-lg bg-[#121214] hover:bg-[#1b1b1e] border border-[#262628] text-zinc-400 hover:text-white transition-all cursor-pointer shrink-0"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
               </button>
             )}
 
             {/* Hunter Avatar */}
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-emerald-500/30 p-0.5 shrink-0">
+            <div className="hidden 2xl:block w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-emerald-500/30 p-0.5 shrink-0">
               <div className="w-full h-full rounded-full bg-zinc-800 flex items-center justify-center text-[10px] sm:text-xs font-mono text-zinc-300 font-bold">
                 JH
               </div>
@@ -945,7 +967,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <LayoutDashboard className={`w-4 h-4 shrink-0 ${currentTab === 'dashboard' ? 'text-emerald-400' : 'text-zinc-400'}`} />
-            <span>Dashboard</span>
+            <span>{t('nav.dashboard', 'Dashboard')}</span>
           </button>
 
           {/* Reports Tab */}
@@ -963,7 +985,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <FileText className={`w-4 h-4 shrink-0 ${currentTab === 'reports' ? 'text-emerald-400' : 'text-zinc-400'}`} />
-            <span>Reports</span>
+            <span>{t('nav.reports', 'Reports')}</span>
             {searchQuery ? (
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold border ${
@@ -996,7 +1018,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Database className={`w-4 h-4 shrink-0 ${currentTab === 'cve' ? 'text-emerald-400' : 'text-zinc-400'}`} />
-            <span>CVE-DB</span>
+            <span>{t('nav.cve', 'CVE-DB')}</span>
           </button>
 
           {/* Programs / Targets Tab */}
@@ -1014,7 +1036,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Target className={`w-4 h-4 shrink-0 ${currentTab === 'targets' ? 'text-emerald-400' : 'text-zinc-400'}`} />
-            <span>Programs</span>
+            <span>{t('nav.targets', 'Programs')}</span>
           </button>
 
           {/* AppSec Tools Tab */}
@@ -1032,7 +1054,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>AppSec</span>
+            <span>{t('nav.appsecShort', 'AppSec')}</span>
             <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
               10
             </span>
@@ -1053,7 +1075,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Radio className={`w-4 h-4 shrink-0 ${currentTab === 'threat-intel' ? 'text-emerald-400 animate-pulse' : 'text-zinc-400'}`} />
-            <span>Intel</span>
+            <span>{t('nav.intelShort', 'Intel')}</span>
             <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
               LIVE
             </span>
@@ -1074,7 +1096,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Bell className={`w-4 h-4 shrink-0 ${unreadNotificationsCount > 0 ? 'text-rose-400' : currentTab === 'notifications' ? 'text-emerald-400' : 'text-zinc-400'}`} />
-            <span>Alertas</span>
+            <span>{t('nav.alertsShort', 'Alertas')}</span>
             {unreadNotificationsCount > 0 && (
               <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-mono font-bold animate-pulse">
                 {unreadNotificationsCount}
@@ -1097,7 +1119,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Globe className={`w-4 h-4 shrink-0 ${currentTab === 'platforms' ? 'text-emerald-400' : 'text-zinc-400'}`} />
-            <span>Sites</span>
+            <span>{t('nav.platformsShort', 'Sites')}</span>
             <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">
               14
             </span>

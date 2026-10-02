@@ -32,6 +32,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { VulnerabilityReport, ReportStatus, Severity, PlatformName } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, generateMarkdownForPlatform, formatRelativeTimeAgo, getImpactCategoryTag } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
@@ -76,6 +77,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   onOpenGeminiDraft
 }) => {
   const { isAuthenticated, openLoginModal } = useAuth();
+  const { t } = useLanguage();
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [internalSelectedSeverity, setInternalSelectedSeverity] = useState<string>('ALL');
@@ -360,14 +362,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   };
 
   const statusList: { key: string; label: string }[] = [
-    { key: 'ALL', label: 'Todos os Status' },
-    { key: 'DRAFT', label: 'Rascunhos' },
-    { key: 'SUBMITTED', label: 'Enviados' },
-    { key: 'TRIAGED', label: 'Em Triagem' },
-    { key: 'REWARDED', label: 'Recompensados ($)' },
-    { key: 'RESOLVED', label: 'Resolvidos' },
-    { key: 'DUPLICATE', label: 'Duplicados' },
-    { key: 'OUT_OF_SCOPE', label: 'Fora de Escopo' }
+    { key: 'ALL', label: t('reports.statusAll', 'Todos os Status') },
+    { key: 'DRAFT', label: t('reports.statusDraft', 'Rascunhos') },
+    { key: 'SUBMITTED', label: t('reports.statusSubmitted', 'Enviados') },
+    { key: 'TRIAGED', label: t('reports.statusTriaged', 'Em Triagem') },
+    { key: 'REWARDED', label: t('reports.statusRewarded', 'Recompensados ($)') },
+    { key: 'RESOLVED', label: t('reports.statusResolved', 'Resolvidos') },
+    { key: 'DUPLICATE', label: t('reports.statusDuplicate', 'Duplicados') },
+    { key: 'OUT_OF_SCOPE', label: t('reports.statusOutOfScope', 'Fora de Escopo') }
   ];
 
   const totalRewardsFiltered = filteredReports.reduce((sum, r) => sum + (r.bountyAmount || 0), 0);
@@ -379,13 +381,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-light uppercase tracking-tight text-white flex items-center gap-2">
-            <span>Vulnerability Reports</span>
+            <span>{t('reports.title', 'Vulnerability Reports')}</span>
             <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono border border-[#262626]">
               {filteredReports.length}
             </span>
           </h1>
           <p className="text-xs text-zinc-400">
-            Gerencie achados, formate para envio e acompanhe o pipeline de triagem e pagamento
+            {t('reports.subtitle', 'Gerencie achados, formate para envio e acompanhe o pipeline de triagem e pagamento')}
           </p>
         </div>
 
@@ -399,7 +401,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               title="Importar relatórios via arquivo CSV de outras ferramentas (HackerOne, Bugcrowd, Intigriti, planilhas)"
             >
               <Upload className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Importar CSV</span>
+              <span>{t('reports.importCsv', 'Importar CSV')}</span>
             </button>
           )}
 
@@ -412,7 +414,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               title="Exportar todos os relatórios cadastrados em formato CSV"
             >
               <Download className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="hidden sm:inline">Exportar CSV</span>
+              <span className="hidden sm:inline">{t('reports.exportCsv', 'Exportar CSV')}</span>
             </button>
           )}
 

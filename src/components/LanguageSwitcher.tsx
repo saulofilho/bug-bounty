@@ -150,7 +150,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = 'c
         aria-label="Selecionar idioma do aplicativo"
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-[#1e1e22] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider transition-all font-semibold border border-transparent hover:border-[#333338] whitespace-nowrap cursor-pointer"
       >
-        <Languages className="w-3.5 h-3.5 text-cyan-400" />
+        <span className="text-xs">{currentLang.flag}</span>
         <span>{currentLang.shortLabel}</span>
         <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -158,7 +158,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = 'c
       {isOpen && (
         <div
           role="menu"
-          className="absolute right-0 mt-2 w-48 rounded-xl bg-[#111116] border border-[#2a2a36] shadow-2xl py-1.5 z-50 font-mono text-xs"
+          className="absolute right-0 mt-2 w-48 max-w-[calc(100vw-1.5rem)] rounded-xl bg-[#111116] border border-[#2a2a36] shadow-2xl py-1.5 z-50 font-mono text-xs"
         >
           <div className="px-3 py-1.5 border-b border-[#22222c] text-[10px] uppercase tracking-wider text-zinc-400 font-bold">
             {t('lang.label', 'Idioma')}

@@ -37,6 +37,7 @@ import {
   PieChart as PieChartIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { VulnerabilityReport, Severity, ReportStatus } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo, getImpactCategoryTag } from '../utils/formatters';
 import { calculateTriageEfficiency } from '../utils/triageEfficiencyEngine';
@@ -119,6 +120,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSyncExternalReports
 }) => {
   const { isAuthenticated, openLoginModal } = useAuth();
+  const { t } = useLanguage();
   const usdToBrl = 5.45;
 
   // Calculate high-precision metrics
@@ -538,7 +540,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold font-mono text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-950/40 shrink-0 cursor-pointer"
           >
             <Flame className="w-3.5 h-3.5" />
-            <span>Fazer Login</span>
+            <span>{t('header.login', 'Fazer Login')}</span>
           </button>
         </div>
       )}
@@ -581,9 +583,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="space-y-0.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-bold text-white">Central de Ferramentas AppSec & DevSecOps</span>
+              <span className="text-sm font-bold text-white">{t('dash.appSecToolsTitle', 'Central de Ferramentas AppSec & DevSecOps')}</span>
               <span className="px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30">
-                40 FERRAMENTAS INTEGRADAS
+                {t('dash.toolsIntegrated', '40 FERRAMENTAS INTEGRADAS')}
               </span>
             </div>
             <p className="text-xs text-zinc-400">
@@ -597,7 +599,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           onClick={() => onNavigateTab('tools')}
           className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-mono text-xs font-bold flex items-center gap-2 shadow-md transition-all shrink-0 cursor-pointer"
         >
-          <span>Abrir Ferramentas AppSec</span>
+          <span>{t('dash.openTools', 'Abrir Ferramentas AppSec')}</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </BaseCard>
@@ -619,7 +621,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-zinc-500 uppercase flex items-center gap-1">
                 <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Total Bounties</span>
+                <span>{t('kpi.totalBounties', 'Total Bounties')}</span>
               </p>
               <button
                 type="button"
@@ -628,14 +630,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 className="text-[9px] font-mono uppercase text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-0.5 cursor-pointer"
                 title="Visualizar gráfico de tendência em sparkline dos últimos 30 dias"
               >
-                <span>30D Trend</span>
+                <span>{t('kpi.trend30d', '30D Trend')}</span>
                 <ChevronRight className="w-2.5 h-2.5" />
               </button>
             </div>
             <h3 className="text-3xl font-light text-white font-mono tabular-nums">
               {formatCurrency(totalEarnedUSD, 'USD')}
             </h3>
-            <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">{formatCurrency(totalEarnedBRL, 'BRL')} estimado</p>
+            <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">{formatCurrency(totalEarnedBRL, 'BRL')} {t('kpi.estimatedBrl', 'estimado')}</p>
           </div>
 
           {/* Embedded 30-Day Bounty Sparkline Visualization */}
