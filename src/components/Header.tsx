@@ -29,6 +29,8 @@ import {
 import { formatCurrency } from '../utils/formatters';
 import { UserAuthWidget } from './UserAuthWidget';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage, DEFAULT_APP_ICON_URL } from '../context/LanguageContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel' | 'notifications' | 'tools';
 
@@ -80,6 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
   const activeMobileTabRef = useRef<HTMLButtonElement>(null);
   const { theme, resolvedTheme, toggleTheme } = useTheme();
+  const { t, appIconUrl } = useLanguage();
   const usdToBrlRate = 5.45;
   const totalBRL = totalRewardedUSD * usdToBrlRate;
 
@@ -192,8 +195,19 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => onTabChange('dashboard')}
               title="Ir para o Dashboard"
             >
-              <div className="w-8 h-8 bg-emerald-500 group-hover:bg-emerald-400 rounded-lg flex items-center justify-center shadow-sm shadow-emerald-500/25 transition-all shrink-0">
-                <span className="text-black font-extrabold text-base sm:text-lg leading-none">Σ</span>
+              <div className="w-8 h-8 bg-emerald-500/15 group-hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg flex items-center justify-center shadow-sm shadow-emerald-500/25 transition-all shrink-0 overflow-hidden">
+                {appIconUrl ? (
+                  <img
+                    src={appIconUrl}
+                    alt="BugSentinel Icon"
+                    className="w-6 h-6 object-contain"
+                    onError={e => {
+                      (e.currentTarget as HTMLImageElement).src = DEFAULT_APP_ICON_URL;
+                    }}
+                  />
+                ) : (
+                  <span className="text-emerald-400 font-extrabold text-base sm:text-lg leading-none">Σ</span>
+                )}
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-sm sm:text-base font-bold tracking-tight uppercase text-emerald-400 whitespace-nowrap">
@@ -218,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Dashboard</span>
+                <span>{t('nav.dashboard', 'Dashboard')}</span>
               </button>
 
               <button
@@ -231,7 +245,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Reports</span>
+                <span>{t('nav.reports', 'Reports')}</span>
                 {searchQuery ? (
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold border ${
@@ -260,7 +274,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <Database className="w-3.5 h-3.5" />
-                <span>CVE-DB</span>
+                <span>{t('nav.cve', 'CVE-DB')}</span>
               </button>
 
               <button
@@ -273,7 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <Target className="w-3.5 h-3.5" />
-                <span>Programs</span>
+                <span>{t('nav.targets', 'Programs')}</span>
               </button>
 
               <button
@@ -286,7 +300,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
-                <span>Library</span>
+                <span>{t('nav.docs', 'Library')}</span>
               </button>
 
               <button
@@ -299,7 +313,8 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <Globe className="w-3.5 h-3.5" />
-                <span>Sites<span className="hidden xl:inline"> & Ganhos</span></span>
+                <span className="hidden xl:inline">{t('nav.platforms', 'Sites & Ganhos')}</span>
+                <span className="xl:hidden">{t('nav.platformsShort', 'Sites')}</span>
                 <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">
                   14
                 </span>
@@ -315,7 +330,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <Radio className="w-3.5 h-3.5" />
-                <span>Threat Intel</span>
+                <span>{t('nav.threatIntel', 'Threat Intel')}</span>
                 <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
                   LIVE
                 </span>
@@ -331,7 +346,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <Bell className="w-3.5 h-3.5" />
-                <span>Notificações</span>
+                <span>{t('nav.notifications', 'Notificações')}</span>
                 {unreadNotificationsCount > 0 && (
                   <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-mono font-bold animate-pulse">
                     {unreadNotificationsCount}
@@ -349,7 +364,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Ferramentas AppSec</span>
+                <span>{t('nav.tools', 'Ferramentas AppSec')}</span>
                 <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
                   10
                 </span>
@@ -373,7 +388,7 @@ export const Header: React.FC<HeaderProps> = ({
                 value={searchQuery}
                 onChange={handleSearchInputChange}
                 onKeyDown={handleSearchKeyDown}
-                placeholder="Buscar alvo, CVE..."
+                placeholder={t('header.searchPlaceholder', 'Buscar alvo, CVE...')}
                 className="w-full pl-8 pr-8 sm:pr-12 py-1.5 bg-[#121214] hover:bg-[#161618] border border-[#262628] group-focus-within:border-emerald-500/60 group-focus-within:bg-[#0e0e10] rounded-lg text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all font-mono"
                 title="Filtrar relatórios por título, alvo ou tipo (/ ou Ctrl+K)"
               />
@@ -524,6 +539,9 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </button>
 
+              {/* Language Switcher Component */}
+              <LanguageSwitcher variant="compact" />
+
               {/* Quick Action: Light / Dark Theme Toggle */}
               <button
                 id="btn-header-theme-toggle"
@@ -536,12 +554,12 @@ export const Header: React.FC<HeaderProps> = ({
                 {resolvedTheme === 'dark' ? (
                   <>
                     <Sun className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-45 transition-transform" />
-                    <span className="hidden xl:inline">Claro</span>
+                    <span className="hidden xl:inline">{t('header.themeLight', 'Claro')}</span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-3.5 h-3.5 text-indigo-400 group-hover:-rotate-12 transition-transform" />
-                    <span className="hidden xl:inline">Escuro</span>
+                    <span className="hidden xl:inline">{t('header.themeDark', 'Escuro')}</span>
                   </>
                 )}
               </button>

@@ -17,6 +17,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
   const [domain, setDomain] = useState('');
   const [platform, setPlatform] = useState<PlatformName>('HackerOne');
   const [programUrl, setProgramUrl] = useState('');
+  const [iconUrl, setIconUrl] = useState('/icon.svg');
   const [bountyRange, setBountyRange] = useState('$100 - $5,000');
   const [inScope, setInScope] = useState('*.target.com, api.target.com');
   const [outOfScope, setOutOfScope] = useState('DDoS, Social Engineering, Out-of-band Spam');
@@ -42,6 +43,7 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
       domain: domain.trim(),
       platform,
       programUrl: programUrl.trim() || `https://${platform.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+      iconUrl: iconUrl.trim() || '/icon.svg',
       bountyRange: bountyRange.trim() || '$100 - $5,000',
       inScope: inScope.split(',').map(s => s.trim()).filter(Boolean),
       outOfScope: outOfScope.split(',').map(s => s.trim()).filter(Boolean),
@@ -170,6 +172,31 @@ export const AddTargetModal: React.FC<AddTargetModalProps> = ({
                 value={bountyRange}
                 onChange={(e) => setBountyRange(e.target.value)}
                 className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-zinc-200 font-mono focus:border-emerald-500 focus:outline-none placeholder-zinc-600"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-zinc-300 font-medium font-mono uppercase text-[10px] tracking-wider">
+              Caminho / URL do Ícone (Icon URL Path)
+            </label>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded bg-[#161616] border border-[#2a2a2a] flex items-center justify-center shrink-0 overflow-hidden">
+                <img
+                  src={iconUrl.trim() || '/icon.svg'}
+                  alt="Icon Preview"
+                  className="w-5 h-5 object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = '/icon.svg';
+                  }}
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="/icon.svg ou https://..."
+                value={iconUrl}
+                onChange={(e) => setIconUrl(e.target.value)}
+                className="flex-1 bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-zinc-200 font-mono focus:border-emerald-500 focus:outline-none placeholder-zinc-600"
               />
             </div>
           </div>

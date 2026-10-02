@@ -35,6 +35,7 @@ import { Toaster } from 'react-hot-toast';
 import { notifyCriticalVulnerability, showSuccessToast, showInfoToast } from './utils/toastNotifications';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { INITIAL_REPORTS, INITIAL_TARGETS, INITIAL_DOCS } from './data/initialData';
 import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity, GeneratedDraftReport } from './types';
 
@@ -1012,6 +1013,13 @@ function AppContent() {
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onUpdateStatus={handleUpdateStatus}
             onUpdateReport={handleUpdateReport}
+            onSyncExternalReports={(syncedReports) => {
+              setReports(prev => {
+                const existingIds = new Set(prev.map(r => r.id));
+                const toAdd = syncedReports.filter(r => !existingIds.has(r.id));
+                return toAdd.length > 0 ? [...toAdd, ...prev] : prev;
+              });
+            }}
           />
         )}
 
@@ -1334,9 +1342,11 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

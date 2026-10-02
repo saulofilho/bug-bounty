@@ -15,6 +15,7 @@ export type PlatformName =
   | 'Intigriti' 
   | 'YesWeHack' 
   | 'Synack' 
+  | 'Bypassec'
   | 'Direct / VDP';
 
 export interface TimelineEvent {
@@ -192,6 +193,7 @@ export interface TargetProgram {
   domain: string;
   platform: PlatformName;
   programUrl: string;
+  iconUrl?: string;
   bountyRange: string;
   inScope: string[];
   outOfScope: string[];

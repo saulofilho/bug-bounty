@@ -39,6 +39,7 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
   const [newTargetDomain, setNewTargetDomain] = useState('');
   const [newTargetPlatform, setNewTargetPlatform] = useState<PlatformName>('HackerOne');
   const [newTargetUrl, setNewTargetUrl] = useState('');
+  const [newTargetIconUrl, setNewTargetIconUrl] = useState('/icon.svg');
   const [newTargetBountyRange, setNewTargetBountyRange] = useState('$100 - $5,000');
   const [newInScope, setNewInScope] = useState('*.target.com, api.target.com');
   const [newOutOfScope, setNewOutOfScope] = useState('DDoS, Social Engineering');
@@ -83,6 +84,7 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
       domain: newTargetDomain.trim(),
       platform: newTargetPlatform,
       programUrl: newTargetUrl.trim() || `https://${newTargetPlatform.toLowerCase()}.com`,
+      iconUrl: newTargetIconUrl.trim() || '/icon.svg',
       bountyRange: newTargetBountyRange.trim(),
       inScope: newInScope.split(',').map(s => s.trim()).filter(Boolean),
       outOfScope: newOutOfScope.split(',').map(s => s.trim()).filter(Boolean),
@@ -135,14 +137,26 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
               
               {/* Card top */}
               <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-semibold text-zinc-100">{target.name}</h3>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#121212] text-zinc-300 border border-[#262626]">
-                      {target.platform}
-                    </span>
+                <div className="flex items-start gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-[#121212] border border-[#262626] flex items-center justify-center shrink-0 overflow-hidden mt-0.5">
+                    <img
+                      src={target.iconUrl || '/icon.svg'}
+                      alt={target.name}
+                      className="w-5 h-5 object-contain"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = '/icon.svg';
+                      }}
+                    />
                   </div>
-                  <span className="text-xs font-mono text-emerald-400 font-semibold">{target.domain}</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-semibold text-zinc-100">{target.name}</h3>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#121212] text-zinc-300 border border-[#262626]">
+                        {target.platform}
+                      </span>
+                    </div>
+                    <span className="text-xs font-mono text-emerald-400 font-semibold">{target.domain}</span>
+                  </div>
                 </div>
 
                 <div className="text-right">
@@ -379,6 +393,29 @@ export const TargetsView: React.FC<TargetsViewProps> = ({
                     <option value="Synack">Synack</option>
                     <option value="Direct / VDP">Direto / VDP</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-zinc-300 font-semibold">Caminho / URL do Ícone (Icon URL Path)</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded bg-[#121212] border border-[#262626] flex items-center justify-center shrink-0 overflow-hidden">
+                    <img
+                      src={newTargetIconUrl.trim() || '/icon.svg'}
+                      alt="Icon Preview"
+                      className="w-5 h-5 object-contain"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = '/icon.svg';
+                      }}
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="/icon.svg ou https://..."
+                    value={newTargetIconUrl}
+                    onChange={(e) => setNewTargetIconUrl(e.target.value)}
+                    className="flex-1 bg-[#121212] border border-[#262626] rounded p-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none font-mono"
+                  />
                 </div>
               </div>
 

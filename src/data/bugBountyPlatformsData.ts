@@ -571,6 +571,47 @@ export const BUG_BOUNTY_PLATFORMS: BountyPlatform[] = [
       'Reporte com agilidade e clareza para se tornar o pesquisador de confiança da startup, garantindo convites exclusivos futuros.'
     ],
     payoutNotes: 'Pagamento rápido processado via Stripe Connect ou PayPal diretamente após aceitação.'
+  },
+  {
+    id: 'bypassec',
+    name: 'Bypassec',
+    tagline: 'Plataforma Brasileira de Segurança Ofensiva, Hacking Competitions & Bug Bounty',
+    category: 'Beginner Friendly',
+    url: 'https://app.bypassec.com/dashboard',
+    logoText: 'BYP',
+    badgeColor: 'from-emerald-500 to-teal-600',
+    founded: 2022,
+    headquarters: 'Brasil',
+    payoutMethods: ['PIX', 'Transferência Bancária Nacional (TED)', 'Crédito em Conta Bypassec'],
+    currencies: ['BRL', 'USD'],
+    minBounty: 'R$ 250',
+    maxBounty: 'R$ 50.000+',
+    kycRequired: true,
+    safeHarbor: 'Full Safe Harbor',
+    triageSpeed: 'Muito Rápido (24-48h em Português)',
+    competitionLevel: 'Média (Competições Focadas)',
+    description: 'Ecossistema brasileiro de segurança ofensiva que conecta empresas a hackers éticos através de Hacking Competitions e programas de Bug Bounty, com acompanhamento de relatórios em tempo real pelo portal app.bypassec.com/dashboard.',
+    targetFocus: ['Fintechs & PIX', 'E-Commerce Nacional', 'APIs REST/GraphQL', 'Web & Mobile Apps'],
+    pros: [
+      'Suporte, triagem e comunicação 100% em português brasileiro.',
+      'Recebimento ágil em Reais (BRL) via PIX sem taxas de câmbio internacional.',
+      'Formato dinâmico de Hacking Competitions com escopos claros e prêmios atrativos.',
+      'Integração nativa com o Sentinel Vulnerability Workbench.'
+    ],
+    cons: [
+      'Janelas de competição com tempo delimitado exigem agilidade nos testes iniciais.'
+    ],
+    howToStart: [
+      'Acesse https://app.bypassec.com/dashboard e autentique sua conta de pesquisador.',
+      'Vincule sua conta diretamente no painel Bypassec do Dashboard deste Workbench.',
+      'Participe das Hacking Competitions ativas usando o header X-Bug-Bounty: bypassec-[seu_usuario].'
+    ],
+    howToEarnMoneyTips: [
+      'Inicie a análise assim que uma nova Hacking Competition abrir no app.bypassec.com/dashboard.',
+      'Foque em falhas de autorização (IDOR/BOLA) e lógica de negócio em fluxos de pagamento e APIs brasileiras.'
+    ],
+    payoutNotes: 'Pagamentos realizados diretamente em BRL (PIX/Transferência) após validação na plataforma Bypassec.',
+    headerRequirement: 'X-Bug-Bounty: bypassec-[username]'
   }
 ];
 

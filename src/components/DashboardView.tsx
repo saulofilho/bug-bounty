@@ -80,6 +80,7 @@ import { BountyPayoutTracker } from './BountyPayoutTracker';
 import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
 import { VulnerabilityImpactLegend } from './VulnerabilityImpactLegend';
 import { VulnerabilityAndBountyAnalyticsPanel } from './VulnerabilityAndBountyAnalyticsPanel';
+import { BypassecIntegrationCard } from './BypassecIntegrationCard';
 import { BaseCard } from './BaseCard';
 import { TimelineEvent } from '../types';
 import { NavTab } from './Header';
@@ -98,6 +99,7 @@ interface DashboardViewProps {
   onOpenSettings?: () => void;
   onUpdateStatus?: (id: string, newStatus: ReportStatus, bountyAmount?: number) => void;
   onUpdateReport?: (updatedReport: VulnerabilityReport) => void;
+  onSyncExternalReports?: (syncedReports: VulnerabilityReport[]) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -113,7 +115,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onAddTimelineEvent,
   onOpenSettings,
   onUpdateStatus,
-  onUpdateReport
+  onUpdateReport,
+  onSyncExternalReports
 }) => {
   const { isAuthenticated, openLoginModal } = useAuth();
   const usdToBrl = 5.45;
@@ -138,7 +141,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const triageEfficiency = useMemo(() => calculateTriageEfficiency(reports), [reports]);
 
   // Platform breakdown
-  const platforms = ['HackerOne', 'Bugcrowd', 'Intigriti', 'YesWeHack', 'Synack', 'Direct / VDP'];
+  const platforms = ['HackerOne', 'Bugcrowd', 'Intigriti', 'YesWeHack', 'Synack', 'Bypassec', 'Direct / VDP'];
   const platformStats = platforms.map(platform => {
     const pReports = reports.filter(r => r.platform === platform);
     const pEarned = pReports.reduce((sum, r) => sum + (r.bountyAmount || 0), 0);
@@ -546,6 +549,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onSelectReport={onSelectReport}
         onNewReport={onNewReport}
         onUpdateStatus={onUpdateStatus}
+      />
+
+      {/* Bypassec (https://app.bypassec.com/dashboard) OAuth & Dashboard Sync Card */}
+      <BypassecIntegrationCard
+        reports={reports}
+        onSyncReports={onSyncExternalReports}
+        onSelectReport={onSelectReport}
       />
 
       {/* Prominent Weekly Summary (Last 7 Days: Submissions & Rewards Earned) */}

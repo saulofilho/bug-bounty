@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { recordPlatformApiCall } from '../utils/apiRateLimiter';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -651,11 +652,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               </div>
 
+              <LanguageSwitcher variant="panel" />
+
             </div>
           )}
 
           {activeTab === 'general' && (
             <div className="space-y-4 font-mono text-xs text-zinc-300">
+              <LanguageSwitcher variant="panel" />
+
               <div className="p-4 rounded-xl bg-[#121624] border border-[#20273d] space-y-2">
                 <div className="flex items-center gap-2 font-bold text-white">
                   <Shield className="w-4 h-4 text-emerald-400" />
