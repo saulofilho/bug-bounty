@@ -19,6 +19,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
 
 export const LANGUAGE_STORAGE_KEY = 'bbm_app_language';
 export const APP_ICON_URL_STORAGE_KEY = 'bbm_app_icon_url';
+export const I18N_ENABLED_STORAGE_KEY = 'bbm_i18n_enabled';
 export const DEFAULT_APP_ICON_URL = '/icon.svg';
 
 const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
@@ -131,7 +132,22 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'lang.label': 'Idioma',
     'lang.changed': 'Idioma alterado para Português (BR)',
     'icon.label': 'Caminho da URL do Ícone (Icon URL Path)',
-    'icon.updated': 'URL do ícone atualizada com sucesso!'
+    'icon.updated': 'URL do ícone atualizada com sucesso!',
+    
+    // i18n System Keys
+    'i18n.title': 'Internacionalização & Tradução Global (i18n)',
+    'i18n.description': 'Alterne o idioma global do aplicativo para reconstruir síncronamente toda a interface e recarregar os pacotes de recursos de texto correspondentes ao locale selecionado.',
+    'i18n.toggleLabel': 'Alternador Global de Idioma (i18n)',
+    'i18n.toggleDesc': 'Selecione abaixo o locale desejado para forçar a re-renderização de todos os componentes da UI com os recursos de texto correspondentes.',
+    'i18n.forceBtn': 'Forçar Re-renderização da UI',
+    'i18n.engineActive': 'MOTOR I18N ATIVO',
+    'i18n.masterToggle': 'Ativar Tradução Global i18n',
+    'i18n.masterToggleDesc': 'Mantém o motor de internacionalização ativo em tempo real para sincronizar strings e nós do DOM.',
+    'i18n.previewTitle': 'Verificação de Recursos de Texto em Tempo Real',
+    'i18n.previewDesc': 'Amostra ao vivo de strings da interface renderizadas dinamicamente com o locale selecionado:',
+    'i18n.activeLocale': 'Locale Ativo',
+    'i18n.coverageTitle': 'Módulos da Aplicação com Tradução Ativa',
+    'i18n.rerenderSuccess': 'Interface re-renderizada com sucesso com os recursos de texto selecionados.'
   },
 
   'en-US': {
@@ -243,7 +259,22 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'lang.label': 'Language',
     'lang.changed': 'Language switched to English (US)',
     'icon.label': 'Icon URL Path',
-    'icon.updated': 'Icon URL path updated successfully!'
+    'icon.updated': 'Icon URL path updated successfully!',
+
+    // i18n System Keys
+    'i18n.title': 'Internationalization & Global Translation (i18n)',
+    'i18n.description': 'Toggle the application global locale to synchronously rebuild the full UI and reload the corresponding text resource bundle for the selected locale.',
+    'i18n.toggleLabel': 'Global i18n Language Toggle',
+    'i18n.toggleDesc': 'Select your desired locale below to trigger a forced re-render across all UI components with the selected locale text resources.',
+    'i18n.forceBtn': 'Force UI Re-render',
+    'i18n.engineActive': 'I18N ENGINE ACTIVE',
+    'i18n.masterToggle': 'Enable Global i18n Translation',
+    'i18n.masterToggleDesc': 'Keeps the real-time internationalization engine active to synchronize strings and DOM text nodes.',
+    'i18n.previewTitle': 'Real-Time Text Resource Verification',
+    'i18n.previewDesc': 'Live sample of UI strings dynamically rendered with the selected locale:',
+    'i18n.activeLocale': 'Active Locale',
+    'i18n.coverageTitle': 'Application Modules with Active Translation',
+    'i18n.rerenderSuccess': 'All UI components re-rendered successfully with the selected locale resources.'
   },
 
   'es-ES': {
@@ -354,7 +385,22 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'lang.label': 'Idioma',
     'lang.changed': 'Idioma cambiado a Español (ES)',
     'icon.label': 'Ruta URL del Icono (Icon URL Path)',
-    'icon.updated': '¡Ruta del icono actualizada con éxito!'
+    'icon.updated': '¡Ruta del icono actualizada con éxito!',
+
+    // i18n System Keys
+    'i18n.title': 'Internacionalización y Traducción Global (i18n)',
+    'i18n.description': 'Alterne el idioma global de la aplicación para reconstruir sincrónicamente toda la interfaz y recargar los recursos de texto correspondientes al locale seleccionado.',
+    'i18n.toggleLabel': 'Alternador Global de Idioma (i18n)',
+    'i18n.toggleDesc': 'Seleccione a continuación el locale deseado para forzar la re-renderización de todos los componentes de la interfaz con los recursos correspondientes.',
+    'i18n.forceBtn': 'Forzar Re-renderizado de la UI',
+    'i18n.engineActive': 'MOTOR I18N ACTIVO',
+    'i18n.masterToggle': 'Habilitar Traducción Global i18n',
+    'i18n.masterToggleDesc': 'Mantiene activo el motor de internacionalización en tiempo real para sincronizar textos y nodos del DOM.',
+    'i18n.previewTitle': 'Verificación de Recursos de Texto en Tiempo Real',
+    'i18n.previewDesc': 'Muestra en vivo de textos de la interfaz renderizados dinámicamente con el locale seleccionado:',
+    'i18n.activeLocale': 'Locale Activo',
+    'i18n.coverageTitle': 'Módulos de la Aplicación con Traducción Activa',
+    'i18n.rerenderSuccess': 'Todos los componentes de la interfaz fueron re-renderizados con éxito con los recursos seleccionados.'
   }
 };
 
@@ -496,18 +542,24 @@ const PHRASE_DICTIONARY: Record<AppLanguage, Record<string, string>> = {
   }
 };
 
-interface LanguageContextType {
+export interface LanguageContextType {
   language: AppLanguage;
   setLanguage: (lang: AppLanguage) => void;
   cycleLanguage: () => void;
   t: (key: string, fallback?: string) => string;
   appIconUrl: string;
   setAppIconUrl: (url: string) => void;
+  rerenderVersion: number;
+  forceRerender: (targetLocale?: AppLanguage) => void;
+  isI18nEnabled: boolean;
+  setIsI18nEnabled: (enabled: boolean) => void;
+  toggleI18n: (targetLocale?: AppLanguage) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [rerenderVersion, setRerenderVersion] = useState<number>(0);
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     try {
       const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY) as AppLanguage;
@@ -518,6 +570,15 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       // ignore
     }
     return 'pt-BR';
+  });
+
+  const [isI18nEnabled, setIsI18nEnabledState] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(I18N_ENABLED_STORAGE_KEY);
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
   });
 
   const [appIconUrl, setAppIconUrlState] = useState<string>(() => {
@@ -534,9 +595,10 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   // Universal real-time DOM text translator for the whole app
   useEffect(() => {
+    if (!isI18nEnabled) return;
     const cleanup = enableUniversalDomTranslation(language);
     return cleanup;
-  }, [language]);
+  }, [language, isI18nEnabled]);
 
   useEffect(() => {
     const cleanIconUrl = appIconUrl.trim() || DEFAULT_APP_ICON_URL;
@@ -549,18 +611,95 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     link.href = cleanIconUrl;
   }, [appIconUrl]);
 
+  const setIsI18nEnabled = (enabled: boolean) => {
+    setIsI18nEnabledState(enabled);
+    try {
+      localStorage.setItem(I18N_ENABLED_STORAGE_KEY, String(enabled));
+    } catch {
+      // ignore
+    }
+    setRerenderVersion(v => v + 1);
+    if (enabled) {
+      enableUniversalDomTranslation(language);
+      toast.success(
+        language === 'pt-BR'
+          ? 'Tradução global i18n ativada!'
+          : language === 'en-US'
+          ? 'Global i18n translation enabled!'
+          : '¡Traducción global i18n activada!',
+        { icon: '🌐' }
+      );
+    } else {
+      toast(
+        language === 'pt-BR'
+          ? 'Tradução global i18n pausada.'
+          : language === 'en-US'
+          ? 'Global i18n translation paused.'
+          : 'Traducción global i18n pausada.',
+        { icon: '⏸️' }
+      );
+    }
+  };
+
   const setLanguage = (lang: AppLanguage) => {
     setLanguageState(lang);
+    setRerenderVersion(v => v + 1);
     try {
       localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
     } catch {
       // ignore
     }
-    const message = TRANSLATIONS[lang]['lang.changed'] || `Language changed to ${lang}`;
+    document.documentElement.lang = lang;
+    if (isI18nEnabled) {
+      enableUniversalDomTranslation(lang);
+    }
+    const message = TRANSLATIONS[lang]?.['lang.changed'] || `Language changed to ${lang}`;
     toast.success(message, { 
       duration: 3000,
       icon: lang === 'en-US' ? '🇺🇸' : lang === 'es-ES' ? '🇪🇸' : '🇧🇷'
     });
+  };
+
+  const forceRerender = (targetLocale?: AppLanguage) => {
+    const nextLang = targetLocale && (targetLocale === 'pt-BR' || targetLocale === 'en-US' || targetLocale === 'es-ES')
+      ? targetLocale
+      : language;
+
+    if (targetLocale && targetLocale !== language) {
+      setLanguageState(targetLocale);
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, targetLocale);
+      } catch {
+        // ignore
+      }
+    }
+
+    setRerenderVersion(v => v + 1);
+    document.documentElement.lang = nextLang;
+    if (isI18nEnabled) {
+      enableUniversalDomTranslation(nextLang);
+    }
+
+    const msg = nextLang === 'pt-BR'
+      ? `Interface atualizada com os recursos de texto em Português!`
+      : nextLang === 'en-US'
+      ? `Interface updated with English text resources!`
+      : `¡Interfaz actualizada con los recursos de texto en Español!`;
+
+    toast.success(msg, {
+      duration: 3000,
+      icon: nextLang === 'en-US' ? '🇺🇸' : nextLang === 'es-ES' ? '🇪🇸' : '🇧🇷'
+    });
+  };
+
+  const toggleI18n = (targetLocale?: AppLanguage) => {
+    if (targetLocale) {
+      forceRerender(targetLocale);
+    } else {
+      const order: AppLanguage[] = ['pt-BR', 'en-US', 'es-ES'];
+      const nextIndex = (order.indexOf(language) + 1) % order.length;
+      forceRerender(order[nextIndex]);
+    }
   };
 
   const cycleLanguage = () => {
@@ -619,7 +758,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         cycleLanguage,
         t,
         appIconUrl,
-        setAppIconUrl
+        setAppIconUrl,
+        rerenderVersion,
+        forceRerender,
+        isI18nEnabled,
+        setIsI18nEnabled,
+        toggleI18n
       }}
     >
       {children}
