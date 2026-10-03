@@ -361,25 +361,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold uppercase tracking-wider">
               <Zap className="w-3.5 h-3.5" />
-              <span>Bug Bounty Command & Intelligence Terminal</span>
+              <span>{t('Bug Bounty Command & Intelligence Terminal', 'Bug Bounty Command & Intelligence Terminal')}</span>
             </div>
             {onOpenAbout && (
               <button
                 type="button"
                 onClick={onOpenAbout}
                 className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-mono hover:bg-amber-500/20 transition-colors cursor-pointer"
-                title="Clique para entender os dados mock e a persistência local"
+                title={t('Clique para entender os dados mock e a persistência local', 'Click to learn about mock data and local persistence')}
               >
                 <Database className="w-3 h-3" />
-                <span>Dados Mock (localStorage ativo)</span>
+                <span>{t('Dados Mock (localStorage ativo)', 'Dados Mock (localStorage ativo)')}</span>
               </button>
             )}
           </div>
           <h1 className="text-xl sm:text-2xl font-light tracking-tight text-white uppercase">
-            Sentinel Vulnerability Workbench
+            {t('Sentinel Vulnerability Workbench', 'Sentinel Vulnerability Workbench')}
           </h1>
           <p className="text-xs text-zinc-400 leading-relaxed">
-            Centralize os achados, acelere submissões para HackerOne, Bugcrowd e Intigriti, consulte vetores de CVE e acompanhe o fluxo de recompensas financeiras em tempo real.
+            {t('Centralize os achados, acelere submissões para HackerOne, Bugcrowd e Intigriti, consulte vetores de CVE e acompanhe o fluxo de recompensas financeiras em tempo real.')}
           </p>
         </div>
 
@@ -394,7 +394,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               title="Calculadora de Gravidade CVSS v3.1 (Alt+C)"
             >
               <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-              <span>CVSS Calc</span>
+              <span>{t('CVSS Calc', 'CVSS Calc')}</span>
             </button>
           )}
 
@@ -405,7 +405,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             title="Ir para Reporter Interaction Sentiment Tracker"
           >
             <MessageSquareWarning className="w-3.5 h-3.5 text-red-400" />
-            <span>Sentiment Tracker</span>
+            <span>{t('Sentiment Tracker', 'Sentiment Tracker')}</span>
           </button>
 
           <button
@@ -415,7 +415,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             title="Ir para Dashboard de Risco Financeiro Acumulado & Severidade (FAIR Recharts)"
           >
             <PieChartIcon className="w-3.5 h-3.5 text-amber-400" />
-            <span>Dashboard de Risco</span>
+            <span>{t('Dashboard de Risco', 'Dashboard de Risco')}</span>
           </button>
 
           <button
@@ -425,7 +425,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             title="Ir para Simulador de Risco FAIR (Frequência x Magnitude)"
           >
             <Scale className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Simulador FAIR</span>
+            <span>{t('Simulador FAIR', 'Simulador FAIR')}</span>
           </button>
 
           <button
@@ -435,7 +435,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             title="Ir para Rate Limit Monitor (GitHub, Gemini e Serviços Cloud)"
           >
             <Activity className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Rate Limits API</span>
+            <span>{t('Rate Limits API', 'Rate Limits API')}</span>
           </button>
 
           {onOpenAbout && (
@@ -446,7 +446,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               title="Entenda a origem dos dados mock e como usar o sistema"
             >
               <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Sobre & Guia Mock</span>
+              <span>{t('Sobre & Guia Mock', 'Sobre & Guia Mock')}</span>
             </button>
           )}
           <button
@@ -455,14 +455,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded transition-all shadow-sm flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            <span>New Submission +</span>
+            <span>{t('New Submission +', 'Nova Submissão +')}</span>
           </button>
           <button
             id="btn-dashboard-cve-search"
             onClick={() => onNavigateTab('cve')}
             className="bg-[#121212] hover:bg-[#1a1a1a] text-zinc-300 hover:text-white border border-[#262626] text-xs uppercase tracking-wider px-4 py-2 rounded transition-all"
           >
-            <span>CVE Correlation DB</span>
+            <span>{t('CVE Correlation DB', 'Base de Dados CVE')}</span>
           </button>
         </div>
       </div>
@@ -479,13 +479,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white text-sm">Plataforma Zerada (Ambiente Limpo)</span>
+                <span className="font-bold text-white text-sm">{t('Plataforma Zerada (Ambiente Limpo)', 'Plataforma Zerada (Ambiente Limpo)')}</span>
                 <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-semibold border border-emerald-500/30">
-                  0 Achados
+                  {t('0 Achados', '0 Achados')}
                 </span>
               </div>
               <p className="text-zinc-400 text-xs mt-0.5 leading-relaxed">
-                Você está no ambiente sem dados simulados. Comece criando seu primeiro relatório ou carregue os dados de demonstração (mock) para ver dashboards, gráficos e históricos preenchidos.
+                {t('Você está no ambiente sem dados simulados. Comece criando seu primeiro relatório ou carregue os dados de demonstração (mock) para ver dashboards, gráficos e históricos preenchidos.')}
               </p>
             </div>
           </div>
@@ -498,7 +498,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 className="px-3.5 py-2 rounded-lg bg-[#141d24] hover:bg-[#1b2b36] text-cyan-300 hover:text-white border border-cyan-500/40 font-mono font-semibold text-xs tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
               >
                 <Database className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Opções de Mock</span>
+                <span>{t('Opções de Mock', 'Opções de Mock')}</span>
               </button>
             )}
             <button
@@ -508,7 +508,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold font-mono text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              <span>Criar Relatório</span>
+              <span>{t('Criar Relatório', 'Criar Relatório')}</span>
             </button>
           </div>
         </div>
@@ -523,13 +523,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-zinc-100">Modo Convidado (Acesso Limitado aos Relatórios)</span>
+                <span className="font-semibold text-zinc-100">{t('Modo Convidado (Acesso Limitado aos Relatórios)', 'Modo Convidado (Acesso Limitado aos Relatórios)')}</span>
                 <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] border border-amber-500/30">
                   Firebase Auth
                 </span>
               </div>
               <p className="text-zinc-400 text-[11px] mt-0.5">
-                Para registrar novos relatórios, editar vulnerabilidades existentes ou visualizar PoCs confidenciais, autentique-se como Administrador ou Pesquisador.
+                {t('Para registrar novos relatórios, editar vulnerabilidades existentes ou visualizar PoCs confidenciais, autentique-se como Administrador ou Pesquisador.')}
               </p>
             </div>
           </div>
@@ -712,7 +712,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="flex items-center justify-between gap-1 mb-1">
                 <p className="text-xs text-zinc-400 uppercase flex items-center gap-1.5">
                   <ShieldAlert className={`w-3.5 h-3.5 text-red-500 ${isCriticalActive ? 'animate-pulse' : ''}`} />
-                  <span>Critical Findings</span>
+                  <span>{t('kpi.criticalFindings', 'Achados Críticos')}</span>
                 </p>
                 {isCriticalActive && latestCriticalReport && (
                   <span className="sm:hidden text-[9px] font-mono text-red-300 bg-red-950/80 border border-red-500/40 px-1.5 py-0.2 rounded inline-flex items-center gap-1">
@@ -727,12 +727,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </span>
                 {isCriticalActive && (
                   <span className="text-[10px] font-bold text-red-300 uppercase font-mono tracking-widest bg-red-500/20 px-1.5 py-0.5 rounded border border-red-500/40 animate-pulse">
-                    MÁXIMA PRIORIDADE
+                    {t('MÁXIMA PRIORIDADE', 'MÁXIMA PRIORIDADE')}
                   </span>
                 )}
               </h3>
               <div className="mt-2 text-[10px] text-zinc-400 italic flex items-center justify-between">
-                <span>{triagedReports.length} pending validation</span>
+                <span>{triagedReports.length} {t('validação pendente', 'pending validation')}</span>
                 <span className="text-red-400 font-mono font-bold">{formatCurrency(criticalEarned, 'USD')}</span>
               </div>
 

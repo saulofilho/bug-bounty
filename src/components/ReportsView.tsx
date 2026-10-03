@@ -440,7 +440,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               title="Gerar rascunho de relatório automático a partir de passos de reprodução ou log de rede com a API do Gemini"
             >
               <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
-              <span>Gerar com Gemini</span>
+              <span>{t('Gerar com Gemini', 'Gerar com Gemini')}</span>
             </button>
           )}
 
@@ -449,7 +449,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded text-xs uppercase tracking-wider transition-all shadow-sm active:scale-95 shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>New Submission +</span>
+            <span>{t('New Submission +', 'Nova Submissão +')}</span>
           </button>
         </div>
       </div>

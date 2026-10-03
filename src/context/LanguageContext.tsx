@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import toast from 'react-hot-toast';
+import { translateString, enableUniversalDomTranslation } from '../utils/universalTranslator';
 
 export type AppLanguage = 'pt-BR' | 'en-US' | 'es-ES';
 
@@ -36,6 +37,7 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'nav.tools': 'Ferramentas AppSec',
     'nav.appsecShort': 'AppSec',
     'nav.intelShort': 'Intel',
+    'nav.more': 'Mais',
 
     // Header & Actions
     'header.searchPlaceholder': 'Buscar alvo, CVE...',
@@ -147,6 +149,7 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'nav.tools': 'AppSec Tools',
     'nav.appsecShort': 'AppSec',
     'nav.intelShort': 'Intel',
+    'nav.more': 'More',
 
     // Header & Actions
     'header.searchPlaceholder': 'Search target, CVE...',
@@ -529,6 +532,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     document.documentElement.lang = language;
   }, [language]);
 
+  // Universal real-time DOM text translator for the whole app
+  useEffect(() => {
+    const cleanup = enableUniversalDomTranslation(language);
+    return cleanup;
+  }, [language]);
+
   useEffect(() => {
     const cleanIconUrl = appIconUrl.trim() || DEFAULT_APP_ICON_URL;
     let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
@@ -576,16 +585,30 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (TRANSLATIONS[language]?.[key]) {
       return TRANSLATIONS[language][key];
     }
-    // 2. Phrase dictionary match (e.g. 'Total Bounties' -> 'Total em Bounties')
+    // 2. Universal dictionary match on key
     const trimmed = key.trim();
+    const translatedKey = translateString(trimmed, language);
+    if (translatedKey && translatedKey !== trimmed) {
+      return translatedKey;
+    }
+    // 3. Phrase dictionary match
     if (PHRASE_DICTIONARY[language]?.[trimmed]) {
       return PHRASE_DICTIONARY[language][trimmed];
     }
-    // 3. Fallback to pt-BR if available
+    // 4. Try translating fallback if provided
+    if (fallback !== undefined) {
+      const trimmedFallback = fallback.trim();
+      const translatedFallback = translateString(trimmedFallback, language);
+      if (translatedFallback) {
+        return fallback.replace(trimmedFallback, translatedFallback);
+      }
+      return fallback;
+    }
+    // 5. Fallback to pt-BR if available
     if (TRANSLATIONS['pt-BR']?.[key]) {
       return TRANSLATIONS['pt-BR'][key];
     }
-    return fallback !== undefined ? fallback : key;
+    return key;
   };
 
   return (

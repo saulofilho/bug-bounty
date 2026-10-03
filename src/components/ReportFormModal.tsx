@@ -32,6 +32,7 @@ import { detectPotentialDuplicates } from '../utils/duplicateDetector';
 import { INITIAL_REPORTS } from '../data/initialData';
 import { showSuccessToast, showErrorToast } from '../utils/toastNotifications';
 import { GeminiReportDraftModal } from './GeminiReportDraftModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ReportFormModalProps {
   initialReport?: VulnerabilityReport | null;
@@ -50,6 +51,7 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
   onClose,
   onSave
 }) => {
+  const { t } = useLanguage();
   const isEditing = !!initialReport;
 
   // Resolve existing reports for duplicate detection with fallback to localStorage / initialData

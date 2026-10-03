@@ -37,6 +37,7 @@ import {
 } from '../data/bugBountyPlatformsData';
 import { VulnerabilityReport } from '../types';
 import { formatCurrency } from '../utils/formatters';
+import { useLanguage } from '../context/LanguageContext';
 
 interface BugBountyDirectoryViewProps {
   reports?: VulnerabilityReport[];
@@ -51,6 +52,7 @@ export const BugBountyDirectoryView: React.FC<BugBountyDirectoryViewProps> = ({
   onSelectPlatformFilter,
   compactMode = false
 }) => {
+  const { t } = useLanguage();
   const [activeMainTab, setActiveMainTab] = useState<'directory' | 'tutorial' | 'monetization' | 'calculator'>('directory');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');

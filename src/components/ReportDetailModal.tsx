@@ -58,6 +58,7 @@ import { GitHubIntegration } from './GitHubIntegration';
 import { GitHubSyncIndicator } from './GitHubSyncIndicator';
 import { SyncToGitHubModal } from './SyncToGitHubModal';
 import { SettingsModal } from './SettingsModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ReportDetailModalProps {
   report: VulnerabilityReport | null;
@@ -92,6 +93,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onUpdateReport,
   onOpenSettings
 }) => {
+  const { t } = useLanguage();
   const { isAuthenticated, canEditReports, canDeleteReports, openLoginModal } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'poc' | 'checklist' | 'timeline' | 'export' | 'impact' | 'github'>('details');
   const [copied, setCopied] = useState(false);

@@ -22,12 +22,14 @@ import {
   clearCveHistory,
   removeCveHistoryItem
 } from '../utils/cveHistoryManager';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CveExplorerViewProps {
   onLinkToNewReport: (cve: CVERecord) => void;
 }
 
 export const CveExplorerView: React.FC<CveExplorerViewProps> = ({ onLinkToNewReport }) => {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [cves, setCves] = useState<CVERecord[]>([]);
   const [loading, setLoading] = useState(false);

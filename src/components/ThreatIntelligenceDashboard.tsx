@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { VulnerabilityReport, Severity } from '../types';
 import { formatCurrency, getSeverityBadgeColor } from '../utils/formatters';
+import { useLanguage } from '../context/LanguageContext';
 
 export interface SecurityAdvisoryItem {
   id: string;
@@ -69,6 +70,7 @@ export const ThreatIntelligenceDashboard: React.FC<ThreatIntelligenceDashboardPr
   onNavigateToReports,
   className = ''
 }) => {
+  const { t } = useLanguage();
   // Feed state
   const [advisories, setAdvisories] = useState<SecurityAdvisoryItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);

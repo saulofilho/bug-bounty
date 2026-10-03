@@ -32,6 +32,7 @@ import {
   Crosshair,
   Binary
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface AboutHelpModalProps {
   isOpen: boolean;
@@ -46,6 +47,7 @@ export const AboutHelpModal: React.FC<AboutHelpModalProps> = ({
   onResetToSeedData,
   onTestCriticalToast
 }) => {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState<'overview' | 'guide' | 'tools' | 'storage'>('overview');
   const [resetConfirmed, setResetConfirmed] = useState(false);
 

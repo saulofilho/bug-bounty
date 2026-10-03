@@ -21,6 +21,7 @@ import {
 import { TechnicalDoc, ExploitPayload, VulnerabilityReport, ValidationChecklistItem } from '../types';
 import { PayloadLibrary } from './PayloadLibrary';
 import { SecurityChecklistLibrary } from './SecurityChecklistLibrary';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DocsAndChecklistsViewProps {
   docs: TechnicalDoc[];
@@ -39,6 +40,7 @@ export const DocsAndChecklistsView: React.FC<DocsAndChecklistsViewProps> = ({
   onApplyChecklistToNewReport,
   onApplyChecklistToExistingReport
 }) => {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState<'docs' | 'checklists' | 'payloads'>('docs');
   const [selectedDocId, setSelectedDocId] = useState<string>(docs[0]?.id || '');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');

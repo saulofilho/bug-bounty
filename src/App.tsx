@@ -35,11 +35,12 @@ import { Toaster } from 'react-hot-toast';
 import { notifyCriticalVulnerability, showSuccessToast, showInfoToast } from './utils/toastNotifications';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { INITIAL_REPORTS, INITIAL_TARGETS, INITIAL_DOCS } from './data/initialData';
 import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity, GeneratedDraftReport } from './types';
 
 function AppContent() {
+  const { t } = useLanguage();
   const {
     isAuthenticated,
     canEditReports,
@@ -966,10 +967,12 @@ function AppContent() {
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
-              <span className="font-bold text-white">Mecanismo de Auto-Cura Ativo:</span>{' '}
+              <span className="font-bold text-white">{t('Mecanismo de Auto-Cura Ativo:', 'Self-Healing Engine Active:')}</span>{' '}
               <span>
                 {integrityResult.totalRepairs}{' '}
-                {integrityResult.totalRepairs === 1 ? 'inconsistência foi detectada e reparada' : 'inconsistências foram detectadas e reparadas'} automaticamente no localStorage durante o carregamento inicial, prevenindo erros de renderização.
+                {integrityResult.totalRepairs === 1
+                  ? t('inconsistência foi detectada e reparada automaticamente no localStorage.', 'inconsistency was automatically detected and repaired in localStorage.')
+                  : t('inconsistências foram detectadas e reparadas automaticamente no localStorage durante o carregamento inicial, prevenindo erros de renderização.', 'inconsistencies were automatically detected and repaired in localStorage during initial load, preventing render errors.')}
               </span>
             </div>
           </div>
@@ -979,13 +982,13 @@ function AppContent() {
               onClick={() => setIsIntegrityModalOpen(true)}
               className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[11px] font-bold transition-colors flex items-center gap-1"
             >
-              <span>Ver Diagnóstico ({integrityResult.issues.length})</span>
+              <span>{t('Ver Diagnóstico', 'View Diagnostics')} ({integrityResult.issues.length})</span>
             </button>
             <button
               type="button"
               onClick={() => setDismissedIntegrityBanner(true)}
               className="p-1 text-zinc-400 hover:text-white transition-colors"
-              title="Dispensar aviso"
+              title={t('Dispensar aviso', 'Dismiss banner')}
             >
               <CloseIcon className="w-4 h-4" />
             </button>

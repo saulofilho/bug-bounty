@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { recordPlatformApiCall } from '../utils/apiRateLimiter';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 export interface SettingsModalProps {
@@ -40,6 +41,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   initialTab = 'github'
 }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'github' | 'appearance' | 'general'>(initialTab);
   const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
 

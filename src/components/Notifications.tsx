@@ -40,6 +40,7 @@ import {
   getInitialMockEmails 
 } from '../utils/notificationEngine';
 import { showSuccessToast, showInfoToast } from '../utils/toastNotifications';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NotificationsProps {
   reports: VulnerabilityReport[];
@@ -56,6 +57,7 @@ export const Notifications: React.FC<NotificationsProps> = ({
   onClose,
   isModal = false
 }) => {
+  const { t } = useLanguage();
   const [emails, setEmails] = useState<MockEmailNotification[]>(() => getStoredMockEmails());
   const [selectedEmail, setSelectedEmail] = useState<MockEmailNotification | null>(() => {
     const list = getStoredMockEmails();
