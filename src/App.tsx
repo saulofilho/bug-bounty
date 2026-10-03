@@ -40,7 +40,7 @@ import { INITIAL_REPORTS, INITIAL_TARGETS, INITIAL_DOCS } from './data/initialDa
 import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity, GeneratedDraftReport } from './types';
 
 function AppContent() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const {
     isAuthenticated,
     canEditReports,
@@ -934,7 +934,7 @@ function AppContent() {
   }, [reports, globalSearchQuery]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#e5e7eb] font-sans flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div key={language} id="app-root-container" className="min-h-screen bg-[#050505] text-[#e5e7eb] font-sans flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300">
       
       {/* Top Application Header with Global Search and Quick Actions */}
       <Header
