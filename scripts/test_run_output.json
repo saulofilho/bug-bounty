@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-04T15:08:01.599Z",
+  "timestamp": "2026-10-04T15:28:27.996Z",
   "testsPassed": 18,
   "testsFailed": 0,
   "suiteDetails": [
@@ -11,7 +11,7 @@
         "statusCode": 200,
         "body": {
           "status": "ok",
-          "timestamp": "2026-10-04T15:08:01.618Z"
+          "timestamp": "2026-10-04T15:28:28.016Z"
         }
       }
     },
@@ -116,8 +116,8 @@
       "feature": "Disparo Automatizado de Submissão de Vulnerabilidade (Dispatch)",
       "success": true,
       "details": {
-        "submissionId": "HACKERONE-498905",
-        "receiptUrl": "https://hackerone.com/reports/HACKERONE-498905"
+        "submissionId": "HACKERONE-472257",
+        "receiptUrl": "https://hackerone.com/reports/HACKERONE-472257"
       }
     },
     {

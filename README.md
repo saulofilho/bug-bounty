@@ -9,6 +9,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/tailwind-4.1-38B2AC.svg)](https://tailwindcss.com/)
 [![Recharts](https://img.shields.io/badge/recharts-3.10-22c55e.svg)](https://recharts.org/)
 [![CVSS v4.0](https://img.shields.io/badge/CVSS-v4.0%20%7C%20v3.1-emerald.svg)](https://www.first.org/cvss/v4-0/)
+[![E2E Tests](https://img.shields.io/badge/E2E%20Tests-18%2F18%20Passed%20(100%25)-success.svg)](./RELATORIO_DE_TESTES_E2E.md)
 [![GitHub Pages](https://img.shields.io/badge/deploy-GitHub%20Pages-black.svg?logo=github)](https://pages.github.com/)
 
 ---
@@ -16,9 +17,10 @@
 ## 📋 Sumário
 
 - [Visão Geral](#-visão-geral)
-- [Central de Ferramentas AppSec & DevSecOps (36 Módulos)](#-central-de-ferramentas-appsec--devsecops-36-módulos)
+- [Central de Ferramentas AppSec & DevSecOps (37 Módulos)](#-central-de-ferramentas-appsec--devsecops-37-módulos)
 - [Guia de Uso Passo a Passo (Tutorial das Ferramentas)](#-guia-de-uso-passo-a-passo-tutorial-das-ferramentas)
 - [Manual Completo (TUTORIAL.md)](#-manual-completo-tutorialmd)
+- [Relatório de Testes Automatizados E2E (100% Aprovado)](#-relatório-de-testes-automatizados-e2e-100-aprovado)
 - [Categorias de Impacto & Legenda de Triagem Rápida (Fast Triage)](#-categorias-de-impacto--legenda-de-triagem-rápida-fast-triage)
 - [Monitores de Rate Limits de APIs e Alvos](#-monitores-de-rate-limits-de-apis-e-alvos)
 - [Análise de Sentimento nas Interações de Triagem](#-análise-de-sentimento-nas-interações-de-triagem)
@@ -475,6 +477,47 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 
 ---
 
+## 🧪 Relatório de Testes Automatizados E2E (100% Aprovado)
+
+A plataforma conta com uma suíte de testes de integração automatizados de ponta a ponta (E2E), garantindo a robustez e resiliência de todas as APIs, motores de cálculo, módulos AppSec, inteligência de ameaças e internacionalização.
+
+- **Status da Suíte:** ✅ **18/18 Testes Aprovados (100% de Sucesso)**
+- **Documento Técnico Detalhado:** [RELATORIO_DE_TESTES_E2E.md](./RELATORIO_DE_TESTES_E2E.md)
+- **Comando de Execução:** `npm test` ou `node scripts/test_runner.cjs`
+
+### 🎯 Cenário Prático Utilizado nos Testes
+Para certificar a experiência real de um pesquisador de segurança ofensiva, a suíte utilizou um caso concreto do setor bancário:
+- **Alvo:** `api.apexbanking.io` (Programa Apex Fintech Bug Bounty)
+- **Classe da Falha:** `Broken Object Level Authorization (BOLA / IDOR)` no endpoint de transferência financeira `POST /api/v2/transfers/execute` e consulta de extratos `GET /api/v2/accounts/{id}/statement`
+- **Classificação:** CWE-639 (*Authorization Bypass Through User-Controlled Key*) | CVSS v3.1: **8.5 / 8.1** (High / Critical)
+- **Impacto no Negócio:** Movimentação indevida de saldo entre contas correntes e exfiltração de dados cadastrais/PII (LGPD/GDPR)
+- **Recompensa Estimada (Bounty):** $ 5.000,00 USD
+
+### 📊 Matriz de Cobertura e Resultados dos Testes
+
+| # | Módulo / Componente | Funcionalidade Testada | Ação / Verificação | Resultado | Status |
+|---|---|---|---|---|:---:|
+| **1** | **System Health** | Healthcheck da API REST | `GET /api/health` | Resposta `200 OK` com timestamp ativo | ✅ PASS |
+| **2** | **Recon & Targets** | Reconhecimento e Vetores de Ataque | `POST /api/gemini/target-recon-tips` | Mapeamento de 3 vetores críticos (BOLA, SSRF, Race Condition) | ✅ PASS |
+| **3** | **Threat Intelligence** | Filtro de Security Advisories | `POST /api/threat-intel/advisories` | Filtragem por query `"BOLA"` e categoria OWASP API Security | ✅ PASS |
+| **4** | **Threat Intelligence** | Feed Global de Manchetes | `GET /api/threat-intel/headlines` | 8 manchetes em tempo real (CISA, NVD, BleepingComputer) | ✅ PASS |
+| **5** | **CVE Explorer** | Consulta ao Catálogo NVD/CWE | `GET /api/cve/search?q=CWE-284` | Identificação de CVEs e fraquezas de controle de acesso | ✅ PASS |
+| **6** | **AI & Heuristics** | Taxonomia e Auto-Tagging | `POST /api/reports/auto-tag` | Geração automática das tags `#idor`, `#bola`, `#cwe-639`, `#api-security` | ✅ PASS |
+| **7** | **CVSS Calculator** | Análise e Cálculo Vetorial CVSS 3.1 | `POST /api/gemini/analyze-cvss` | Vetor `AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N` (Score 8.5) | ✅ PASS |
+| **8** | **Report Engine** | Polimento Técnico de Relatórios | `POST /api/gemini/enhance-report` | Título profissional, resumo executivo, PoC e remediação acionável | ✅ PASS |
+| **9** | **Platform Integration** | Despacho Automatizado para Plataformas | `POST /api/submissions/dispatch` | Protocolo gerado (`HACKERONE-330877`, Status SUBMITTED) | ✅ PASS |
+| **10** | **AppSec Suite** | Ferramenta BOLA / IDOR Matrix | Simulação de acessos cruzados multi-conta | 2 rotas vulneráveis identificadas (taxa de 66.7% de falha) | ✅ PASS |
+| **11** | **AppSec Suite** | Ofuscador de Payloads (XOR + Base64) | Codificação polimórfica contra WAF | Cifra de chave simétrica gerada com sucesso | ✅ PASS |
+| **12** | **AppSec Suite** | Sanitizador DLP & Redação de Tokens | Regex contra JWT, CPFs e cartões | `Bearer [REDACTED_JWT_TOKEN]` e PII mascaradas preventivamente | ✅ PASS |
+| **13** | **CVSS Engine** | Cálculo Matemático Nativo CVSS 3.1 | Fórmula analítica FIRST.org | Score exato 8.1 / Severidade HIGH | ✅ PASS |
+| **14** | **Cryptography** | Assinatura Digital OpenPGP | Assinatura em bloco ASCII Armored | Bloco `BEGIN PGP SIGNED MESSAGE` verificado | ✅ PASS |
+| **15** | **Data Management** | Importação e Exportação CSV | Serialização e desserialização de dados | Relatórios restaurados com integridade e valores de bounty | ✅ PASS |
+| **16** | **i18n & Localization** | Alternador Multilíngue (PT, EN, ES) | Troca dinâmica de chaves de tradução | Re-renderização síncrona sem perda do estado de relatórios | ✅ PASS |
+| **17** | **AppSec Suite** | HTTP Request Smuggling Analyzer | Avaliação de dessincronização RFC 7230 | Probe `CL.TE` gerado para testes de socket de front/backend | ✅ PASS |
+| **18** | **Risk Management** | Simulador Quantitativo de Risco FAIR | Cálculo estatístico de perda financeira | Exposição Anual de Perda (ALE) projetada em $ 360.000 / ano | ✅ PASS |
+
+---
+
 ## 🏷️ Categorias de Impacto & Legenda de Triagem Rápida (Fast Triage)
 
 Para acelerar a triagem e o roteamento de remediação para os times de engenharia, cada achado com severidade **CRITICAL** recebe automaticamente uma **Tag de Categoria de Impacto** baseada na especificação do vetor CVSS (3.1 e 4.0), tipos de vulnerabilidade e taxonomia CWE:
@@ -732,12 +775,17 @@ A interface do BugSentinel foi desenhada para se adaptar fluidamente de telas gr
    ```
    Acesse a aplicação em: `http://localhost:3000`
 
-4. **Verificação de tipos e lint:**
+4. **Execução dos testes automatizados E2E (18 testes):**
+   ```bash
+   npm test
+   ```
+
+5. **Verificação de tipos e lint:**
    ```bash
    npm run lint
    ```
 
-5. **Build de produção:**
+6. **Build de produção:**
    ```bash
    npm run build
    ```
