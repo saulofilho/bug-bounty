@@ -70,19 +70,22 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
           {/* Version and Status Pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-semibold">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>BugSentinel Platform v2.4.0</span>
+            <span>{t('welcome.badge', 'BugSentinel Platform v2.4.0')}</span>
             <span className="text-zinc-500">•</span>
-            <span className="text-zinc-300">AppSec Operations & Bug Bounty Management</span>
+            <span className="text-zinc-300">{t('welcome.badgeSub', 'AppSec Operations & Bug Bounty Management')}</span>
           </div>
 
           {/* Main Title */}
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-            Central de Operações para <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Security Researchers & Bug Bounty Hunters</span>
+            {t('welcome.hero.titlePrefix', 'Central de Operações para')}{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+              {t('welcome.hero.titleHighlight', 'Security Researchers & Bug Bounty Hunters')}
+            </span>
           </h1>
 
           {/* Description */}
           <p className="text-base sm:text-lg text-zinc-300 leading-relaxed font-sans max-w-3xl">
-            Uma estação de trabalho profissional para catalogar vulnerabilidades, calcular severidades com precisão matemática (CVSS v3.1 / v4.0), gerar relatórios executivos com inteligência artificial, simular riscos corporativos (FAIR) e sincronizar achados em tempo real na nuvem ou no GitHub.
+            {t('welcome.hero.desc', 'Uma estação de trabalho profissional para catalogar vulnerabilidades, calcular severidades com precisão matemática (CVSS v3.1 / v4.0), gerar relatórios executivos com inteligência artificial, simular riscos corporativos (FAIR) e sincronizar achados em tempo real na nuvem ou no GitHub.')}
           </p>
 
           {/* Primary CTA Buttons */}
@@ -94,7 +97,7 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
               className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-mono font-bold text-sm tracking-wide transition-all flex items-center gap-2.5 shadow-lg shadow-emerald-950/60 cursor-pointer group"
             >
               <LayoutDashboard className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-              <span>Acessar a Ferramenta (Dashboard)</span>
+              <span>{t('welcome.hero.enterDashboard', 'Acessar a Ferramenta (Dashboard)')}</span>
               <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
             </button>
 
@@ -105,7 +108,7 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
               className="px-5 py-3.5 rounded-xl bg-[#161a2b] hover:bg-[#1e233b] active:scale-95 text-cyan-300 hover:text-white border border-cyan-500/40 hover:border-cyan-400 font-mono font-semibold text-sm transition-all flex items-center gap-2 shadow-sm cursor-pointer"
             >
               <PlayCircle className="w-4 h-4 text-cyan-400" />
-              <span>Explorar com Dados Demonstrativos</span>
+              <span>{t('welcome.hero.exploreMock', 'Explorar com Dados Demonstrativos')}</span>
             </button>
 
             {!currentUser && (
@@ -115,7 +118,7 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
                 className="px-4 py-3.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-mono text-sm transition-all flex items-center gap-2 cursor-pointer"
               >
                 <Lock className="w-4 h-4 text-amber-400" />
-                <span>Login / Criar Conta</span>
+                <span>{t('welcome.hero.login', 'Login / Criar Conta')}</span>
               </button>
             )}
           </div>
@@ -123,32 +126,32 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-[#1e243a]">
             <div className="p-3 rounded-xl bg-[#0b0d18]/80 border border-[#1a1f33]">
-              <span className="text-[11px] text-zinc-400 font-mono block">Status da Base:</span>
+              <span className="text-[11px] text-zinc-400 font-mono block">{t('welcome.metric.baseStatus', 'Status da Base:')}</span>
               <span className="text-sm font-bold font-mono text-emerald-400 flex items-center gap-1.5 mt-0.5">
                 <span className={`w-2 h-2 rounded-full ${isMockActive ? 'bg-cyan-400' : 'bg-emerald-400'}`} />
-                {isMockActive ? 'Mock Demonstrativo' : 'Ambiente Zerado'}
+                {isMockActive ? t('welcome.metric.mockActive', 'Mock Demonstrativo') : t('welcome.metric.mockClean', 'Ambiente Zerado')}
               </span>
             </div>
 
             <div className="p-3 rounded-xl bg-[#0b0d18]/80 border border-[#1a1f33]">
-              <span className="text-[11px] text-zinc-400 font-mono block">Relatórios Atuais:</span>
+              <span className="text-[11px] text-zinc-400 font-mono block">{t('welcome.metric.currentReports', 'Relatórios Atuais:')}</span>
               <span className="text-sm font-bold font-mono text-white mt-0.5 block">
-                {reportsCount} cadastrado{reportsCount === 1 ? '' : 's'}
+                {reportsCount} {reportsCount === 1 ? t('welcome.metric.registered', 'cadastrado') : t('welcome.metric.registeredPlural', 'cadastrados')}
               </span>
             </div>
 
             <div className="p-3 rounded-xl bg-[#0b0d18]/80 border border-[#1a1f33]">
-              <span className="text-[11px] text-zinc-400 font-mono block">Alvos & Programas:</span>
+              <span className="text-[11px] text-zinc-400 font-mono block">{t('welcome.metric.targets', 'Alvos & Programas:')}</span>
               <span className="text-sm font-bold font-mono text-white mt-0.5 block">
-                {targetsCount} programa{targetsCount === 1 ? '' : 's'}
+                {targetsCount} {targetsCount === 1 ? t('welcome.metric.program', 'programa') : t('welcome.metric.programPlural', 'programas')}
               </span>
             </div>
 
             <div className="p-3 rounded-xl bg-[#0b0d18]/80 border border-[#1a1f33]">
-              <span className="text-[11px] text-zinc-400 font-mono block">Persistência em Nuvem:</span>
+              <span className="text-[11px] text-zinc-400 font-mono block">{t('welcome.metric.persistence', 'Persistência em Nuvem:')}</span>
               <span className="text-sm font-bold font-mono text-cyan-400 flex items-center gap-1.5 mt-0.5">
                 <Cloud className="w-3.5 h-3.5 text-cyan-400" />
-                {isCloudConnected ? 'Firebase Conectado' : 'Offline / Local'}
+                {isCloudConnected ? t('welcome.metric.cloudConnected', 'Firebase Conectado') : t('welcome.metric.offline', 'Offline / Local')}
               </span>
             </div>
           </div>
@@ -160,10 +163,10 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
         <div className="space-y-1">
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <Sliders className="w-5 h-5 text-emerald-400" />
-            <span>Como você deseja inicializar a plataforma?</span>
+            <span>{t('welcome.mode.title', 'Como você deseja inicializar a plataforma?')}</span>
           </h2>
           <p className="text-sm text-zinc-400">
-            Você pode alternar entre uma demonstração completa pré-populada ou um espaço de trabalho 100% limpo a qualquer momento:
+            {t('welcome.mode.desc', 'Você pode alternar entre uma demonstração completa pré-populada ou um espaço de trabalho 100% limpo a qualquer momento:')}
           </p>
         </div>
 
@@ -181,12 +184,12 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
               <div className="flex items-center justify-between">
                 <span className="px-3 py-0.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Recomendado para Primeira Visita</span>
+                  <span>{t('welcome.card.mockBadge', 'Recomendado para Primeira Visita')}</span>
                 </span>
                 {isMockActive && (
                   <span className="text-xs font-mono text-cyan-400 font-semibold flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4" />
-                    Ativo agora
+                    {t('welcome.card.activeNow', 'Ativo agora')}
                   </span>
                 )}
               </div>
@@ -194,25 +197,25 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Layers className="w-5 h-5 text-cyan-400" />
-                  <span>Explorar com Dados Demonstrativos</span>
+                  <span>{t('welcome.card.mockTitle', 'Explorar com Dados Demonstrativos')}</span>
                 </h3>
                 <p className="text-xs sm:text-sm text-zinc-300 mt-2 leading-relaxed">
-                  Inicie com <strong className="text-white">relatórios realistas já cadastrados</strong> (BOLA/IDOR em APIs financeiras, XSS, CSRF), programas de bug bounty configurados, gráficos de recompensas preenchidos e timelines de auditoria.
+                  {t('welcome.card.mockDesc', 'Inicie com relatórios realistas já cadastrados (BOLA/IDOR em APIs financeiras, XSS, CSRF), programas de bug bounty configurados, gráficos de recompensas preenchidos e timelines de auditoria.')}
                 </p>
               </div>
 
               <ul className="space-y-2 text-xs sm:text-sm text-zinc-300 pt-2 border-t border-[#1c2238]">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                  <span>Visualize todos os gráficos de evolução, matrizes 5x5 e simulações FAIR em funcionamento.</span>
+                  <span>{t('welcome.card.mockBullet1', 'Visualize todos os gráficos de evolução, matrizes 5x5 e simulações FAIR em funcionamento.')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                  <span>Teste o exportador em PDF Executivo, calculadora CVSS v3.1/v4.0 e assinatura PGP.</span>
+                  <span>{t('welcome.card.mockBullet2', 'Teste o exportador em PDF Executivo, calculadora CVSS v3.1/v4.0 e assinatura PGP.')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                  <span>Zere ou recarregue a base de testes quando desejar com um clique.</span>
+                  <span>{t('welcome.card.mockBullet3', 'Zere ou recarregue a base de testes quando desejar com um clique.')}</span>
                 </li>
               </ul>
             </div>
@@ -225,7 +228,7 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
                 className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-98 text-white font-mono font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 cursor-pointer"
               >
                 <PlayCircle className="w-4 h-4" />
-                <span>Carregar Demonstração & Entrar na Ferramenta</span>
+                <span>{t('welcome.card.mockBtn', 'Carregar Demonstração & Entrar na Ferramenta')}</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
               </button>
             </div>
@@ -244,12 +247,12 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
               <div className="flex items-center justify-between">
                 <span className="px-3 py-0.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
                   <Database className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Ambiente Limpo / Produção</span>
+                  <span>{t('welcome.card.cleanBadge', 'Ambiente Limpo / Produção')}</span>
                 </span>
                 {!isMockActive && (
                   <span className="text-xs font-mono text-emerald-400 font-semibold flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4" />
-                    Ativo agora
+                    {t('welcome.card.activeNow', 'Ativo agora')}
                   </span>
                 )}
               </div>
@@ -257,25 +260,25 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Trash2 className="w-5 h-5 text-emerald-400" />
-                  <span>Iniciar com Espaço 100% Zerado</span>
+                  <span>{t('welcome.card.cleanTitle', 'Iniciar com Espaço 100% Zerado')}</span>
                 </h3>
                 <p className="text-xs sm:text-sm text-zinc-300 mt-2 leading-relaxed">
-                  Remove os dados simulados e deixa a aplicação completamente limpa, pronta para você cadastrar seus <strong className="text-white">próprios programas corporativos e vulnerabilidades reais confidenciais</strong>.
+                  {t('welcome.card.cleanDesc', 'Remove os dados simulados e deixa a aplicação completamente limpa, pronta para você cadastrar seus próprios programas corporativos e vulnerabilidades reais confidenciais.')}
                 </p>
               </div>
 
               <ul className="space-y-2 text-xs sm:text-sm text-zinc-300 pt-2 border-t border-[#1c2238]">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Base com 0 relatórios e 0 alvos, pronta para uso pessoal ou em equipe.</span>
+                  <span>{t('welcome.card.cleanBullet1', 'Base com 0 relatórios e 0 alvos, pronta para uso pessoal ou em equipe.')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Privacidade total: seus achados são sincronizados no seu próprio usuário no Firebase.</span>
+                  <span>{t('welcome.card.cleanBullet2', 'Privacidade total: seus achados são sincronizados no seu próprio usuário no Firebase.')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Possibilidade de restaurar os mocks a qualquer momento na central de configurações.</span>
+                  <span>{t('welcome.card.cleanBullet3', 'Possibilidade de restaurar os mocks a qualquer momento na central de configurações.')}</span>
                 </li>
               </ul>
             </div>
@@ -288,7 +291,7 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
                 className="w-full py-3 px-4 rounded-xl bg-[#141b1f] hover:bg-emerald-950/80 text-emerald-300 hover:text-white border border-emerald-500/40 hover:border-emerald-400 font-mono font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/40 cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 text-emerald-400" />
-                <span>Limpar Mock & Entrar com Base Limpa</span>
+                <span>{t('welcome.card.cleanBtn', 'Limpar Mock & Entrar com Base Limpa')}</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
               </button>
             </div>
@@ -301,10 +304,10 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
         <div className="space-y-1">
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <Cpu className="w-5 h-5 text-emerald-400" />
-            <span>Módulos e Recursos Integrados</span>
+            <span>{t('welcome.modules.title', 'Módulos e Recursos Integrados')}</span>
           </h2>
           <p className="text-sm text-zinc-400">
-            Conheça as ferramentas disponíveis na plataforma e navegue diretamente para cada uma:
+            {t('welcome.modules.desc', 'Conheça as ferramentas disponíveis na plataforma e navegue diretamente para cada uma:')}
           </p>
         </div>
 
@@ -323,14 +326,14 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-white text-base group-hover:text-emerald-300 transition-colors">
-                Dashboard Operacional
+                {t('welcome.modules.dashTitle', 'Dashboard Operacional')}
               </h3>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Métricas de aceitação, evolução de recompensas ao longo do tempo (Recharts), matriz de risco 5x5 e linha do tempo de auditoria.
+                {t('welcome.modules.dashDesc', 'Métricas de aceitação, evolução de recompensas ao longo do tempo (Recharts), matriz de risco 5x5 e linha do tempo de auditoria.')}
               </p>
             </div>
             <div className="text-[11px] font-mono text-emerald-400 font-semibold flex items-center gap-1">
-              <span>Abrir Dashboard</span>
+              <span>{t('welcome.modules.dashBtn', 'Abrir Dashboard')}</span>
               <ArrowRight className="w-3 h-3" />
             </div>
           </div>
@@ -348,14 +351,14 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-white text-base group-hover:text-cyan-300 transition-colors">
-                Relatórios de Vulnerabilidade
+                {t('welcome.modules.reportsTitle', 'Relatórios de Vulnerabilidade')}
               </h3>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Criação assistida por IA, passos de reprodução estruturados, exportação em PDF executivo, assinatura digital PGP e importação CSV.
+                {t('welcome.modules.reportsDesc', 'Criação assistida por IA, passos de reprodução estruturados, exportação em PDF executivo, assinatura digital PGP e importação CSV.')}
               </p>
             </div>
             <div className="text-[11px] font-mono text-cyan-400 font-semibold flex items-center gap-1">
-              <span>Ver Relatórios</span>
+              <span>{t('welcome.modules.reportsBtn', 'Ver Relatórios')}</span>
               <ArrowRight className="w-3 h-3" />
             </div>
           </div>
@@ -373,14 +376,14 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-white text-base group-hover:text-amber-300 transition-colors">
-                Suíte AppSec (37 Ferramentas)
+                {t('welcome.modules.toolsTitle', 'Suíte AppSec (37 Ferramentas)')}
               </h3>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                BOLA/IDOR Matrix, Payload Obfuscator (XOR/B64), HTTP Smuggling (CL.TE), Sanitizador DLP de tokens, ReDoS Analyzer e mais.
+                {t('welcome.modules.toolsDesc', 'BOLA/IDOR Matrix, Payload Obfuscator (XOR/B64), HTTP Smuggling (CL.TE), Sanitizador DLP de tokens, ReDoS Analyzer e mais.')}
               </p>
             </div>
             <div className="text-[11px] font-mono text-amber-400 font-semibold flex items-center gap-1">
-              <span>Explorar Ferramentas</span>
+              <span>{t('welcome.modules.toolsBtn', 'Explorar Ferramentas')}</span>
               <ArrowRight className="w-3 h-3" />
             </div>
           </div>
@@ -398,14 +401,14 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-white text-base group-hover:text-rose-300 transition-colors">
-                Threat Intelligence Global
+                {t('welcome.modules.intelTitle', 'Threat Intelligence Global')}
               </h3>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Feed em tempo real com avisos oficiais da CISA, NVD e OWASP, além de notícias globais de exploração e ameaças em 0-day.
+                {t('welcome.modules.intelDesc', 'Feed em tempo real com avisos oficiais da CISA, NVD e OWASP, além de notícias globais de exploração e ameaças em 0-day.')}
               </p>
             </div>
             <div className="text-[11px] font-mono text-rose-400 font-semibold flex items-center gap-1">
-              <span>Acessar Threat Intel</span>
+              <span>{t('welcome.modules.intelBtn', 'Acessar Threat Intel')}</span>
               <ArrowRight className="w-3 h-3" />
             </div>
           </div>
@@ -423,14 +426,14 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-white text-base group-hover:text-purple-300 transition-colors">
-                CVE Explorer & CVSS Calculator
+                {t('welcome.modules.cveTitle', 'CVE Explorer & CVSS Calculator')}
               </h3>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Cálculo de score base, temporal e ambiental segundo a especificação oficial FIRST.org, com busca em catálogo local e NVD.
+                {t('welcome.modules.cveDesc', 'Cálculo de score base, temporal e ambiental segundo a especificação oficial FIRST.org, com busca em catálogo local e NVD.')}
               </p>
             </div>
             <div className="text-[11px] font-mono text-purple-400 font-semibold flex items-center gap-1">
-              <span>Abrir CVE & CVSS</span>
+              <span>{t('welcome.modules.cveBtn', 'Abrir CVE & CVSS')}</span>
               <ArrowRight className="w-3 h-3" />
             </div>
           </div>
@@ -448,14 +451,14 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-white text-base group-hover:text-emerald-300 transition-colors">
-                Alvos, Escopos & 14 Plataformas
+                {t('welcome.modules.targetsTitle', 'Alvos, Escopos & 14 Plataformas')}
               </h3>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Controle estrito de escopo (in-scope / out-of-scope), histórico por domínio e diretório de 14 plataformas com regras e limites.
+                {t('welcome.modules.targetsDesc', 'Controle estrito de escopo (in-scope / out-of-scope), histórico por domínio e diretório de 14 plataformas com regras e limites.')}
               </p>
             </div>
             <div className="text-[11px] font-mono text-emerald-400 font-semibold flex items-center gap-1">
-              <span>Gerenciar Alvos</span>
+              <span>{t('welcome.modules.targetsBtn', 'Gerenciar Alvos')}</span>
               <ArrowRight className="w-3 h-3" />
             </div>
           </div>
@@ -468,13 +471,13 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
         <div className="space-y-2 max-w-2xl">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Arquitetura Híbrida Segura</span>
+            <span>{t('welcome.arch.tag', 'Arquitetura Híbrida Segura')}</span>
           </div>
           <h3 className="text-lg sm:text-xl font-bold text-white">
-            Persistência em Nuvem Firebase + Auto-Cura Local
+            {t('welcome.arch.title', 'Persistência em Nuvem Firebase + Auto-Cura Local')}
           </h3>
           <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-            Seus dados são protegidos por regras estritas de Attribute-Based Access Control no Firestore. Você pode trabalhar offline sem perder nada ou acessar de qualquer dispositivo conectando sua conta.
+            {t('welcome.arch.desc', 'Seus dados são protegidos por regras estritas de Attribute-Based Access Control no Firestore. Você pode trabalhar offline sem perder nada ou acessar de qualquer dispositivo conectando sua conta.')}
           </p>
         </div>
 
@@ -484,7 +487,7 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
             onClick={onEnterTool}
             className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50"
           >
-            <span>Ir para o Dashboard</span>
+            <span>{t('welcome.arch.btn', 'Ir para o Dashboard')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

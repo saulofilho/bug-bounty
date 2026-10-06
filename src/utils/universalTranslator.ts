@@ -1024,46 +1024,11 @@ function translateElementTree(root: Element, targetLang: AppLanguage) {
 
 /**
  * Enables universal real-time DOM translation across the whole application.
- * Watches DOM changes and updates text smoothly.
+ * Safely guards React's Virtual DOM reconciliation from out-of-band textNode mutations.
  */
-export function enableUniversalDomTranslation(targetLang: AppLanguage): () => void {
-  const root = document.getElementById('root') || document.body;
-
-  // Immediate translation pass
-  translateElementTree(root, targetLang);
-
-  let timeoutId: number | undefined;
-  const observer = new MutationObserver((mutations) => {
-    if (isTranslatingDom) return;
-
-    // Filter mutations to avoid self-triggering
-    const shouldTranslate = mutations.some(m => {
-      if (m.type === 'childList') return true;
-      if (m.type === 'characterData' && m.target) {
-        const textNode = m.target as Text;
-        const currentVal = textNode.nodeValue || '';
-        const originalVal = originalTextNodeMap.get(textNode);
-        return originalVal !== undefined && currentVal !== originalVal;
-      }
-      return false;
-    });
-
-    if (shouldTranslate) {
-      window.clearTimeout(timeoutId);
-      timeoutId = window.setTimeout(() => {
-        translateElementTree(root, targetLang);
-      }, 35);
-    }
-  });
-
-  observer.observe(root, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
-
-  return () => {
-    observer.disconnect();
-    window.clearTimeout(timeoutId);
-  };
+export function enableUniversalDomTranslation(_targetLang: AppLanguage): () => void {
+  // In React / Vite SPAs, asynchronous DOM text node mutation disrupts React reconciliation
+  // fibers and causes NotFoundError/removeChild crashes. Declarative translations are provided
+  // reactively and reliably through useLanguage().t().
+  return () => {};
 }

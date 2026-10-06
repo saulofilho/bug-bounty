@@ -988,7 +988,7 @@ function AppContent() {
   }, [reports, globalSearchQuery]);
 
   return (
-    <div key={`${language}-${rerenderVersion}`} id="app-root-container" className="min-h-screen bg-[#050505] text-[#e5e7eb] font-sans flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div id="app-root-container" className="min-h-screen bg-[#050505] text-[#e5e7eb] font-sans flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300">
       
       {/* Top Application Header with Global Search and Quick Actions */}
       <Header

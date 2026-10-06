@@ -11,12 +11,13 @@ import {
   Target, 
   CheckCircle2, 
   ArrowRight, 
-  X,
-  HelpCircle,
-  Database,
-  Terminal,
-  Radio
+  X, 
+  HelpCircle, 
+  Database, 
+  Terminal, 
+  Radio 
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface WelcomePlatformModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export const WelcomePlatformModal: React.FC<WelcomePlatformModalProps> = ({
   reportsCount,
   targetsCount
 }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   return (
