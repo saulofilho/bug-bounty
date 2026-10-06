@@ -8,13 +8,14 @@ import {
   where,
   serverTimestamp
 } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType } from './firebase';
+import { db, auth, handleFirestoreError, OperationType, isRealFirebaseConfigured } from './firebase';
 import { VulnerabilityReport, TargetProgram } from '../types';
 
 /**
  * Fetch all reports for the current user from Firestore
  */
 export async function fetchCloudReports(): Promise<VulnerabilityReport[]> {
+  if (!isRealFirebaseConfigured) return [];
   const user = auth.currentUser;
   if (!user) return [];
 
@@ -38,6 +39,7 @@ export async function fetchCloudReports(): Promise<VulnerabilityReport[]> {
  * Save or update a vulnerability report in Firestore
  */
 export async function saveCloudReport(report: VulnerabilityReport): Promise<void> {
+  if (!isRealFirebaseConfigured) return;
   const user = auth.currentUser;
   if (!user) return;
 
@@ -59,6 +61,7 @@ export async function saveCloudReport(report: VulnerabilityReport): Promise<void
  * Delete a report from Firestore
  */
 export async function deleteCloudReport(reportId: string): Promise<void> {
+  if (!isRealFirebaseConfigured) return;
   const user = auth.currentUser;
   if (!user) return;
 
@@ -74,6 +77,7 @@ export async function deleteCloudReport(reportId: string): Promise<void> {
  * Fetch targets from Firestore
  */
 export async function fetchCloudTargets(): Promise<TargetProgram[]> {
+  if (!isRealFirebaseConfigured) return [];
   const user = auth.currentUser;
   if (!user) return [];
 
@@ -93,6 +97,7 @@ export async function fetchCloudTargets(): Promise<TargetProgram[]> {
  * Save a target program in Firestore
  */
 export async function saveCloudTarget(target: TargetProgram): Promise<void> {
+  if (!isRealFirebaseConfigured) return;
   const user = auth.currentUser;
   if (!user) return;
 
@@ -113,6 +118,7 @@ export async function saveCloudTarget(target: TargetProgram): Promise<void> {
  * Delete a target program from Firestore
  */
 export async function deleteCloudTarget(targetId: string): Promise<void> {
+  if (!isRealFirebaseConfigured) return;
   const user = auth.currentUser;
   if (!user) return;
 
@@ -128,6 +134,7 @@ export async function deleteCloudTarget(targetId: string): Promise<void> {
  * Sync local reports to Cloud Firestore
  */
 export async function syncLocalReportsToCloud(localReports: VulnerabilityReport[]): Promise<{ synced: number }> {
+  if (!isRealFirebaseConfigured) return { synced: 0 };
   const user = auth.currentUser;
   if (!user || localReports.length === 0) return { synced: 0 };
 

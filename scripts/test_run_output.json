@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-06T13:28:37.733Z",
+  "timestamp": "2026-10-06T13:39:13.000Z",
   "testsPassed": 20,
   "testsFailed": 0,
   "suiteDetails": [
@@ -11,7 +11,7 @@
         "statusCode": 200,
         "body": {
           "status": "ok",
-          "timestamp": "2026-10-06T13:28:37.754Z"
+          "timestamp": "2026-10-06T13:39:13.022Z"
         }
       }
     },
@@ -116,8 +116,8 @@
       "feature": "Disparo Automatizado de Submissão de Vulnerabilidade (Dispatch)",
       "success": true,
       "details": {
-        "submissionId": "HACKERONE-947200",
-        "receiptUrl": "https://hackerone.com/reports/HACKERONE-947200"
+        "submissionId": "HACKERONE-419836",
+        "receiptUrl": "https://hackerone.com/reports/HACKERONE-419836"
       }
     },
     {
@@ -235,8 +235,8 @@
         "pushIssueFeature": true,
         "markdownBuilderActive": true,
         "apiProxyStatus": 200,
-        "createdIssueNumber": 131,
-        "issueUrl": "https://github.com/apexbanking/apex-api/issues/131"
+        "createdIssueNumber": 381,
+        "issueUrl": "https://github.com/apexbanking/apex-api/issues/381"
       }
     },
     {

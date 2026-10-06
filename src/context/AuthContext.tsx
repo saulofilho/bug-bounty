@@ -8,7 +8,7 @@ import {
   User as FirebaseSDKUser
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, googleProvider, db, testConnection } from '../services/firebase';
+import { auth, googleProvider, db, testConnection, isRealFirebaseConfigured } from '../services/firebase';
 
 export type UserRole = 'admin' | 'researcher' | 'analyst';
 
@@ -146,12 +146,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(appUser);
         localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(appUser));
       } else {
-        // Fallback: check if demo session in localStorage
+        // Fallback: check if session in localStorage
         const stored = localStorage.getItem(LOCAL_STORAGE_SESSION_KEY);
         if (stored) {
           try {
             const parsed = JSON.parse(stored);
-            if (parsed.providerId === 'demo') {
+            if (!isRealFirebaseConfigured || parsed.providerId === 'demo') {
               setCurrentUser(parsed);
             } else {
               setCurrentUser(null);
@@ -222,6 +222,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return demoUser;
     }
 
+    // If cloud Firebase is not configured with real API key, handle locally
+    if (!isRealFirebaseConfigured) {
+      const role: UserRole = (trimmedEmail === 'oisaulofilho@gmail.com' || trimmedEmail.includes('admin')) ? 'admin' : 'researcher';
+      const localUser: FirebaseUser = {
+        uid: `local_user_${trimmedEmail.replace(/[^a-z0-9]/g, '_')}`,
+        email: trimmedEmail,
+        displayName: trimmedEmail.split('@')[0],
+        role,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        providerId: 'password'
+      };
+      setCurrentUser(localUser);
+      localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(localUser));
+      setAuthModalOpen(false);
+      executePending();
+      return localUser;
+    }
+
     // Attempt Firebase Authentication
     try {
       const cred = await fbSignInWithEmail(auth, trimmedEmail, password);
@@ -268,6 +288,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('A senha deve conter no mínimo 6 caracteres.');
     }
 
+    if (!isRealFirebaseConfigured) {
+      const finalRole: UserRole = trimmedEmail === 'oisaulofilho@gmail.com' || trimmedEmail.includes('admin') ? 'admin' : role;
+      const localUser: FirebaseUser = {
+        uid: `local_user_${Date.now()}_${trimmedEmail.replace(/[^a-z0-9]/g, '_')}`,
+        email: trimmedEmail,
+        displayName: displayName.trim() || trimmedEmail.split('@')[0],
+        role: finalRole,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        providerId: 'password'
+      };
+      setCurrentUser(localUser);
+      localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(localUser));
+      setAuthModalOpen(false);
+      executePending();
+      return localUser;
+    }
+
     try {
       const cred = await fbCreateUserWithEmail(auth, trimmedEmail, password);
       const user = cred.user;
@@ -312,6 +351,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign in with Google
   const signInWithGoogle = async (): Promise<FirebaseUser> => {
+    if (!isRealFirebaseConfigured) {
+      const localUser: FirebaseUser = {
+        uid: 'google_lead_admin_saulo',
+        email: 'oisaulofilho@gmail.com',
+        displayName: 'Saulo Filho (Security Lead)',
+        role: 'admin',
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        providerId: 'google.com'
+      };
+      setCurrentUser(localUser);
+      localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(localUser));
+      setAuthModalOpen(false);
+      executePending();
+      return localUser;
+    }
+
     try {
       const cred = await fbSignInWithPopup(auth, googleProvider);
       const user = cred.user;
