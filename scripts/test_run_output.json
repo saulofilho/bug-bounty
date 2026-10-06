@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-04T15:28:27.996Z",
-  "testsPassed": 18,
+  "timestamp": "2026-10-06T13:28:37.733Z",
+  "testsPassed": 20,
   "testsFailed": 0,
   "suiteDetails": [
     {
@@ -11,7 +11,7 @@
         "statusCode": 200,
         "body": {
           "status": "ok",
-          "timestamp": "2026-10-04T15:28:28.016Z"
+          "timestamp": "2026-10-06T13:28:37.754Z"
         }
       }
     },
@@ -116,8 +116,8 @@
       "feature": "Disparo Automatizado de Submissão de Vulnerabilidade (Dispatch)",
       "success": true,
       "details": {
-        "submissionId": "HACKERONE-472257",
-        "receiptUrl": "https://hackerone.com/reports/HACKERONE-472257"
+        "submissionId": "HACKERONE-947200",
+        "receiptUrl": "https://hackerone.com/reports/HACKERONE-947200"
       }
     },
     {
@@ -224,6 +224,31 @@
         "lossEventFrequencyPerYear": 4.800000000000001,
         "estimatedSingleLossUSD": 75000,
         "annualizedLossExposureUSD": 360000.00000000006
+      }
+    },
+    {
+      "moduleName": "GitHub Integration",
+      "feature": "Vinculação de Conta GitHub e Envio de Relatórios como GitHub Issues",
+      "success": true,
+      "details": {
+        "linkedAccountFeature": true,
+        "pushIssueFeature": true,
+        "markdownBuilderActive": true,
+        "apiProxyStatus": 200,
+        "createdIssueNumber": 131,
+        "issueUrl": "https://github.com/apexbanking/apex-api/issues/131"
+      }
+    },
+    {
+      "moduleName": "Dashboard Analytics",
+      "feature": "Widget de Evolução de Pagamentos de Bounties no Tempo (Recharts Line Chart com filtro REWARDED)",
+      "success": true,
+      "details": {
+        "rechartsIntegrated": true,
+        "rewardedFilterActive": true,
+        "cumulativeLogic": true,
+        "mountedInDashboard": true,
+        "sampleRewardedBountiesTotal": 9700
       }
     }
   ]

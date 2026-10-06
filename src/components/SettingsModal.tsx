@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Settings,
   X,
@@ -23,8 +23,23 @@ import {
   Globe,
   Languages,
   RotateCcw,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Send,
+  UploadCloud,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  UserCheck,
+  Link2,
+  Unlink,
+  GitPullRequest,
+  Copy,
+  Clock,
+  Code,
+  Sparkles,
+  AlertTriangle
 } from 'lucide-react';
+import { VulnerabilityReport, Severity } from '../types';
 import { recordPlatformApiCall } from '../utils/apiRateLimiter';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import {
@@ -38,16 +53,48 @@ export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTab?: 'github' | 'appearance' | 'general' | 'i18n';
+  reports?: VulnerabilityReport[];
+  onUpdateReport?: (report: VulnerabilityReport) => void;
+  onAddTimelineEvent?: (reportId: string, event: any) => void;
 }
 
 export const LOCAL_STORAGE_GITHUB_TOKEN_KEY = 'bbm_github_pat_token';
 export const LOCAL_STORAGE_GITHUB_DEFAULT_REPO = 'bbm_github_default_repo';
 export const LOCAL_STORAGE_GITHUB_DEFAULT_LABELS = 'bbm_github_default_labels';
+export const LOCAL_STORAGE_GITHUB_LINKED_ACCOUNT = 'bbm_github_linked_account';
+export const LOCAL_STORAGE_GITHUB_CACHED_REPOS = 'bbm_github_cached_repos';
+
+export interface LinkedGitHubAccount {
+  login: string;
+  name: string;
+  avatarUrl: string;
+  htmlUrl: string;
+  bio?: string;
+  publicRepos: number;
+  totalPrivateRepos?: number;
+  scopes: string;
+  rateLimitRemaining?: number;
+  rateLimitTotal?: number;
+  linkedAt: string;
+}
+
+export interface GitHubRepoItem {
+  id: number;
+  fullName: string;
+  name: string;
+  owner: string;
+  private: boolean;
+  description?: string;
+  htmlUrl: string;
+}
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
-  initialTab = 'github'
+  initialTab = 'github',
+  reports = [],
+  onUpdateReport,
+  onAddTimelineEvent
 }) => {
   const {
     t,
@@ -72,6 +119,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [defaultLabels, setDefaultLabels] = useState('security, vulnerability, bug-bounty');
   const [showToken, setShowToken] = useState(false);
 
+  // Linked GitHub Account State
+  const [linkedAccount, setLinkedAccount] = useState<LinkedGitHubAccount | null>(null);
+  const [isLinkingAccount, setIsLinkingAccount] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [cachedRepos, setCachedRepos] = useState<GitHubRepoItem[]>([]);
+  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+
+  // Reports state (from props or localStorage fallback)
+  const [allReports, setAllReports] = useState<VulnerabilityReport[]>([]);
+
+  // Push Issue Form State
+  const [selectedReportId, setSelectedReportId] = useState<string>('');
+  const [targetRepoInput, setTargetRepoInput] = useState<string>('');
+  const [issueTitleInput, setIssueTitleInput] = useState<string>('');
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [newLabelInput, setNewLabelInput] = useState<string>('');
+  const [showMarkdownPreview, setShowMarkdownPreview] = useState<boolean>(false);
+  const [isPushingIssue, setIsPushingIssue] = useState<boolean>(false);
+  const [pushSuccessResult, setPushSuccessResult] = useState<{
+    issueNumber: number;
+    issueUrl: string;
+    issueTitle: string;
+    repo: string;
+    reportId: string;
+  } | null>(null);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [useCustomRepo, setUseCustomRepo] = useState<boolean>(false);
+
   // Token testing state
   const [isTestingToken, setIsTestingToken] = useState(false);
   const [testResult, setTestResult] = useState<{
@@ -84,24 +159,166 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
-  // Load saved settings on open
+  // Load saved settings, linked account and reports on open
   useEffect(() => {
     if (isOpen) {
       try {
         const savedToken = localStorage.getItem(LOCAL_STORAGE_GITHUB_TOKEN_KEY) || '';
         const savedRepo = localStorage.getItem(LOCAL_STORAGE_GITHUB_DEFAULT_REPO) || '';
         const savedLabels = localStorage.getItem(LOCAL_STORAGE_GITHUB_DEFAULT_LABELS) || 'security, vulnerability, bug-bounty';
+        const savedAccount = localStorage.getItem(LOCAL_STORAGE_GITHUB_LINKED_ACCOUNT);
+        const savedRepos = localStorage.getItem(LOCAL_STORAGE_GITHUB_CACHED_REPOS);
         
         setGithubToken(savedToken);
         setDefaultRepo(savedRepo);
         setDefaultLabels(savedLabels);
         setTestResult(null);
         setSaveSuccessMsg(null);
+        setPushSuccessResult(null);
+        setPushError(null);
+        setLinkError(null);
+
+        if (savedAccount) {
+          try {
+            setLinkedAccount(JSON.parse(savedAccount));
+          } catch (e) {
+            console.error('Failed to parse saved linked account', e);
+          }
+        } else {
+          setLinkedAccount(null);
+        }
+
+        if (savedRepos) {
+          try {
+            setCachedRepos(JSON.parse(savedRepos));
+          } catch (e) {
+            console.error('Failed to parse cached repos', e);
+          }
+        }
+
+        // Resolve reports
+        let currentReportsList: VulnerabilityReport[] = [];
+        if (reports && reports.length > 0) {
+          currentReportsList = reports;
+        } else {
+          const stored = localStorage.getItem('bounty_reports_v2');
+          if (stored) {
+            try {
+              currentReportsList = JSON.parse(stored);
+            } catch (e) {
+              console.error('Failed to parse bounty_reports_v2', e);
+            }
+          }
+        }
+        setAllReports(currentReportsList);
+
+        if (currentReportsList.length > 0 && !selectedReportId) {
+          setSelectedReportId(currentReportsList[0].id);
+        }
+
+        if (savedRepo) {
+          setTargetRepoInput(savedRepo);
+        }
       } catch (err) {
         console.error('Failed to load settings:', err);
       }
     }
-  }, [isOpen]);
+  }, [isOpen, reports]);
+
+  // Keep target repo updated if defaultRepo or cachedRepos change
+  useEffect(() => {
+    if (!targetRepoInput) {
+      if (defaultRepo) {
+        setTargetRepoInput(defaultRepo);
+      } else if (cachedRepos.length > 0) {
+        setTargetRepoInput(cachedRepos[0].fullName);
+      }
+    }
+  }, [defaultRepo, cachedRepos, targetRepoInput]);
+
+  // Currently selected report object
+  const selectedReport = useMemo(() => {
+    if (allReports.length === 0) return null;
+    return allReports.find(r => r.id === selectedReportId) || allReports[0];
+  }, [allReports, selectedReportId]);
+
+  // When selected report changes, update default issue title, target repo and labels
+  useEffect(() => {
+    if (selectedReport) {
+      const defaultTitle = selectedReport.githubIntegration?.issueTitle ||
+        `[SECURITY] ${selectedReport.vulnerabilityType}: ${selectedReport.title} (CVSS ${selectedReport.cvssScore})`;
+      setIssueTitleInput(defaultTitle);
+
+      if (selectedReport.githubIntegration?.repoOwner && selectedReport.githubIntegration?.repoName) {
+        setTargetRepoInput(`${selectedReport.githubIntegration.repoOwner}/${selectedReport.githubIntegration.repoName}`);
+      } else if (defaultRepo) {
+        setTargetRepoInput(defaultRepo);
+      } else if (cachedRepos.length > 0) {
+        setTargetRepoInput(cachedRepos[0].fullName);
+      }
+
+      const defaultLabelsList = (defaultLabels || 'security, vulnerability, bug-bounty')
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean);
+      const sevLabel = `severity:${selectedReport.severity.toLowerCase()}`;
+      if (!defaultLabelsList.includes(sevLabel)) {
+        defaultLabelsList.push(sevLabel);
+      }
+      setSelectedLabels(selectedReport.githubIntegration?.selectedLabels || defaultLabelsList);
+      setPushSuccessResult(null);
+      setPushError(null);
+    }
+  }, [selectedReport, defaultRepo, defaultLabels, cachedRepos]);
+
+  // Markdown Issue Body Generator
+  const issueMarkdownBody = useMemo(() => {
+    if (!selectedReport) return '';
+    const stepsFormatted = (selectedReport.stepsToReproduce && selectedReport.stepsToReproduce.length > 0)
+      ? selectedReport.stepsToReproduce.map((step, idx) => `${idx + 1}. ${step}`).join('\n')
+      : '1. Ver detalhes anexados no relatório original.';
+
+    return `## 🛡️ Vulnerability Disclosure Report: ${selectedReport.title}
+
+**Report ID:** \`${selectedReport.id}\`  
+**Target:** \`${selectedReport.target}\`  
+**Platform:** ${selectedReport.platform}  
+**Severity:** **${selectedReport.severity}** (CVSS v3.1: **${selectedReport.cvssScore}** - \`${selectedReport.cvssVector || 'N/A'}\`)  
+**Vulnerability Type:** ${selectedReport.vulnerabilityType}  
+**CWE:** ${selectedReport.cwe || 'CWE Não especificada'}  
+${selectedReport.cveIds && selectedReport.cveIds.length > 0 ? `**CVEs:** ${selectedReport.cveIds.join(', ')}  ` : ''}
+
+---
+
+### 📋 Executive Summary
+${selectedReport.summary || 'Nenhum resumo executivo fornecido.'}
+
+---
+
+### 🔬 Steps to Reproduce
+${stepsFormatted}
+
+---
+
+### 💥 Proof of Concept (PoC)
+\`\`\`http
+${selectedReport.proofOfConcept || '# Nenhuma PoC textual inserida no relatório'}
+\`\`\`
+
+---
+
+### 🏢 Business Impact Assessment
+${selectedReport.businessImpact || 'Impacto a ser avaliado pela equipe técnica e de segurança da aplicação.'}
+
+---
+
+### 🛠️ Recommended Remediation
+${selectedReport.remediation || 'Aplicar validação rigorosa de entrada, restrição de acesso por privilégio mínimo e sanitização de dados.'}
+
+---
+
+*Disclosed via Bug Bounty Manager & Vulnerability Tracker. Respecting Responsible Disclosure guidelines.*`;
+  }, [selectedReport]);
 
   if (!isOpen) return null;
 
@@ -173,6 +390,305 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  // Link GitHub Account with live user profile & repositories
+  const handleLinkAccount = async (overrideToken?: string) => {
+    const cleanToken = (overrideToken || githubToken).trim();
+    if (!cleanToken) {
+      setLinkError('Por favor, informe um Personal Access Token (PAT) do GitHub.');
+      return;
+    }
+
+    setIsLinkingAccount(true);
+    setLinkError(null);
+    const requestStartTime = performance.now();
+
+    try {
+      // 1. Fetch user data
+      const userRes = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${cleanToken}`,
+          Accept: 'application/vnd.github+json'
+        }
+      });
+
+      const latencyMs = Math.round(performance.now() - requestStartTime);
+      const scopesHeader = userRes.headers.get('x-oauth-scopes') || '';
+      const remainingHeader = userRes.headers.get('x-ratelimit-remaining');
+      const limitHeader = userRes.headers.get('x-ratelimit-limit');
+
+      recordPlatformApiCall({
+        serviceId: 'github',
+        serviceName: 'GitHub REST API',
+        endpoint: '/user',
+        method: 'GET',
+        status: userRes.status,
+        latencyMs,
+        cost: 1,
+        responseSummary: userRes.ok
+          ? 'Vinculação de conta GitHub efetuada com sucesso via /user'
+          : `Falha na autenticação (HTTP ${userRes.status}) ao vincular conta GitHub`,
+        isError: !userRes.ok,
+        isThrottled: userRes.status === 429
+      });
+
+      if (!userRes.ok) {
+        if (userRes.status === 401) {
+          throw new Error('Token do GitHub inválido ou expirado (401 Unauthorized). Verifique o token fornecido.');
+        } else {
+          const errData = await userRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Erro ao consultar a API do GitHub (HTTP ${userRes.status}).`);
+        }
+      }
+
+      const userData = await userRes.json();
+      const account: LinkedGitHubAccount = {
+        login: userData.login,
+        name: userData.name || userData.login,
+        avatarUrl: userData.avatar_url,
+        htmlUrl: userData.html_url,
+        bio: userData.bio,
+        publicRepos: userData.public_repos || 0,
+        totalPrivateRepos: userData.total_private_repos || 0,
+        scopes: scopesHeader || 'repo',
+        rateLimitRemaining: remainingHeader ? parseInt(remainingHeader, 10) : undefined,
+        rateLimitTotal: limitHeader ? parseInt(limitHeader, 10) : undefined,
+        linkedAt: new Date().toISOString()
+      };
+
+      setLinkedAccount(account);
+      localStorage.setItem(LOCAL_STORAGE_GITHUB_LINKED_ACCOUNT, JSON.stringify(account));
+      localStorage.setItem(LOCAL_STORAGE_GITHUB_TOKEN_KEY, cleanToken);
+      setGithubToken(cleanToken);
+
+      // 2. Fetch User Repositories
+      setIsLoadingRepos(true);
+      try {
+        const reposRes = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator', {
+          headers: {
+            Authorization: `Bearer ${cleanToken}`,
+            Accept: 'application/vnd.github+json'
+          }
+        });
+
+        if (reposRes.ok) {
+          const reposData = await reposRes.json();
+          const parsedRepos: GitHubRepoItem[] = reposData.map((r: any) => ({
+            id: r.id,
+            fullName: r.full_name,
+            name: r.name,
+            owner: r.owner?.login || userData.login,
+            private: r.private,
+            description: r.description,
+            htmlUrl: r.html_url
+          }));
+
+          setCachedRepos(parsedRepos);
+          localStorage.setItem(LOCAL_STORAGE_GITHUB_CACHED_REPOS, JSON.stringify(parsedRepos));
+
+          if (!defaultRepo && parsedRepos.length > 0) {
+            setDefaultRepo(parsedRepos[0].fullName);
+            localStorage.setItem(LOCAL_STORAGE_GITHUB_DEFAULT_REPO, parsedRepos[0].fullName);
+            setTargetRepoInput(parsedRepos[0].fullName);
+          }
+        }
+      } catch (repoErr) {
+        console.warn('Erro ao carregar lista de repositórios do GitHub:', repoErr);
+      } finally {
+        setIsLoadingRepos(false);
+      }
+
+      setSaveSuccessMsg(`Conta @${userData.login} vinculada com sucesso!`);
+      setTimeout(() => setSaveSuccessMsg(null), 3500);
+    } catch (err: any) {
+      setLinkError(err.message || 'Falha ao vincular conta GitHub.');
+    } finally {
+      setIsLinkingAccount(false);
+    }
+  };
+
+  // Unlink GitHub Account
+  const handleUnlinkAccount = () => {
+    setLinkedAccount(null);
+    setCachedRepos([]);
+    setGithubToken('');
+    setTestResult(null);
+    setPushSuccessResult(null);
+    setPushError(null);
+    setLinkError(null);
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_GITHUB_TOKEN_KEY);
+      localStorage.removeItem(LOCAL_STORAGE_GITHUB_LINKED_ACCOUNT);
+      localStorage.removeItem(LOCAL_STORAGE_GITHUB_CACHED_REPOS);
+      setSaveSuccessMsg('Conta GitHub desvinculada com sucesso.');
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Push Vulnerability Report as GitHub Issue
+  const handlePushReportAsIssue = async () => {
+    setPushError(null);
+    setPushSuccessResult(null);
+
+    const cleanToken = githubToken.trim();
+    if (!cleanToken) {
+      setPushError('É necessário vincular uma conta do GitHub com token válido antes de publicar.');
+      return;
+    }
+
+    if (!selectedReport) {
+      setPushError('Nenhum relatório selecionado para envio.');
+      return;
+    }
+
+    const cleanRepo = targetRepoInput.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '');
+    const parts = cleanRepo.split('/');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      setPushError('Formato de repositório inválido. Utilize o formato "proprietario/repositorio" (ex: "empresa/repo-sec").');
+      return;
+    }
+
+    const [owner, repo] = parts;
+
+    if (!issueTitleInput.trim()) {
+      setPushError('O título da Issue não pode estar em branco.');
+      return;
+    }
+
+    setIsPushingIssue(true);
+    const requestStartTime = performance.now();
+
+    try {
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cleanToken}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: issueTitleInput.trim(),
+          body: issueMarkdownBody,
+          labels: selectedLabels
+        })
+      });
+
+      const latencyMs = Math.round(performance.now() - requestStartTime);
+
+      recordPlatformApiCall({
+        serviceId: 'github',
+        serviceName: 'GitHub REST API',
+        endpoint: `/repos/${owner}/${repo}/issues`,
+        method: 'POST',
+        status: response.status,
+        latencyMs,
+        cost: 1,
+        responseSummary: response.ok
+          ? `GitHub Issue #${selectedReport.title.slice(0, 25)} publicada com sucesso`
+          : `Falha (HTTP ${response.status}) ao criar Issue em ${owner}/${repo}`,
+        isError: !response.ok,
+        isThrottled: response.status === 429
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Token inválido ou sem autorização (401 Unauthorized). Verifique o segredo.');
+        } else if (response.status === 404) {
+          throw new Error(`Repositório "${owner}/${repo}" não encontrado (404) ou o token não possui permissão de escrita nele.`);
+        } else if (response.status === 403) {
+          throw new Error('Permissão negada (403 Forbidden). Verifique se o token tem o escopo "repo" ou se o limite de requisições foi atingido.');
+        } else if (response.status === 422) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || 'Erro de validação (422 Unprocessable Entity). Verifique se as issues estão ativadas no repositório.');
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `Erro da API do GitHub (${response.status}).`);
+        }
+      }
+
+      const issueData = await response.json();
+
+      // Build updated report object
+      const updatedReport: VulnerabilityReport = {
+        ...selectedReport,
+        githubIntegration: {
+          repoOwner: owner,
+          repoName: repo,
+          issueNumber: issueData.number,
+          issueId: issueData.id,
+          issueUrl: issueData.html_url,
+          issueTitle: issueData.title,
+          issueState: 'open',
+          linkedAt: selectedReport.githubIntegration?.linkedAt || new Date().toISOString(),
+          lastSyncedAt: new Date().toISOString(),
+          selectedLabels: selectedLabels,
+          syncStatus: 'synced',
+          syncLogs: [
+            ...(selectedReport.githubIntegration?.syncLogs || []),
+            {
+              id: `log-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              action: 'issue_created_from_settings',
+              details: `Issue #${issueData.number} criada com sucesso em ${owner}/${repo}`,
+              success: true
+            }
+          ]
+        }
+      };
+
+      // Update state
+      setAllReports(prev => prev.map(r => r.id === updatedReport.id ? updatedReport : r));
+
+      // Persist to localStorage
+      try {
+        const stored = JSON.parse(localStorage.getItem('bounty_reports_v2') || '[]');
+        const updatedList = stored.map((r: any) => r.id === updatedReport.id ? updatedReport : r);
+        localStorage.setItem('bounty_reports_v2', JSON.stringify(updatedList));
+      } catch (err) {
+        console.error('Failed to update localStorage with synced report:', err);
+      }
+
+      // Propagate callbacks
+      onUpdateReport?.(updatedReport);
+      onAddTimelineEvent?.(selectedReport.id, {
+        date: new Date().toISOString().split('T')[0],
+        title: `Issue GitHub #${issueData.number} Criada`,
+        notes: `Relatório exportado para o GitHub Issues em ${owner}/${repo} com status 'open'.`,
+        type: 'status_change'
+      });
+
+      setPushSuccessResult({
+        issueNumber: issueData.number,
+        issueUrl: issueData.html_url,
+        issueTitle: issueData.title,
+        repo: `${owner}/${repo}`,
+        reportId: selectedReport.id
+      });
+
+      setSaveSuccessMsg(`Issue #${issueData.number} criada com sucesso no GitHub!`);
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
+    } catch (err: any) {
+      setPushError(err.message || 'Falha ao publicar Issue no GitHub.');
+    } finally {
+      setIsPushingIssue(false);
+    }
+  };
+
+  // Add Label Tag
+  const handleAddLabel = () => {
+    const clean = newLabelInput.trim().toLowerCase();
+    if (clean && !selectedLabels.includes(clean)) {
+      setSelectedLabels(prev => [...prev, clean]);
+      setNewLabelInput('');
+    }
+  };
+
+  // Remove Label Tag
+  const handleRemoveLabel = (lbl: string) => {
+    setSelectedLabels(prev => prev.filter(l => l !== lbl));
+  };
+
   // Save Settings
   const handleSaveSettings = () => {
     try {
@@ -216,7 +732,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#0d1017] border border-[#1e2338] rounded-xl shadow-2xl overflow-hidden flex flex-col my-auto font-sans">
+      <div className="relative w-full max-w-3xl sm:max-w-4xl bg-[#0d1017] border border-[#1e2338] rounded-xl shadow-2xl overflow-hidden flex flex-col my-auto font-sans">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between p-5 border-b border-[#1e2338] bg-[#090b10]">
@@ -382,171 +898,629 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Modal Content */}
         <div className="p-5 sm:p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           {activeTab === 'github' && (
-            <div className="space-y-5">
+            <div className="space-y-6">
               
-              {/* Token Info Card */}
-              <div className="p-4 rounded-xl bg-[#121624] border border-[#20273d] space-y-2">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold text-zinc-200">
-                  <Key className="w-4 h-4 text-purple-400" />
-                  <span>GitHub Personal Access Token (PAT)</span>
-                  {githubToken ? (
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px]">
-                      CONFIGURADO
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">
-                      NÃO CONFIGURADO
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  Necessário para sincronizar relatórios diretamente como novas Issues em repositórios do GitHub através da API REST oficial. Seu token fica armazenado estritamente no armazenamento local do seu navegador (<code className="text-purple-300 font-mono">localStorage</code>).
-                </p>
-              </div>
+              {/* SECTION 1: GITHUB ACCOUNT LINKING & AUTH STATUS */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[#121624] border border-[#20273d] space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1e263d]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center">
+                      <FolderGit2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-bold text-white font-mono flex items-center gap-2">
+                        <span>Vinculação de Conta GitHub</span>
+                        {linkedAccount ? (
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-sans font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            CONTA VINCULADA
+                          </span>
+                        ) : githubToken ? (
+                          <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-sans font-bold">
+                            TOKEN ATIVO
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-sans font-bold">
+                            NÃO VINCULADO
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
+                        Conecte sua conta do GitHub via Personal Access Token (PAT) com escopo <code className="text-purple-300">repo</code> para sincronizar relatórios como Issues diretamente pela API REST.
+                      </p>
+                    </div>
+                  </div>
 
-              {/* Token Input Field */}
-              <div className="space-y-2">
-                <label className="flex items-center justify-between text-xs font-mono text-zinc-300 font-semibold">
-                  <span>Token de Acesso Pessoal (PAT)</span>
-                  <a
-                    href="https://github.com/settings/tokens/new?scopes=repo&description=BugBountyManager"
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 text-[11px] hover:underline"
-                  >
-                    <span>Gerar Token no GitHub</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </label>
-
-                <div className="relative">
-                  <input
-                    type={showToken ? 'text' : 'password'}
-                    id="input-settings-github-token"
-                    value={githubToken}
-                    onChange={(e) => {
-                      setGithubToken(e.target.value);
-                      setTestResult(null);
-                    }}
-                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou github_pat_..."
-                    className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3.5 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40 placeholder-zinc-600 pr-20"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      id="btn-toggle-token-visibility"
-                      onClick={() => setShowToken(!showToken)}
-                      className="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors"
-                      title={showToken ? 'Ocultar token' : 'Exibir token'}
-                    >
-                      {showToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                    {githubToken && (
+                  {linkedAccount && (
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        id="btn-clear-settings-token"
-                        onClick={handleClearToken}
-                        className="p-1 rounded text-zinc-500 hover:text-rose-400 transition-colors"
-                        title="Limpar token"
+                        id="btn-refresh-github-account"
+                        onClick={() => handleLinkAccount()}
+                        disabled={isLinkingAccount || isLoadingRepos}
+                        className="px-2.5 py-1.5 rounded-lg bg-[#181d30] hover:bg-[#202742] text-zinc-300 hover:text-white border border-[#2a3454] text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                        title="Atualizar dados do perfil e repositórios"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLinkingAccount || isLoadingRepos ? 'animate-spin' : ''}`} />
+                        <span className="hidden sm:inline">Atualizar</span>
                       </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] font-mono text-zinc-500">
-                  <span>Escopo exigido: <code className="text-purple-300">repo</code> (ou <code className="text-purple-300">public_repo</code> para projetos públicos)</span>
-                  <button
-                    type="button"
-                    id="btn-test-github-token"
-                    onClick={handleTestToken}
-                    disabled={isTestingToken || !githubToken.trim()}
-                    className="text-purple-400 hover:text-purple-300 disabled:opacity-40 flex items-center gap-1 cursor-pointer font-bold"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${isTestingToken ? 'animate-spin' : ''}`} />
-                    <span>{isTestingToken ? 'Validando...' : 'Testar Conexão'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Token Test Result Feedback */}
-              {testResult && (
-                <div
-                  id="settings-token-test-result"
-                  className={`p-3.5 rounded-lg border text-xs font-mono space-y-1.5 animate-in fade-in duration-150 ${
-                    testResult.success
-                      ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300'
-                      : 'bg-rose-950/30 border-rose-500/40 text-rose-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {testResult.success ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    )}
-                    <span className="font-semibold">{testResult.message}</span>
-                  </div>
-                  {testResult.success && testResult.scopes && (
-                    <div className="text-[11px] text-zinc-400 pl-6 space-y-0.5">
-                      <div>Escopos detectados: <code className="text-emerald-300">{testResult.scopes}</code></div>
-                      <div>Usuário verificado: <strong className="text-white">@{testResult.username}</strong></div>
+                      <button
+                        type="button"
+                        id="btn-unlink-github-account"
+                        onClick={handleUnlinkAccount}
+                        className="px-2.5 py-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Desvincular conta e remover token local"
+                      >
+                        <Unlink className="w-3.5 h-3.5" />
+                        <span>Desvincular</span>
+                      </button>
                     </div>
                   )}
                 </div>
-              )}
 
-              {/* Default Repository Field */}
-              <div className="space-y-2 pt-2 border-t border-[#1e2338]">
-                <label className="text-xs font-mono text-zinc-300 font-semibold flex items-center gap-2">
-                  <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Repositório Padrão de Destino</span>
-                </label>
-                <input
-                  type="text"
-                  id="input-settings-default-repo"
-                  value={defaultRepo}
-                  onChange={(e) => setDefaultRepo(e.target.value)}
-                  placeholder="proprietario/repositorio (ex: acme-sec/vulnerabilities)"
-                  className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3.5 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40 placeholder-zinc-600"
-                />
-                <p className="text-[11px] text-zinc-500 font-mono">
-                  Sugerido automaticamente quando você clicar em "Sincronizar no GitHub" a partir de qualquer relatório.
-                </p>
+                {/* Linked Account Profile View */}
+                {linkedAccount ? (
+                  <div className="p-3.5 rounded-lg bg-[#090b10] border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={linkedAccount.avatarUrl || 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'}
+                        alt={linkedAccount.login}
+                        className="w-11 h-11 rounded-full border-2 border-emerald-500/50 object-cover shadow-sm bg-zinc-800 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs sm:text-sm font-bold text-white truncate">{linkedAccount.name}</h4>
+                          <a
+                            href={linkedAccount.htmlUrl}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="text-purple-400 hover:text-purple-300 text-xs font-mono inline-flex items-center gap-1 hover:underline shrink-0"
+                          >
+                            @{linkedAccount.login}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                        {linkedAccount.bio && (
+                          <p className="text-[11px] text-zinc-400 truncate max-w-md mt-0.5">{linkedAccount.bio}</p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[10px] font-mono text-zinc-400">
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                            Escopos: <strong className="text-emerald-300">{linkedAccount.scopes || 'repo'}</strong>
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                            Repositórios: <strong className="text-white">{cachedRepos.length || linkedAccount.publicRepos}</strong>
+                          </span>
+                          {linkedAccount.rateLimitRemaining !== undefined && (
+                            <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                              Rate Limit: <strong className="text-cyan-300">{linkedAccount.rateLimitRemaining}/{linkedAccount.rateLimitTotal || 5000}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Token Input & Link Action */
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-mono text-zinc-300 font-semibold">
+                        <label htmlFor="input-settings-github-token" className="flex items-center gap-1.5">
+                          <Key className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Personal Access Token (PAT)</span>
+                        </label>
+                        <a
+                          href="https://github.com/settings/tokens/new?scopes=repo&description=BugBountyManager"
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 text-[11px] hover:underline"
+                        >
+                          <span>Gerar Token com Escopo repo ↗</span>
+                        </a>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type={showToken ? 'text' : 'password'}
+                          id="input-settings-github-token"
+                          value={githubToken}
+                          onChange={(e) => {
+                            setGithubToken(e.target.value);
+                            setTestResult(null);
+                            setLinkError(null);
+                          }}
+                          placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou github_pat_..."
+                          className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3.5 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40 placeholder-zinc-600 pr-20"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
+                          <button
+                            type="button"
+                            id="btn-toggle-token-visibility"
+                            onClick={() => setShowToken(!showToken)}
+                            className="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors"
+                            title={showToken ? 'Ocultar token' : 'Exibir token'}
+                          >
+                            {showToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                          {githubToken && (
+                            <button
+                              type="button"
+                              id="btn-clear-settings-token"
+                              onClick={handleClearToken}
+                              className="p-1 rounded text-zinc-500 hover:text-rose-400 transition-colors"
+                              title="Limpar token"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <span className="text-[11px] font-mono text-zinc-500">
+                        O token permanece armazenado localmente em seu navegador (<code className="text-purple-300">localStorage</code>).
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          id="btn-test-github-token"
+                          onClick={handleTestToken}
+                          disabled={isTestingToken || !githubToken.trim()}
+                          className="px-3 py-1.5 rounded-lg bg-[#181d30] hover:bg-[#202742] text-zinc-300 hover:text-white border border-[#2a3454] text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isTestingToken ? 'animate-spin' : ''}`} />
+                          <span>{isTestingToken ? 'Testando...' : 'Testar Conexão'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          id="btn-link-github-account"
+                          onClick={() => handleLinkAccount()}
+                          disabled={isLinkingAccount || !githubToken.trim()}
+                          className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs font-mono flex items-center gap-1.5 transition-all shadow-md shadow-purple-950/40 cursor-pointer disabled:opacity-50"
+                        >
+                          <Link2 className={`w-3.5 h-3.5 ${isLinkingAccount ? 'animate-spin' : ''}`} />
+                          <span>{isLinkingAccount ? 'Vinculando...' : 'Vincular Conta GitHub'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Error Banner */}
+                {linkError && (
+                  <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-500/40 text-rose-300 text-xs font-mono flex items-center gap-2 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{linkError}</span>
+                  </div>
+                )}
+
+                {/* Token Test Result Feedback */}
+                {testResult && !linkedAccount && (
+                  <div
+                    id="settings-token-test-result"
+                    className={`p-3 rounded-lg border text-xs font-mono space-y-1 animate-in fade-in duration-150 ${
+                      testResult.success
+                        ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300'
+                        : 'bg-rose-950/30 border-rose-500/40 text-rose-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {testResult.success ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                      )}
+                      <span className="font-semibold">{testResult.message}</span>
+                    </div>
+                    {testResult.success && (
+                      <div className="text-[11px] text-zinc-400 pl-6">
+                        <div>Escopos detectados: <code className="text-emerald-300">{testResult.scopes}</code></div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Default Labels Field */}
-              <div className="space-y-2">
-                <label className="text-xs font-mono text-zinc-300 font-semibold flex items-center gap-2">
-                  <Tag className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Labels Padrão para Issues Criadas</span>
-                </label>
-                <input
-                  type="text"
-                  id="input-settings-default-labels"
-                  value={defaultLabels}
-                  onChange={(e) => setDefaultLabels(e.target.value)}
-                  placeholder="security, vulnerability, bug-bounty"
-                  className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3.5 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40 placeholder-zinc-600"
-                />
-                <p className="text-[11px] text-zinc-500 font-mono">
-                  Separadas por vírgula. A gravidade do relatório (ex: <code className="text-purple-300">severity:high</code>) é adicionada automaticamente.
-                </p>
-              </div>
-
-              {/* Quick instructions box */}
-              <div className="p-3.5 rounded-lg bg-[#090b10] border border-[#1e2338] text-[11px] text-zinc-400 space-y-1.5 font-mono">
-                <div className="flex items-center gap-1.5 text-zinc-300 font-bold">
-                  <Info className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Como gerar seu token no GitHub:</span>
+              {/* SECTION 2: PUSH VULNERABILITY REPORT AS GITHUB ISSUE */}
+              <div className="p-4 sm:p-5 rounded-xl bg-[#0e121e] border-2 border-purple-500/40 space-y-4 shadow-lg shadow-purple-950/20">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#1e263d]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center shrink-0">
+                      <Send className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-bold text-white font-mono flex items-center gap-2">
+                        <span>Publicar Relatório como GitHub Issue</span>
+                        <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-sans font-bold">
+                          GitHub API v3
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
+                        Selecione um relatório de vulnerabilidade e envie diretamente como uma nova Issue no repositório de destino.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <ol className="list-decimal list-inside space-y-1 text-zinc-400 pl-1">
-                  <li>Acesse <strong className="text-zinc-200">github.com → Settings → Developer Settings</strong>.</li>
-                  <li>Clique em <strong className="text-zinc-200">Personal access tokens → Tokens (classic)</strong>.</li>
-                  <li>Gere um novo token selecionando a caixa de seleção <strong className="text-purple-300">repo</strong>.</li>
-                  <li>Copie o código gerado e cole no campo acima para habilitar o envio direto de relatórios.</li>
-                </ol>
+
+                {allReports.length === 0 ? (
+                  <div className="p-4 rounded-lg bg-[#090b10] border border-[#1e2338] text-center text-xs font-mono text-zinc-400 space-y-1">
+                    <AlertCircle className="w-5 h-5 text-amber-400 mx-auto" />
+                    <p className="font-semibold text-zinc-300">Nenhum relatório cadastrado no sistema</p>
+                    <p className="text-[11px] text-zinc-500">Crie ou carregue um relatório para habilitar o envio direto ao GitHub Issues.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    
+                    {/* 1. Report Selector */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="select-report-to-push" className="text-xs font-mono text-zinc-300 font-semibold flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Selecione o Relatório de Vulnerabilidade:</span>
+                        </span>
+                        <span className="text-[11px] text-zinc-500 font-normal">
+                          {allReports.length} {allReports.length === 1 ? 'relatório disponível' : 'relatórios disponíveis'}
+                        </span>
+                      </label>
+                      <select
+                        id="select-report-to-push"
+                        value={selectedReportId}
+                        onChange={(e) => setSelectedReportId(e.target.value)}
+                        className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40"
+                      >
+                        {allReports.map((rep) => {
+                          const isSynced = Boolean(rep.githubIntegration?.issueNumber);
+                          return (
+                            <option key={rep.id} value={rep.id}>
+                              [{rep.severity}] {rep.title.slice(0, 45)}... • {rep.target} (CVSS {rep.cvssScore}) {isSynced ? `✓ [Issue #${rep.githubIntegration?.issueNumber}]` : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    {/* Selected Report Preview Pill */}
+                    {selectedReport && (
+                      <div className="p-3 rounded-lg bg-[#090b10] border border-[#1e2338] text-xs font-mono space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                              selectedReport.severity === 'CRITICAL'
+                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                : selectedReport.severity === 'HIGH'
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                : selectedReport.severity === 'MEDIUM'
+                                ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                                : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                            }`}>
+                              {selectedReport.severity} ({selectedReport.cvssScore})
+                            </span>
+                            <span className="text-zinc-200 font-semibold truncate max-w-sm">
+                              {selectedReport.title}
+                            </span>
+                          </div>
+
+                          {selectedReport.githubIntegration?.issueNumber ? (
+                            <a
+                              href={selectedReport.githubIntegration.issueUrl || `https://github.com/${selectedReport.githubIntegration.repoOwner}/${selectedReport.githubIntegration.repoName}/issues/${selectedReport.githubIntegration.issueNumber}`}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1 hover:underline"
+                            >
+                              <Check className="w-3 h-3 text-emerald-400" />
+                              Issue #{selectedReport.githubIntegration.issueNumber} no GitHub ↗
+                            </a>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 text-[10px]">
+                              Pendente de sincronização
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-[11px] text-zinc-400 flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-zinc-800/80">
+                          <span>Alvo: <strong className="text-zinc-200">{selectedReport.target}</strong></span>
+                          <span>Tipo: <strong className="text-zinc-200">{selectedReport.vulnerabilityType}</strong></span>
+                          <span>CWE: <strong className="text-zinc-200">{selectedReport.cwe || 'N/A'}</strong></span>
+                          <span>Plataforma: <strong className="text-zinc-200">{selectedReport.platform}</strong></span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. Target Repository Selection */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-mono text-zinc-300 font-semibold">
+                        <label htmlFor="input-target-repo" className="flex items-center gap-1.5">
+                          <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Repositório de Destino (owner/repo):</span>
+                        </label>
+                        {cachedRepos.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setUseCustomRepo(!useCustomRepo)}
+                            className="text-purple-400 hover:text-purple-300 text-[11px] underline cursor-pointer"
+                          >
+                            {useCustomRepo ? 'Selecionar da minha lista' : 'Digitar outro repositório'}
+                          </button>
+                        )}
+                      </div>
+
+                      {cachedRepos.length > 0 && !useCustomRepo ? (
+                        <select
+                          id="select-cached-target-repo"
+                          value={targetRepoInput}
+                          onChange={(e) => setTargetRepoInput(e.target.value)}
+                          className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40"
+                        >
+                          <option value="">Selecione um repositório...</option>
+                          {cachedRepos.map((r) => (
+                            <option key={r.id} value={r.fullName}>
+                              {r.fullName} {r.private ? '🔒 (Privado)' : '🌐 (Público)'}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          id="input-target-repo"
+                          value={targetRepoInput}
+                          onChange={(e) => setTargetRepoInput(e.target.value)}
+                          placeholder="proprietario/repositorio (ex: acme-corp/api-gateway)"
+                          className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40 placeholder-zinc-600"
+                        />
+                      )}
+                    </div>
+
+                    {/* 3. Issue Title Input */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="input-issue-title" className="text-xs font-mono text-zinc-300 font-semibold flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Título da Issue:</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="input-issue-title"
+                        value={issueTitleInput}
+                        onChange={(e) => setIssueTitleInput(e.target.value)}
+                        placeholder="[SECURITY] Tipo da falha: Resumo técnico (CVSS X.X)"
+                        className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40 placeholder-zinc-600"
+                      />
+                    </div>
+
+                    {/* 4. Labels Manager */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono text-zinc-300 font-semibold flex items-center justify-between">
+                        <span>Labels Aplicadas:</span>
+                        <span className="text-[10px] text-zinc-500">Pressione Enter ou clique em + para adicionar</span>
+                      </label>
+                      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-[#090b10] border border-[#1e2338] rounded-lg min-h-[40px]">
+                        {selectedLabels.map((lbl) => (
+                          <span
+                            key={lbl}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-mono"
+                          >
+                            <span>{lbl}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLabel(lbl)}
+                              className="hover:text-rose-300 text-zinc-400 ml-0.5 cursor-pointer"
+                              title="Remover label"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                        <div className="flex items-center gap-1 ml-auto">
+                          <input
+                            type="text"
+                            value={newLabelInput}
+                            onChange={(e) => setNewLabelInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddLabel();
+                              }
+                            }}
+                            placeholder="Nova label..."
+                            className="bg-transparent border border-zinc-700 rounded px-2 py-0.5 text-[11px] font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-400 w-28"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddLabel}
+                            className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white text-[11px] font-mono font-bold cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 5. Markdown Preview Toggle */}
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        id="btn-toggle-markdown-preview"
+                        onClick={() => setShowMarkdownPreview(!showMarkdownPreview)}
+                        className="text-xs font-mono text-purple-400 hover:text-purple-300 flex items-center gap-1.5 cursor-pointer py-1"
+                      >
+                        <Code className="w-3.5 h-3.5" />
+                        <span>{showMarkdownPreview ? 'Ocultar Prévia do Markdown' : 'Visualizar Prévia do Relatório Técnico (Markdown)'}</span>
+                        {showMarkdownPreview ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+
+                      {showMarkdownPreview && (
+                        <div className="mt-2 p-3 bg-[#07090e] border border-[#1e2338] rounded-lg max-h-56 overflow-y-auto text-[11px] font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                          {issueMarkdownBody}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Feedback Messages */}
+                    {pushError && (
+                      <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-500/50 text-rose-300 text-xs font-mono flex items-center gap-2 animate-in fade-in">
+                        <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span className="font-semibold">{pushError}</span>
+                      </div>
+                    )}
+
+                    {pushSuccessResult && (
+                      <div className="p-3.5 rounded-lg bg-emerald-950/40 border border-emerald-500/50 text-emerald-300 text-xs font-mono space-y-1.5 animate-in fade-in">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 font-bold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <span>Issue #{pushSuccessResult.issueNumber} publicada com sucesso no GitHub!</span>
+                          </div>
+                          <a
+                            href={pushSuccessResult.issueUrl}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center gap-1 transition-colors shadow-sm"
+                          >
+                            <span>Abrir no GitHub</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                        <div className="text-[11px] text-zinc-400">
+                          Repositório: <strong className="text-white">{pushSuccessResult.repo}</strong> • Título: <strong className="text-white">{pushSuccessResult.issueTitle}</strong>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Push Submit Button */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        id="btn-push-vulnerability-issue"
+                        onClick={handlePushReportAsIssue}
+                        disabled={isPushingIssue || !githubToken.trim() || !targetRepoInput.trim()}
+                        className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white text-xs font-mono font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-950/40 transition-all cursor-pointer"
+                      >
+                        <Send className={`w-4 h-4 ${isPushingIssue ? 'animate-bounce' : ''}`} />
+                        <span>{isPushingIssue ? 'Publicando Issue via GitHub API...' : '🚀 Publicar Relatório como Issue no GitHub'}</span>
+                      </button>
+                    </div>
+
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: SYNCHRONIZED REPORTS HISTORY */}
+              <div className="p-4 rounded-xl bg-[#121624] border border-[#20273d] space-y-3">
+                <div className="flex items-center justify-between text-xs font-mono text-zinc-200 font-bold">
+                  <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-purple-400" />
+                    <span>Relatórios Sincronizados no GitHub</span>
+                  </div>
+                  <span className="text-[11px] text-zinc-400">
+                    {allReports.filter(r => r.githubIntegration?.issueNumber).length} sincronizados
+                  </span>
+                </div>
+
+                {allReports.filter(r => r.githubIntegration?.issueNumber).length === 0 ? (
+                  <p className="text-xs text-zinc-500 font-mono py-2 text-center">
+                    Nenhum relatório foi publicado no GitHub ainda.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {allReports
+                      .filter(r => r.githubIntegration?.issueNumber)
+                      .map((rep) => (
+                        <div
+                          key={rep.id}
+                          className="p-2.5 rounded-lg bg-[#090b10] border border-[#1e2338] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
+                                rep.severity === 'CRITICAL'
+                                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                  : rep.severity === 'HIGH'
+                                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                  : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                              }`}>
+                                {rep.severity}
+                              </span>
+                              <span className="text-zinc-200 font-semibold truncate">{rep.title}</span>
+                            </div>
+                            <div className="text-[11px] text-zinc-500 truncate mt-0.5">
+                              Repo: <span className="text-purple-300">{rep.githubIntegration?.repoOwner}/{rep.githubIntegration?.repoName}</span> • Alvo: {rep.target}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a
+                              href={rep.githubIntegration?.issueUrl || `https://github.com/${rep.githubIntegration?.repoOwner}/${rep.githubIntegration?.repoName}/issues/${rep.githubIntegration?.issueNumber}`}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="px-2.5 py-1 rounded bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-[11px] flex items-center gap-1 font-bold transition-colors"
+                            >
+                              <span>Issue #{rep.githubIntegration?.issueNumber}</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 4: DEFAULT CONFIGURATION & INSTRUCTIONS */}
+              <div className="p-4 rounded-xl bg-[#090b10] border border-[#1e2338] space-y-4">
+                <div className="text-xs font-mono font-bold text-zinc-200 flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-purple-400" />
+                  <span>Preferências Padrão de Sincronização</span>
+                </div>
+
+                {/* Default Repository Field */}
+                <div className="space-y-1.5">
+                  <label htmlFor="input-settings-default-repo" className="text-xs font-mono text-zinc-300 font-semibold flex items-center gap-2">
+                    <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Repositório Padrão de Destino</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="input-settings-default-repo"
+                    value={defaultRepo}
+                    onChange={(e) => setDefaultRepo(e.target.value)}
+                    placeholder="proprietario/repositorio (ex: acme-sec/vulnerabilities)"
+                    className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3.5 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40 placeholder-zinc-600"
+                  />
+                  <p className="text-[11px] text-zinc-500 font-mono">
+                    Sugerido automaticamente nos modais de envio de vulnerabilidade.
+                  </p>
+                </div>
+
+                {/* Default Labels Field */}
+                <div className="space-y-1.5">
+                  <label htmlFor="input-settings-default-labels" className="text-xs font-mono text-zinc-300 font-semibold flex items-center gap-2">
+                    <Tag className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Labels Padrão para Issues Criadas</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="input-settings-default-labels"
+                    value={defaultLabels}
+                    onChange={(e) => setDefaultLabels(e.target.value)}
+                    placeholder="security, vulnerability, bug-bounty"
+                    className="w-full bg-[#0a0c12] text-zinc-100 border border-[#20273d] focus:border-purple-500/70 rounded-lg px-3.5 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-purple-500/40 placeholder-zinc-600"
+                  />
+                  <p className="text-[11px] text-zinc-500 font-mono">
+                    Separadas por vírgula. A gravidade do relatório (ex: <code className="text-purple-300">severity:high</code>) é anexada automaticamente.
+                  </p>
+                </div>
+
+                {/* Quick instructions box */}
+                <div className="p-3.5 rounded-lg bg-[#0d1017] border border-[#1e2338] text-[11px] text-zinc-400 space-y-1.5 font-mono">
+                  <div className="flex items-center gap-1.5 text-zinc-300 font-bold">
+                    <Info className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Como obter seu Personal Access Token no GitHub:</span>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1 text-zinc-400 pl-1">
+                    <li>Acesse <strong className="text-zinc-200">github.com → Settings → Developer Settings</strong>.</li>
+                    <li>Clique em <strong className="text-zinc-200">Personal access tokens → Tokens (classic)</strong>.</li>
+                    <li>Gere um novo token marcando a permissão <strong className="text-purple-300">repo</strong> (ou <strong className="text-purple-300">public_repo</strong>).</li>
+                    <li>Cole o token acima e clique em <strong className="text-white">Vincular Conta GitHub</strong> para habilitar o envio direto de relatórios.</li>
+                  </ol>
+                </div>
               </div>
 
             </div>

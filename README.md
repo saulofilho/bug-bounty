@@ -9,7 +9,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/tailwind-4.1-38B2AC.svg)](https://tailwindcss.com/)
 [![Recharts](https://img.shields.io/badge/recharts-3.10-22c55e.svg)](https://recharts.org/)
 [![CVSS v4.0](https://img.shields.io/badge/CVSS-v4.0%20%7C%20v3.1-emerald.svg)](https://www.first.org/cvss/v4-0/)
-[![E2E Tests](https://img.shields.io/badge/E2E%20Tests-18%2F18%20Passed%20(100%25)-success.svg)](./RELATORIO_DE_TESTES_E2E.md)
+[![E2E Tests](https://img.shields.io/badge/E2E%20Tests-19%2F19%20Passed%20(100%25)-success.svg)](./RELATORIO_DE_TESTES_E2E.md)
 [![GitHub Pages](https://img.shields.io/badge/deploy-GitHub%20Pages-black.svg?logo=github)](https://pages.github.com/)
 
 ---
@@ -21,6 +21,7 @@
 - [Guia de Uso Passo a Passo (Tutorial das Ferramentas)](#-guia-de-uso-passo-a-passo-tutorial-das-ferramentas)
 - [Manual Completo (TUTORIAL.md)](#-manual-completo-tutorialmd)
 - [Relatório de Testes Automatizados E2E (100% Aprovado)](#-relatório-de-testes-automatizados-e2e-100-aprovado)
+- [Integração com GitHub API & Publicação de Relatórios como Issues](#-integração-com-github-api--publicação-de-relatórios-como-issues)
 - [Categorias de Impacto & Legenda de Triagem Rápida (Fast Triage)](#-categorias-de-impacto--legenda-de-triagem-rápida-fast-triage)
 - [Monitores de Rate Limits de APIs e Alvos](#-monitores-de-rate-limits-de-apis-e-alvos)
 - [Análise de Sentimento nas Interações de Triagem](#-análise-de-sentimento-nas-interações-de-triagem)
@@ -479,9 +480,9 @@ Acesse a aba **AppSec** no menu principal para utilizar a suíte integrada de ut
 
 ## 🧪 Relatório de Testes Automatizados E2E (100% Aprovado)
 
-A plataforma conta com uma suíte de testes de integração automatizados de ponta a ponta (E2E), garantindo a robustez e resiliência de todas as APIs, motores de cálculo, módulos AppSec, inteligência de ameaças e internacionalização.
+A plataforma conta com uma suíte de testes de integração automatizados de ponta a ponta (E2E), garantindo a robustez e resiliência de todas as APIs, motores de cálculo, módulos AppSec, inteligência de ameaças, internacionalização e integração com GitHub.
 
-- **Status da Suíte:** ✅ **18/18 Testes Aprovados (100% de Sucesso)**
+- **Status da Suíte:** ✅ **19/19 Testes Aprovados (100% de Sucesso)**
 - **Documento Técnico Detalhado:** [RELATORIO_DE_TESTES_E2E.md](./RELATORIO_DE_TESTES_E2E.md)
 - **Comando de Execução:** `npm test` ou `node scripts/test_runner.cjs`
 
@@ -515,6 +516,26 @@ Para certificar a experiência real de um pesquisador de segurança ofensiva, a 
 | **16** | **i18n & Localization** | Alternador Multilíngue (PT, EN, ES) | Troca dinâmica de chaves de tradução | Re-renderização síncrona sem perda do estado de relatórios | ✅ PASS |
 | **17** | **AppSec Suite** | HTTP Request Smuggling Analyzer | Avaliação de dessincronização RFC 7230 | Probe `CL.TE` gerado para testes de socket de front/backend | ✅ PASS |
 | **18** | **Risk Management** | Simulador Quantitativo de Risco FAIR | Cálculo estatístico de perda financeira | Exposição Anual de Perda (ALE) projetada em $ 360.000 / ano | ✅ PASS |
+| **19** | **GitHub Integration** | Vinculação de Conta & Publicação de Issues | `POST /api/github/push-issue` | Publicação direta de relatórios como GitHub Issues com template técnico | ✅ PASS |
+
+---
+
+## 🐙 Integração com GitHub API & Publicação de Relatórios como Issues
+
+No modal de configurações (**SettingsModal**), a aba **GitHub API & Issues** oferece um fluxo completo para integração com repositórios e rastreamento de vulnerabilidades:
+
+1. **Vinculação de Conta do GitHub:**
+   - Conecte sua conta informando um Personal Access Token (PAT) com escopo `repo` (ou `public_repo` para repositórios públicos).
+   - O sistema valida a autenticação na API do GitHub (`/user`), identifica os escopos autorizados e busca a lista completa de repositórios do pesquisador (`/user/repos`).
+   - Um cartão de status exibe o avatar oficial, `@username` com link para o perfil, biografia, contagem de repositórios e status da taxa de requisições (Rate Limit).
+2. **Publicação Direta como GitHub Issue:**
+   - Selecione qualquer vulnerabilidade registrada no sistema.
+   - Escolha o repositório de destino através do seletor inteligente (ou digite `proprietario/repositorio`).
+   - Personalize o título da issue e gerencie tags/labels dinamicamente (com gravidade preenchida automaticamente).
+   - Visualize a prévia do relatório em Markdown formatado segundo as melhores práticas de Responsible Disclosure (Sumário Executivo, Passos de Reprodução, PoC HTTP, Impacto no Negócio e Remediação).
+   - Ao clicar em **Publicar Relatório como Issue no GitHub**, o sistema envia a requisição via API REST oficial (`POST /repos/{owner}/{repo}/issues`), associa a issue gerada ao relatório local e atualiza a timeline de auditoria com o link direto da issue criada.
+3. **Histórico de Relatórios Sincronizados:**
+   - Visualize todos os achados que já possuem issues abertas no GitHub com links diretos e status em tempo real.
 
 ---
 

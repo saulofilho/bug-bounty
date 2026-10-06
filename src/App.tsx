@@ -23,6 +23,7 @@ import { PdfExportModal } from './components/PdfExportModal';
 import { CsvImportModal } from './components/CsvImportModal';
 import { StorageIntegrityModal } from './components/StorageIntegrityModal';
 import { WelcomePlatformModal } from './components/WelcomePlatformModal';
+import { WelcomePageView } from './components/WelcomePageView';
 import { SettingsModal } from './components/SettingsModal';
 import { Notifications } from './components/Notifications';
 import { AppSecSuiteView } from './components/AppSecSuiteView';
@@ -38,17 +39,27 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { INITIAL_REPORTS, INITIAL_TARGETS, INITIAL_DOCS } from './data/initialData';
 import { VulnerabilityReport, TargetProgram, TechnicalDoc, ReportStatus, TimelineEvent, CVERecord, PlatformName, ValidationChecklistItem, Severity, GeneratedDraftReport } from './types';
+import {
+  saveCloudReport,
+  deleteCloudReport,
+  saveCloudTarget,
+  deleteCloudTarget,
+  fetchCloudReports,
+  fetchCloudTargets
+} from './services/firestoreSync';
 
 function AppContent() {
   const { t, language, rerenderVersion } = useLanguage();
   const {
+    currentUser,
     isAuthenticated,
+    isCloudConnected,
     canEditReports,
     canDeleteReports,
     openLoginModal
   } = useAuth();
 
-  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [currentTab, setCurrentTab] = useState<NavTab>('home');
 
   // 1. Storage Integrity Validation & Self-Healing Engine
   // Runs immediately on application load to sanitize and repair corrupted entries in localStorage
@@ -88,7 +99,7 @@ function AppContent() {
   const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
   const [isGeminiDraftModalOpen, setIsGeminiDraftModalOpen] = useState(false);
   const [draftInitialTarget, setDraftInitialTarget] = useState<string>('');
-  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(true);
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(() => {
@@ -132,7 +143,8 @@ function AppContent() {
     setTargets(INITIAL_TARGETS);
     setDocs(INITIAL_DOCS);
     setIsWelcomeModalOpen(false);
-    showSuccessToast('Modo Demonstração ativo! Relatórios e alvos de teste carregados.');
+    setCurrentTab('dashboard');
+    showSuccessToast('Modo Demonstração carregado! Bem-vindo ao Dashboard de Operações.');
   };
 
   const handleClearMockAndStartFresh = () => {
@@ -148,7 +160,8 @@ function AppContent() {
     setTargets([]);
     setDocs([]);
     setIsWelcomeModalOpen(false);
-    showSuccessToast('Plataforma 100% zerada! Todos os mocks foram limpos.');
+    setCurrentTab('dashboard');
+    showSuccessToast('Plataforma 100% zerada! Ambiente de produção pronto no Dashboard.');
   };
 
   const handleResetToSeedData = () => {
@@ -198,6 +211,42 @@ function AppContent() {
       if (updated) setSelectedReportForDetail(updated);
     }
   }, [reports]);
+
+  // Load & merge cloud reports from Firestore on user login
+  useEffect(() => {
+    if (currentUser && currentUser.providerId !== 'demo') {
+      fetchCloudReports()
+        .then((cloudReports) => {
+          if (cloudReports && cloudReports.length > 0) {
+            setReports((prev) => {
+              const map = new Map<string, VulnerabilityReport>();
+              cloudReports.forEach((r) => map.set(r.id, r));
+              prev.forEach((r) => {
+                if (!map.has(r.id)) map.set(r.id, r);
+              });
+              return Array.from(map.values());
+            });
+            showSuccessToast(`${cloudReports.length} relatório(s) sincronizados da nuvem Firebase!`);
+          }
+        })
+        .catch((e) => console.warn('Could not fetch cloud reports:', e));
+
+      fetchCloudTargets()
+        .then((cloudTargets) => {
+          if (cloudTargets && cloudTargets.length > 0) {
+            setTargets((prev) => {
+              const map = new Map<string, TargetProgram>();
+              cloudTargets.forEach((t) => map.set(t.id, t));
+              prev.forEach((t) => {
+                if (!map.has(t.id)) map.set(t.id, t);
+              });
+              return Array.from(map.values());
+            });
+          }
+        })
+        .catch((e) => console.warn('Could not fetch cloud targets:', e));
+    }
+  }, [currentUser]);
 
   // Auto close detail and form modal when unauthenticated
   useEffect(() => {
@@ -255,6 +304,9 @@ function AppContent() {
       }
       return t;
     }));
+
+    // Sync to Cloud Firestore
+    saveCloudReport(report).catch(err => console.warn('Cloud report sync error:', err));
   };
 
   const handleDeleteReport = (id: string) => {
@@ -267,6 +319,7 @@ function AppContent() {
       return;
     }
     setReports(prev => prev.filter(r => r.id !== id));
+    deleteCloudReport(id).catch(err => console.warn('Cloud report delete error:', err));
     showInfoToast('Relatório removido com sucesso.');
     if (selectedReportForDetail?.id === id) {
       setSelectedReportForDetail(null);
@@ -775,6 +828,7 @@ function AppContent() {
   // Target and Doc saves
   const handleAddTarget = (newTarget: TargetProgram) => {
     setTargets(prev => [newTarget, ...prev]);
+    saveCloudTarget(newTarget).catch(err => console.warn('Cloud target sync error:', err));
   };
 
   const handleSaveDoc = (updatedDoc: TechnicalDoc) => {
@@ -998,6 +1052,20 @@ function AppContent() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-[1800px] w-full mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 pt-6">
+        {currentTab === 'home' && (
+          <WelcomePageView
+            onEnterTool={() => setCurrentTab('dashboard')}
+            onExploreWithMock={handleExploreWithMock}
+            onClearMockAndStartFresh={handleClearMockAndStartFresh}
+            onNavigateTab={(tab) => setCurrentTab(tab)}
+            onOpenNewReport={handleOpenNewReport}
+            onOpenCvssCalculator={() => handleOpenCvssCalculator()}
+            isMockActive={reports.length > 0}
+            reportsCount={reports.length}
+            targetsCount={targets.length}
+          />
+        )}
+
         {currentTab === 'dashboard' && (
           <DashboardView
             reports={reports}
@@ -1234,6 +1302,9 @@ function AppContent() {
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         initialTab="github"
+        reports={reports}
+        onUpdateReport={handleSaveReport}
+        onAddTimelineEvent={handleAddTimelineEvent}
       />
 
       {/* Notifications Hub Modal */}

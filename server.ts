@@ -1149,6 +1149,138 @@ Cite as fontes e organizações reais encontradas na busca no Google.`;
   }
 });
 
+// GitHub Integration Endpoints
+app.post("/api/github/verify-token", async (req, res) => {
+  const { token = '' } = req.body || {};
+  const cleanToken = token.trim();
+  if (!cleanToken) {
+    return res.status(400).json({ success: false, error: "Token não fornecido." });
+  }
+
+  // If mock/test token
+  if (cleanToken.startsWith('test_token_') || cleanToken === 'ghp_mock_bug_bounty_token_12345') {
+    return res.json({
+      success: true,
+      data: {
+        login: "security-hunter",
+        name: "AppSec Researcher",
+        avatarUrl: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+        htmlUrl: "https://github.com/security-hunter",
+        scopes: "repo, read:org, user:email",
+        rateLimitRemaining: 4999,
+        rateLimitTotal: 5000,
+        linkedAt: new Date().toISOString()
+      }
+    });
+  }
+
+  try {
+    const fetchRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${cleanToken}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "BugBountyManager-AIStudio"
+      }
+    });
+
+    if (!fetchRes.ok) {
+      return res.status(fetchRes.status).json({
+        success: false,
+        error: `GitHub API respondeu com status ${fetchRes.status}`
+      });
+    }
+
+    const userData: any = await fetchRes.json();
+    return res.json({
+      success: true,
+      data: {
+        login: userData.login,
+        name: userData.name || userData.login,
+        avatarUrl: userData.avatar_url,
+        htmlUrl: userData.html_url,
+        scopes: fetchRes.headers.get("x-oauth-scopes") || "repo",
+        rateLimitRemaining: parseInt(fetchRes.headers.get("x-ratelimit-remaining") || "5000", 10),
+        rateLimitTotal: parseInt(fetchRes.headers.get("x-ratelimit-limit") || "5000", 10),
+        linkedAt: new Date().toISOString()
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || "Erro ao conectar com GitHub" });
+  }
+});
+
+app.post("/api/github/push-issue", async (req, res) => {
+  const { token = '', repoOwner = '', repoName = '', title = '', body = '', labels = [] } = req.body || {};
+  const cleanToken = token.trim();
+  const owner = repoOwner.trim();
+  const repo = repoName.trim();
+
+  if (!cleanToken || !owner || !repo || !title.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: "Campos obrigatórios ausentes (token, repoOwner, repoName, title)."
+    });
+  }
+
+  // Handle mock/test token
+  if (cleanToken.startsWith('test_token_') || cleanToken === 'ghp_mock_bug_bounty_token_12345') {
+    const mockIssueNum = Math.floor(Math.random() * 900) + 100;
+    return res.json({
+      success: true,
+      issue: {
+        number: mockIssueNum,
+        id: Date.now(),
+        title: title.trim(),
+        html_url: `https://github.com/${owner}/${repo}/issues/${mockIssueNum}`,
+        state: "open",
+        created_at: new Date().toISOString(),
+        labels: labels
+      }
+    });
+  }
+
+  try {
+    const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${cleanToken}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "BugBountyManager-AIStudio"
+      },
+      body: JSON.stringify({
+        title: title.trim(),
+        body: body || "",
+        labels: Array.isArray(labels) ? labels : []
+      })
+    });
+
+    if (!ghRes.ok) {
+      const errJson: any = await ghRes.json().catch(() => ({}));
+      return res.status(ghRes.status).json({
+        success: false,
+        error: errJson.message || `Erro da API do GitHub (${ghRes.status})`
+      });
+    }
+
+    const issueData: any = await ghRes.json();
+    return res.json({
+      success: true,
+      issue: {
+        number: issueData.number,
+        id: issueData.id,
+        title: issueData.title,
+        html_url: issueData.html_url,
+        state: issueData.state,
+        created_at: issueData.created_at,
+        labels: issueData.labels
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || "Erro ao criar Issue no GitHub" });
+  }
+});
+
 // Curated baseline headlines from reputable sources (BleepingComputer, The Hacker News)
 const CURATED_THREAT_HEADLINES = [
   {

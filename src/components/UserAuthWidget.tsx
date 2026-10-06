@@ -10,7 +10,9 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Cloud,
+  CloudCheck
 } from 'lucide-react';
 import { useAuth, DEMO_ACCOUNTS, UserRole } from '../context/AuthContext';
 
@@ -18,6 +20,7 @@ export const UserAuthWidget: React.FC = () => {
   const {
     currentUser,
     isAuthenticated,
+    isCloudConnected,
     openLoginModal,
     signOut,
     switchDemoAccount
@@ -131,9 +134,18 @@ export const UserAuthWidget: React.FC = () => {
             <div className="text-[11px] text-zinc-400 truncate">
               {currentUser.email}
             </div>
-            <div className="flex items-center gap-1 text-[9px] text-zinc-500 pt-1 border-t border-[#1e1e28]">
-              <Flame className="w-3 h-3 text-amber-400" />
-              <span>Firebase Auth Local Session</span>
+            <div className="flex items-center gap-1.5 text-[9px] pt-1 border-t border-[#1e1e28]">
+              {isCloudConnected ? (
+                <>
+                  <Cloud className="w-3 h-3 text-cyan-400" />
+                  <span className="text-cyan-300 font-semibold">Firebase Cloud Conectado</span>
+                </>
+              ) : (
+                <>
+                  <Flame className="w-3 h-3 text-amber-400" />
+                  <span className="text-zinc-400">Firebase Auth Local Mode</span>
+                </>
+              )}
             </div>
           </div>
 

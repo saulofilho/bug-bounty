@@ -1,4 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import {
+  signInWithEmailAndPassword as fbSignInWithEmail,
+  createUserWithEmailAndPassword as fbCreateUserWithEmail,
+  signInWithPopup as fbSignInWithPopup,
+  signOut as fbSignOut,
+  onAuthStateChanged,
+  User as FirebaseSDKUser
+} from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, googleProvider, db, testConnection } from '../services/firebase';
 
 export type UserRole = 'admin' | 'researcher' | 'analyst';
 
@@ -11,7 +21,7 @@ export interface FirebaseUser {
   emailVerified: boolean;
   createdAt: string;
   lastLoginAt: string;
-  providerId: 'password' | 'google.com';
+  providerId: 'password' | 'google.com' | 'demo';
 }
 
 export interface DemoAccount {
@@ -56,6 +66,7 @@ interface AuthContextType {
   currentUser: FirebaseUser | null;
   isAuthenticated: boolean;
   loading: boolean;
+  isCloudConnected: boolean;
   authModalOpen: boolean;
   authModalReason: AuthPromptReason;
   pendingCallback: (() => void) | null;
@@ -73,38 +84,90 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'firebase_auth_simulated_user_v1';
+const LOCAL_STORAGE_SESSION_KEY = 'firebase_auth_simulated_user_v1';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isCloudConnected, setIsCloudConnected] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalReason, setAuthModalReason] = useState<AuthPromptReason>('general');
   const [pendingCallback, setPendingCallback] = useState<(() => void) | null>(null);
 
-  // Load session from local storage on mount (emulating Firebase Auth persistent state)
+  // Test Firestore connection on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const user: FirebaseUser = JSON.parse(stored);
-        setCurrentUser(user);
-      }
-    } catch (e) {
-      console.warn('Erro ao restaurar sessão Firebase Auth:', e);
-    } finally {
-      setLoading(false);
-    }
+    testConnection().then(() => {
+      setIsCloudConnected(true);
+    }).catch(() => {
+      setIsCloudConnected(false);
+    });
   }, []);
 
-  const saveUserSession = (user: FirebaseUser | null) => {
-    if (user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-    setCurrentUser(user);
-  };
+  // Listen to Firebase Auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser: FirebaseSDKUser | null) => {
+      if (fbUser) {
+        // Build or fetch user profile
+        let userRole: UserRole = fbUser.email === 'oisaulofilho@gmail.com' ? 'admin' : 'researcher';
+        try {
+          const userDocRef = doc(db, 'users', fbUser.uid);
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.role) userRole = data.role as UserRole;
+          } else {
+            // Create user document in Firestore
+            await setDoc(userDocRef, {
+              id: fbUser.uid,
+              email: fbUser.email || '',
+              displayName: fbUser.displayName || fbUser.email?.split('@')[0] || 'Hunter',
+              role: userRole,
+              photoURL: fbUser.photoURL || '',
+              createdAt: new Date().toISOString(),
+              lastLoginAt: new Date().toISOString()
+            });
+          }
+        } catch (e) {
+          console.warn('Could not sync user document to Firestore:', e);
+        }
+
+        const appUser: FirebaseUser = {
+          uid: fbUser.uid,
+          email: fbUser.email || '',
+          displayName: fbUser.displayName || fbUser.email?.split('@')[0] || 'Hunter',
+          photoURL: fbUser.photoURL || undefined,
+          role: userRole,
+          emailVerified: fbUser.emailVerified,
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+          providerId: fbUser.providerData[0]?.providerId === 'google.com' ? 'google.com' : 'password'
+        };
+
+        setCurrentUser(appUser);
+        localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(appUser));
+      } else {
+        // Fallback: check if demo session in localStorage
+        const stored = localStorage.getItem(LOCAL_STORAGE_SESSION_KEY);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed.providerId === 'demo') {
+              setCurrentUser(parsed);
+            } else {
+              setCurrentUser(null);
+            }
+          } catch {
+            setCurrentUser(null);
+          }
+        } else {
+          setCurrentUser(null);
+        }
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const openLoginModal = useCallback((reason: AuthPromptReason = 'general', onAuthSuccess?: () => void) => {
     setAuthModalReason(reason);
@@ -129,102 +192,174 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Emulate Firebase signInWithEmailAndPassword
+  // Sign in with Email and Password (Firebase Auth + Demo Accounts)
   const signInWithEmailAndPassword = async (email: string, password: string): Promise<FirebaseUser> => {
-    // Artificial micro-latency to simulate network roundtrip to Firebase Auth
-    await new Promise(resolve => setTimeout(resolve, 450));
-
     const trimmedEmail = email.trim().toLowerCase();
-    const demo = DEMO_ACCOUNTS.find(a => a.email.toLowerCase() === trimmedEmail);
-
     if (!trimmedEmail || !password) {
-      throw new Error('auth/missing-credentials: Email e senha são obrigatórios.');
+      throw new Error('Email e senha são obrigatórios.');
     }
 
-    if (demo && demo.password !== password) {
-      throw new Error('auth/wrong-password: Senha incorreta para esta conta de segurança.');
+    // Check if it's one of the preconfigured demo accounts
+    const demo = DEMO_ACCOUNTS.find(a => a.email.toLowerCase() === trimmedEmail);
+    if (demo) {
+      if (demo.password !== password) {
+        throw new Error('Senha incorreta para esta conta de demonstração.');
+      }
+      const demoUser: FirebaseUser = {
+        uid: `uid_demo_${demo.role}_${trimmedEmail.replace(/[^a-z0-9]/g, '')}`,
+        email: trimmedEmail,
+        displayName: demo.displayName,
+        role: demo.role,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        providerId: 'demo'
+      };
+      setCurrentUser(demoUser);
+      localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(demoUser));
+      setAuthModalOpen(false);
+      executePending();
+      return demoUser;
     }
 
-    const role: UserRole = demo ? demo.role : (trimmedEmail.includes('admin') ? 'admin' : 'researcher');
-    const displayName = demo ? demo.displayName : trimmedEmail.split('@')[0].replace('.', ' ').toUpperCase();
-
-    const user: FirebaseUser = {
-      uid: demo ? `uid_${demo.role}_${trimmedEmail.replace(/[^a-z0-9]/g, '')}` : `uid_user_${Date.now()}`,
-      email: trimmedEmail,
-      displayName,
-      role,
-      emailVerified: true,
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-      providerId: 'password'
-    };
-
-    saveUserSession(user);
-    setAuthModalOpen(false);
-    executePending();
-    return user;
+    // Attempt Firebase Authentication
+    try {
+      const cred = await fbSignInWithEmail(auth, trimmedEmail, password);
+      const user = cred.user;
+      const role: UserRole = trimmedEmail === 'oisaulofilho@gmail.com' ? 'admin' : (trimmedEmail.includes('admin') ? 'admin' : 'researcher');
+      const appUser: FirebaseUser = {
+        uid: user.uid,
+        email: user.email || trimmedEmail,
+        displayName: user.displayName || trimmedEmail.split('@')[0],
+        role,
+        emailVerified: user.emailVerified,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        providerId: 'password'
+      };
+      setCurrentUser(appUser);
+      localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(appUser));
+      setAuthModalOpen(false);
+      executePending();
+      return appUser;
+    } catch (fbErr: any) {
+      // If user not found or auth fails, throw clear error
+      if (fbErr.code === 'auth/user-not-found' || fbErr.code === 'auth/invalid-credential') {
+        throw new Error('Credenciais inválidas. Verifique seu e-mail e senha ou clique em "Criar Nova Conta".');
+      } else if (fbErr.code === 'auth/wrong-password') {
+        throw new Error('Senha incorreta para este usuário.');
+      }
+      throw new Error(fbErr.message || 'Erro de autenticação no Firebase.');
+    }
   };
 
-  // Emulate Firebase createUserWithEmailAndPassword
+  // Create User with Email and Password
   const createUserWithEmailAndPassword = async (
     email: string,
     password: string,
     displayName: string,
     role: UserRole = 'researcher'
   ): Promise<FirebaseUser> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail || !password) {
-      throw new Error('auth/invalid-email-or-password: Preencha todos os campos obrigatórios.');
+      throw new Error('Preencha todos os campos obrigatórios.');
     }
     if (password.length < 6) {
-      throw new Error('auth/weak-password: A senha deve conter no mínimo 6 caracteres.');
+      throw new Error('A senha deve conter no mínimo 6 caracteres.');
     }
 
-    const user: FirebaseUser = {
-      uid: `uid_user_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      email: trimmedEmail,
-      displayName: displayName.trim() || trimmedEmail.split('@')[0],
-      role,
-      emailVerified: false,
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-      providerId: 'password'
-    };
+    try {
+      const cred = await fbCreateUserWithEmail(auth, trimmedEmail, password);
+      const user = cred.user;
+      const finalRole: UserRole = trimmedEmail === 'oisaulofilho@gmail.com' ? 'admin' : role;
+      const appUser: FirebaseUser = {
+        uid: user.uid,
+        email: user.email || trimmedEmail,
+        displayName: displayName.trim() || trimmedEmail.split('@')[0],
+        role: finalRole,
+        emailVerified: user.emailVerified,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        providerId: 'password'
+      };
 
-    saveUserSession(user);
-    setAuthModalOpen(false);
-    executePending();
-    return user;
+      // Save user profile to Firestore
+      try {
+        await setDoc(doc(db, 'users', user.uid), {
+          id: user.uid,
+          email: appUser.email,
+          displayName: appUser.displayName,
+          role: appUser.role,
+          createdAt: appUser.createdAt,
+          lastLoginAt: appUser.lastLoginAt
+        });
+      } catch (err) {
+        console.warn('Error saving new user document to Firestore:', err);
+      }
+
+      setCurrentUser(appUser);
+      localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(appUser));
+      setAuthModalOpen(false);
+      executePending();
+      return appUser;
+    } catch (fbErr: any) {
+      if (fbErr.code === 'auth/email-already-in-use') {
+        throw new Error('Este endereço de e-mail já está cadastrado. Tente fazer login.');
+      }
+      throw new Error(fbErr.message || 'Falha ao criar conta no Firebase.');
+    }
   };
 
-  // Emulate Firebase Google Auth Provider signInWithPopup
+  // Sign in with Google
   const signInWithGoogle = async (): Promise<FirebaseUser> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
+    try {
+      const cred = await fbSignInWithPopup(auth, googleProvider);
+      const user = cred.user;
+      const role: UserRole = user.email === 'oisaulofilho@gmail.com' ? 'admin' : 'researcher';
+      const appUser: FirebaseUser = {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || user.email?.split('@')[0] || 'Hunter',
+        photoURL: user.photoURL || undefined,
+        role,
+        emailVerified: user.emailVerified,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        providerId: 'google.com'
+      };
 
-    const user: FirebaseUser = {
-      uid: `uid_google_${Date.now()}`,
-      email: 'hacker.ethical@gmail.com',
-      displayName: 'Ethical Security Researcher',
-      photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      role: 'admin',
-      emailVerified: true,
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-      providerId: 'google.com'
-    };
+      try {
+        await setDoc(doc(db, 'users', user.uid), {
+          id: user.uid,
+          email: appUser.email,
+          displayName: appUser.displayName,
+          photoURL: appUser.photoURL || '',
+          role: appUser.role,
+          lastLoginAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (e) {
+        console.warn('Error saving Google user to Firestore:', e);
+      }
 
-    saveUserSession(user);
-    setAuthModalOpen(false);
-    executePending();
-    return user;
+      setCurrentUser(appUser);
+      localStorage.setItem(LOCAL_STORAGE_SESSION_KEY, JSON.stringify(appUser));
+      setAuthModalOpen(false);
+      executePending();
+      return appUser;
+    } catch (err: any) {
+      throw new Error(err.message || 'Erro na autenticação com Google.');
+    }
   };
 
-  // Emulate Firebase signOut
+  // Sign Out
   const signOut = async (): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    saveUserSession(null);
+    try {
+      await fbSignOut(auth);
+    } catch (e) {
+      console.warn('Firebase signOut error:', e);
+    }
+    localStorage.removeItem(LOCAL_STORAGE_SESSION_KEY);
+    setCurrentUser(null);
   };
 
   // Switch demo account directly
@@ -244,6 +379,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentUser,
         isAuthenticated,
         loading,
+        isCloudConnected,
         authModalOpen,
         authModalReason,
         pendingCallback,

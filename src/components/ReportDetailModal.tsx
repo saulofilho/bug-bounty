@@ -2444,6 +2444,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         initialTab="github"
+        reports={[report]}
+        onUpdateReport={onUpdateReport}
+        onAddTimelineEvent={onAddTimelineEvent}
       />
     </div>
   );

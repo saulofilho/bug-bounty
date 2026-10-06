@@ -25,6 +25,7 @@ export const DEFAULT_APP_ICON_URL = '/icon.svg';
 const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
   'pt-BR': {
     // Navigation
+    'nav.home': 'Início',
     'nav.dashboard': 'Dashboard',
     'nav.reports': 'Relatórios',
     'nav.cve': 'CVE-DB',
@@ -152,6 +153,7 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
 
   'en-US': {
     // Navigation
+    'nav.home': 'Home',
     'nav.dashboard': 'Dashboard',
     'nav.reports': 'Reports',
     'nav.cve': 'CVE-DB',
@@ -279,6 +281,7 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
 
   'es-ES': {
     // Navigation
+    'nav.home': 'Inicio',
     'nav.dashboard': 'Panel',
     'nav.reports': 'Reportes',
     'nav.cve': 'CVE-DB',

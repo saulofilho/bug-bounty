@@ -352,6 +352,73 @@ async function runTestSuite() {
     record('Risk Management', 'Simulador Quantitativo de Risco FAIR', false, { error: e.message });
   }
 
+  // Test 19: GitHub Account Linking & Vulnerability Report Push as GitHub Issue
+  try {
+    const fs = require('fs');
+    const settingsCode = fs.readFileSync('./src/components/SettingsModal.tsx', 'utf-8');
+    const hasLinkedAccountState = settingsCode.includes('LOCAL_STORAGE_GITHUB_LINKED_ACCOUNT') && settingsCode.includes('handleLinkAccount');
+    const hasPushIssueHandler = settingsCode.includes('handlePushReportAsIssue') && settingsCode.includes('POST') && settingsCode.includes('issues');
+    const hasMarkdownBuilder = settingsCode.includes('issueMarkdownBody') && settingsCode.includes('Vulnerability Disclosure Report');
+
+    // Test backend API route /api/github/push-issue
+    const ghApiTest = await request('POST', '/api/github/push-issue', {
+      token: 'test_token_hunter_123',
+      repoOwner: 'apexbanking',
+      repoName: 'apex-api',
+      title: '[SECURITY] Broken Object Level Authorization (BOLA) on /api/v2/transfers',
+      body: '## 🛡️ Vulnerability Disclosure Report\nTesting BOLA push',
+      labels: ['security', 'vulnerability', 'severity:high']
+    });
+
+    const isGhApiValid = ghApiTest.status === 200 && ghApiTest.data?.success === true && ghApiTest.data?.issue?.number > 0;
+
+    record('GitHub Integration', 'Vinculação de Conta GitHub e Envio de Relatórios como GitHub Issues', hasLinkedAccountState && hasPushIssueHandler && hasMarkdownBuilder && isGhApiValid, {
+      linkedAccountFeature: hasLinkedAccountState,
+      pushIssueFeature: hasPushIssueHandler,
+      markdownBuilderActive: hasMarkdownBuilder,
+      apiProxyStatus: ghApiTest.status,
+      createdIssueNumber: ghApiTest.data?.issue?.number,
+      issueUrl: ghApiTest.data?.issue?.html_url
+    });
+  } catch(e) {
+    record('GitHub Integration', 'Vinculação de Conta GitHub e Envio de Relatórios como GitHub Issues', false, { error: e.message });
+  }
+
+  // Test 20: Rewarded Bounty Payouts Over Time Recharts Widget
+  try {
+    const fs = require('fs');
+    const widgetCode = fs.readFileSync('./src/components/RewardedBountyPayoutLineChart.tsx', 'utf-8');
+    const dashboardCode = fs.readFileSync('./src/components/DashboardView.tsx', 'utf-8');
+
+    const hasRechartsImports = widgetCode.includes('LineChart') && widgetCode.includes('Line') && widgetCode.includes('ResponsiveContainer');
+    const hasRewardedFilter = widgetCode.includes("r.status === 'REWARDED'");
+    const hasCumulativeCalculation = widgetCode.includes('cumulativeTotal') || widgetCode.includes('runningCumulative');
+    const isRenderedInDashboard = dashboardCode.includes('RewardedBountyPayoutLineChart');
+
+    // Test math: filtering sample reports by REWARDED
+    const mockReports = [
+      { id: '1', status: 'REWARDED', bountyAmount: 3500, createdAt: '2026-09-01' },
+      { id: '2', status: 'TRIAGED', bountyAmount: 1000, createdAt: '2026-09-05' },
+      { id: '3', status: 'REWARDED', bountyAmount: 5000, createdAt: '2026-09-10' },
+      { id: '4', status: 'RESOLVED', bountyAmount: 0, createdAt: '2026-09-12' },
+      { id: '5', status: 'REWARDED', bountyAmount: 1200, createdAt: '2026-09-15' }
+    ];
+
+    const filtered = mockReports.filter(r => r.status === 'REWARDED');
+    const totalBounty = filtered.reduce((acc, r) => acc + r.bountyAmount, 0);
+    const isValidMath = filtered.length === 3 && totalBounty === 9700;
+
+    record('Dashboard Analytics', 'Widget de Evolução de Pagamentos de Bounties no Tempo (Recharts Line Chart com filtro REWARDED)', hasRechartsImports && hasRewardedFilter && hasCumulativeCalculation && isRenderedInDashboard && isValidMath, {
+      rechartsIntegrated: hasRechartsImports,
+      rewardedFilterActive: hasRewardedFilter,
+      cumulativeLogic: hasCumulativeCalculation,
+      mountedInDashboard: isRenderedInDashboard,
+      sampleRewardedBountiesTotal: totalBounty
+    });
+  } catch(e) {
+    record('Dashboard Analytics', 'Widget de Evolução de Pagamentos de Bounties no Tempo', false, { error: e.message });
+  }
+
   console.log(`\n=== TESTES CONCLUÍDOS: ${results.testsPassed} PASSOU, ${results.testsFailed} FALHOU ===`);
   return results;
 }

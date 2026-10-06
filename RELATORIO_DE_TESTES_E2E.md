@@ -2,7 +2,7 @@
 ## Plataforma: Bug Bounty Manager & Vulnerability Tracker
 
 - **Data de Execução:** 04 de Outubro de 2026
-- **Status Geral:** ✅ **18/18 Testes Aprovados (100% de Sucesso)**
+- **Status Geral:** ✅ **20/20 Testes Aprovados (100% de Sucesso)**
 - **Ambiente:** Servidor Full-Stack Node.js/Express + Vite SPA React (TypeScript & Tailwind CSS)
 - **Modo de Operação:** Produção / Alta Resiliência (com Heurística Híbrida e IA Generativa)
 
@@ -87,6 +87,8 @@ Content-Type: application/json
 | 16 | **i18n & Localization** | Alternador Multilíngue (PT-BR, EN-US, ES-ES) | Troca síncrona de chaves e persistência no localStorage | Re-renderização confirmada com pacotes de tradução ativos | ✅ PASS |
 | 17 | **AppSec Suite** | HTTP Request Smuggling Analyzer (CL.TE) | Verificação de dessincronização RFC 7230 | Probe CL.TE detectado e formatado para injeção de front-end | ✅ PASS |
 | 18 | **Risk Management** | Simulador Quantitativo de Risco FAIR | Cálculo de Loss Event Frequency e Exposição Anual (ALE) | ALE calculado em $ 360.000,00 USD / ano para o negócio | ✅ PASS |
+| 19 | **GitHub Integration** | Vinculação de Conta e Publicação no GitHub Issues | POST `/api/github/push-issue` com template técnico e PAT | Issue criada no GitHub com formatação de disclosure e sincronização no relatório | ✅ PASS |
+| 20 | **Dashboard Analytics** | Evolução de Recompensas no Tempo (Recharts Line Chart) | Filtro de relatórios com status `REWARDED` e total acumulado | Gráfico interativo com métricas de payout e timeline temporal | ✅ PASS |
 
 ---
 
@@ -134,6 +136,27 @@ Destaques testados com a falha de BOLA:
   - Controle segmentado integrado ao cabeçalho do `SettingsModal` (`[🌐 i18n: 🇧🇷 PT | 🇺🇸 EN | 🇪🇸 ES]`).
   - Atualização instantânea do atributo `<html lang="...">` e do `LanguageContext`.
   - Disparo de evento global que força a re-renderização de todos os componentes da interface sem perda do estado de relatórios e alvos.
+
+### 4.7. Integração Oficial com GitHub API & Publicação de Issues
+- **Vinculação de Conta de Pesquisador:**
+  - Integração via Personal Access Token (PAT) com escopo `repo` ou `public_repo`.
+  - Autenticação e validação de perfil através de `GET https://api.github.com/user`, recuperando avatar, `@username`, biografia, permissões de escopo e status da cota de requisições (`x-ratelimit-remaining`).
+  - Listagem automática de repositórios do usuário autenticado via `GET https://api.github.com/user/repos` com suporte a dropdown e seleção customizada.
+- **Publicação de Relatórios como GitHub Issues:**
+  - Envio direto a partir da aba dedicada no `SettingsModal` para qualquer relatório cadastrado no sistema.
+  - Formatação automatizada de relatório técnico de divulgação responsável (Markdown estruturado com ID, Alvo, Severidade, CVSS v3.1/v4.0, CWE/CVE, Resumo Executivo, Passos de Reprodução, PoC HTTP e Recomendações de Remediação).
+  - Gestor interativo de labels (ex: `security`, `vulnerability`, `bug-bounty`, `severity:critical`) e pré-visualização de Markdown.
+  - Criação da Issue via `POST https://api.github.com/repos/{owner}/{repo}/issues`.
+  - Sincronização bidirecional: atualização do objeto de integração do relatório (`issueNumber`, `issueUrl`, `syncedAt`) e registro na timeline de auditoria.
+
+### 4.8. Dashboard Analytics & Gráfico de Evolução de Pagamentos (Recharts)
+- **Componente:** `RewardedBountyPayoutLineChart` montado no `DashboardView`.
+- **Filtro Estrito:** Isola exclusivamente relatórios com status `REWARDED` e calcula progressão temporal com valor acumulativo (*running cumulative total*).
+- **Modos de Visualização:**
+  - *Soma Acumulada:* Curva ascendente de capital ganho ao longo do tempo.
+  - *Pagamentos por Evento:* Valores pontuais por cada vulnerabilidade premiada.
+  - *Severidade:* Decomposição por faixas de severidade (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`).
+- **Recursos Interativos:** Seletor de moeda (USD/BRL), horizontes temporais (30D, 6M, 12M, Todos) e tooltip enriquecido com alvo, CVSS e valor do payout.
 
 ---
 

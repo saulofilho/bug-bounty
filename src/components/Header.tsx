@@ -33,7 +33,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage, DEFAULT_APP_ICON_URL } from '../context/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
-export type NavTab = 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel' | 'notifications' | 'tools';
+export type NavTab = 'home' | 'dashboard' | 'reports' | 'cve' | 'targets' | 'docs' | 'platforms' | 'threat-intel' | 'notifications' | 'tools';
 
 export interface HeaderProps {
   currentTab: NavTab;
@@ -206,8 +206,8 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             <div 
               className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group py-1" 
-              onClick={() => onTabChange('dashboard')}
-              title="Ir para o Dashboard"
+              onClick={() => onTabChange('home')}
+              title="Ir para a Página Inicial (Boas-vindas)"
             >
               <div className="w-8 h-8 sm:w-8.5 sm:h-8.5 bg-emerald-500/15 group-hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg flex items-center justify-center shadow-sm shadow-emerald-500/25 transition-all shrink-0 overflow-hidden">
                 {appIconUrl ? (
@@ -591,6 +591,24 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label="Navegação Principal"
           className="w-full flex items-center justify-between xl:justify-start gap-1 sm:gap-1.5 py-1.5 border-t border-[#1c1c22] overflow-x-auto touch-pan-x scroll-smooth no-scrollbar select-none"
         >
+          {/* Home / Boas-vindas Tab */}
+          <button 
+            ref={currentTab === 'home' ? activeMobileTabRef : null}
+            id="nav-home"
+            role="tab"
+            aria-selected={currentTab === 'home'}
+            onClick={() => onTabChange('home')} 
+            title="Página Inicial de Apresentação e Boas-Vindas"
+            className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
+              currentTab === 'home' 
+                ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-[#18181d] border border-transparent'
+            }`}
+          >
+            <Sparkles className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'home' ? 'text-emerald-400' : 'text-zinc-400'}`} />
+            <span>{t('nav.home', 'Início')}</span>
+          </button>
+
           {/* Dashboard Tab */}
           <button 
             ref={currentTab === 'dashboard' ? activeMobileTabRef : null}

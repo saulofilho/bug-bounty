@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based permissions (admin, researcher, analyst)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user ID (matches Firebase Auth UID)" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "maxLength": 100, "description": "Display name" },
+        "photoURL": { "type": "string", "maxLength": 500, "description": "Avatar photo URL" },
+        "role": { "type": "string", "enum": ["admin", "researcher", "analyst"], "description": "RBAC user role" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of account creation" },
+        "lastLoginAt": { "type": "string", "description": "ISO timestamp of last login" }
+      },
+      "required": ["id", "email", "displayName", "role", "createdAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Vulnerability report discovered by a researcher",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique report identifier" },
+        "ownerId": { "type": "string", "description": "Firebase Auth UID of the researcher/author" },
+        "reporterEmail": { "type": "string", "description": "Author email" },
+        "title": { "type": "string", "minLength": 3, "maxLength": 200, "description": "Report title" },
+        "target": { "type": "string", "maxLength": 150, "description": "Target hostname or scope" },
+        "platform": { "type": "string", "description": "Platform name" },
+        "vulnerabilityType": { "type": "string", "maxLength": 100, "description": "Category or vulnerability type" },
+        "severity": { "type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"], "description": "Severity rating" },
+        "status": { "type": "string", "enum": ["DRAFT", "SUBMITTED", "TRIAGED", "REWARDED", "RESOLVED", "DUPLICATE", "OUT_OF_SCOPE"], "description": "Triage status" },
+        "cvssScore": { "type": "number", "description": "CVSS score between 0.0 and 10.0" },
+        "cvssVector": { "type": "string", "maxLength": 120, "description": "CVSS vector string" },
+        "bountyAmount": { "type": "number", "description": "Bounty reward amount" },
+        "currency": { "type": "string", "enum": ["USD", "BRL"], "description": "Currency code" },
+        "summary": { "type": "string", "maxLength": 5000, "description": "Executive summary" },
+        "stepsToReproduce": { "type": "array", "description": "Numbered steps to reproduce" },
+        "proofOfConcept": { "type": "string", "maxLength": 10000, "description": "PoC payload or script" },
+        "businessImpact": { "type": "string", "maxLength": 5000, "description": "Business impact description" },
+        "remediation": { "type": "string", "maxLength": 5000, "description": "Remediation advice" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["id", "ownerId", "title", "target", "severity", "status", "createdAt"]
+    },
+    "Target": {
+      "title": "Target",
+      "description": "Bug bounty target or scoped program",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique target identifier" },
+        "ownerId": { "type": "string", "description": "Firebase Auth UID of creator" },
+        "name": { "type": "string", "maxLength": 100, "description": "Target program name" },
+        "platform": { "type": "string", "description": "Hosting platform" },
+        "url": { "type": "string", "maxLength": 500, "description": "URL to program" },
+        "scope": { "type": "string", "maxLength": 5000, "description": "Target scope definition" },
+        "bountyMax": { "type": "number", "description": "Maximum bounty paid" },
+        "status": { "type": "string", "enum": ["ACTIVE", "PAUSED", "PRIVATE"], "description": "Program status" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "ownerId", "name", "platform", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles storing RBAC roles and public info"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/Report" },
+      "description": "Vulnerability disclosure reports"
+    },
+    "/targets/{targetId}": {
+      "schema": { "$ref": "#/entities/Target" },
+      "description": "Targets and bug bounty programs"
+    }
+  }
+}

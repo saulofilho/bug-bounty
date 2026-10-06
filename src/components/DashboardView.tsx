@@ -78,6 +78,7 @@ import { RiskPriorityMatrix } from './RiskPriorityMatrix';
 import { RiskAssessmentMatrix } from './RiskAssessmentMatrix';
 import { VulnerabilityRiskMatrix } from './VulnerabilityRiskMatrix';
 import { BountyPayoutTracker } from './BountyPayoutTracker';
+import { RewardedBountyPayoutLineChart } from './RewardedBountyPayoutLineChart';
 import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
 import { VulnerabilityImpactLegend } from './VulnerabilityImpactLegend';
 import { VulnerabilityAndBountyAnalyticsPanel } from './VulnerabilityAndBountyAnalyticsPanel';
@@ -1289,6 +1290,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNewReport={onNewReport}
         onNavigateToReports={() => onNavigateTab('reports')}
         onUpdateStatus={onUpdateStatus}
+      />
+
+      {/* Recharts Line Chart: Total Bounty Payouts Over Time (Filtered by REWARDED status) */}
+      <RewardedBountyPayoutLineChart
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNewReport={onNewReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
       />
 
       {/* Bounty Payout Tracker: Monthly Earnings Trends & Projected Future Bounties */}
