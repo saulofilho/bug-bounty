@@ -44,11 +44,13 @@ import {
   inferFairConfigFromReport,
   calculateFairRisk
 } from '../utils/fairRiskEngine';
+import { FairRiskToleranceConfigModal } from './FairRiskToleranceConfigModal';
 
 interface FairImpactSimulatorProps {
   reports: VulnerabilityReport[];
   initialReportId?: string;
   onSelectReport?: (report: VulnerabilityReport) => void;
+  onOpenToleranceConfig?: () => void;
   className?: string;
 }
 
@@ -56,8 +58,10 @@ export const FairImpactSimulator: React.FC<FairImpactSimulatorProps> = ({
   reports,
   initialReportId,
   onSelectReport,
+  onOpenToleranceConfig,
   className = ''
 }) => {
+  const [isToleranceModalOpen, setIsToleranceModalOpen] = useState<boolean>(false);
   // 1. State: Selected Report
   const [selectedReportId, setSelectedReportId] = useState<string>(
     initialReportId || (reports.length > 0 ? reports[0].id : '')
@@ -263,6 +267,18 @@ ${fairResult.executiveSummary}
               BRL (R$)
             </button>
           </div>
+
+          {/* Tolerance Thresholds Configuration Button */}
+          <button
+            type="button"
+            id="btn-fair-tolerance-settings"
+            onClick={() => onOpenToleranceConfig ? onOpenToleranceConfig() : setIsToleranceModalOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-[#141418] hover:bg-[#1a1a22] border border-[#2a2a34] hover:border-emerald-500/40 text-xs text-zinc-300 hover:text-white font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+            title="Configurar Limites de Tolerância ao Risco (ALE) e Alertas de Violação"
+          >
+            <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Limites de Tolerância</span>
+          </button>
 
           {/* Copy Executive Summary */}
           <button
@@ -706,6 +722,13 @@ ${fairResult.executiveSummary}
           </button>
         )}
       </div>
+
+      {/* Embedded Tolerance Thresholds Configuration Modal */}
+      <FairRiskToleranceConfigModal
+        isOpen={isToleranceModalOpen}
+        onClose={() => setIsToleranceModalOpen(false)}
+        reports={reports}
+      />
     </section>
   );
 };

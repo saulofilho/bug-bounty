@@ -992,6 +992,7 @@ function AppContent() {
       
       {/* Top Application Header with Global Search and Quick Actions */}
       <Header
+        key={`header-${language}-${rerenderVersion}`}
         currentTab={currentTab}
         onTabChange={(tab) => setCurrentTab(tab)}
         onNewReport={handleOpenNewReport}
@@ -1054,6 +1055,7 @@ function AppContent() {
       <main className="flex-1 max-w-[1800px] w-full mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 pt-6">
         {currentTab === 'home' && (
           <WelcomePageView
+            key={`welcome-page-${language}-${rerenderVersion}`}
             onEnterTool={() => setCurrentTab('dashboard')}
             onExploreWithMock={handleExploreWithMock}
             onClearMockAndStartFresh={handleClearMockAndStartFresh}
@@ -1068,7 +1070,9 @@ function AppContent() {
 
         {currentTab === 'dashboard' && (
           <DashboardView
+            key={`dashboard-${language}-${rerenderVersion}`}
             reports={reports}
+            targets={targets}
             onSelectReport={handleSelectReport}
             onNewReport={handleOpenNewReport}
             onNewReportWithAdvisory={handleNewReportWithAdvisory}
@@ -1095,7 +1099,7 @@ function AppContent() {
         )}
 
         {currentTab === 'threat-intel' && (
-          <div className="space-y-6 animate-fadeIn">
+          <div key={`threat-intel-${language}-${rerenderVersion}`} className="space-y-6 animate-fadeIn">
             <ThreatIntelligenceDashboard
               reports={reports}
               onSelectReport={handleSelectReport}
@@ -1107,6 +1111,7 @@ function AppContent() {
 
         {currentTab === 'reports' && (
           <ReportsView
+            key={`reports-${language}-${rerenderVersion}`}
             reports={reports}
             onSelectReport={handleSelectReport}
             onEditReport={(rep) => handleEditReport(rep)}
@@ -1128,13 +1133,16 @@ function AppContent() {
 
         {currentTab === 'cve' && (
           <CveExplorerView
+            key={`cve-${language}-${rerenderVersion}`}
             onLinkToNewReport={handleLinkCveToNewReport}
           />
         )}
 
         {currentTab === 'targets' && (
           <TargetsView
+            key={`targets-${language}-${rerenderVersion}`}
             targets={targets}
+            reports={reports}
             onAddTarget={handleAddTarget}
             onNewReportForTarget={handleNewReportForTarget}
           />
@@ -1142,6 +1150,7 @@ function AppContent() {
 
         {currentTab === 'docs' && (
           <DocsAndChecklistsView
+            key={`docs-${language}-${rerenderVersion}`}
             docs={docs}
             onSaveDoc={handleSaveDoc}
             onDeleteDoc={handleDeleteDoc}
@@ -1153,13 +1162,14 @@ function AppContent() {
 
         {currentTab === 'platforms' && (
           <BugBountyDirectoryView
+            key={`platforms-${language}-${rerenderVersion}`}
             reports={reports}
             onNavigateToReports={() => setCurrentTab('reports')}
           />
         )}
 
         {currentTab === 'notifications' && (
-          <div className="space-y-6 animate-fadeIn pb-12">
+          <div key={`notifications-${language}-${rerenderVersion}`} className="space-y-6 animate-fadeIn pb-12">
             <Notifications
               reports={reports}
               onSelectReport={handleSelectReport}
@@ -1169,7 +1179,7 @@ function AppContent() {
         )}
 
         {currentTab === 'tools' && (
-          <div className="space-y-6 animate-fadeIn pb-12">
+          <div key={`tools-${language}-${rerenderVersion}`} className="space-y-6 animate-fadeIn pb-12">
             <AppSecSuiteView
               reports={reports}
               onSelectReport={handleSelectReport}

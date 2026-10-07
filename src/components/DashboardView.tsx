@@ -34,11 +34,14 @@ import {
   ChevronRight,
   Calendar,
   Scale,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  BarChart3,
+  Target,
+  Sliders
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { VulnerabilityReport, Severity, ReportStatus } from '../types';
+import { VulnerabilityReport, Severity, ReportStatus, TargetProgram } from '../types';
 import { formatCurrency, getSeverityBadgeColor, getStatusBadgeColor, formatRelativeTimeAgo, getImpactCategoryTag } from '../utils/formatters';
 import { calculateTriageEfficiency } from '../utils/triageEfficiencyEngine';
 import { BountySparklineChart, BountyCompactSparkline } from './BountySparklineChart';
@@ -82,6 +85,9 @@ import { RewardedBountyPayoutLineChart } from './RewardedBountyPayoutLineChart';
 import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
 import { VulnerabilityImpactLegend } from './VulnerabilityImpactLegend';
 import { VulnerabilityAndBountyAnalyticsPanel } from './VulnerabilityAndBountyAnalyticsPanel';
+import { MonthlyBountiesBarChart } from './MonthlyBountiesBarChart';
+import { FairRiskToleranceAlertBanner } from './FairRiskToleranceAlertBanner';
+import { FairRiskToleranceConfigModal } from './FairRiskToleranceConfigModal';
 import { BypassecIntegrationCard } from './BypassecIntegrationCard';
 import { BaseCard } from './BaseCard';
 import { TimelineEvent } from '../types';
@@ -89,6 +95,7 @@ import { NavTab } from './Header';
 
 interface DashboardViewProps {
   reports: VulnerabilityReport[];
+  targets?: TargetProgram[];
   onSelectReport: (report: VulnerabilityReport) => void;
   onNewReport: () => void;
   onNewReportWithAdvisory?: (advisoryData: Partial<VulnerabilityReport>) => void;
@@ -106,6 +113,7 @@ interface DashboardViewProps {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   reports,
+  targets = [],
   onSelectReport,
   onNewReport,
   onNewReportWithAdvisory,
@@ -122,12 +130,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const { isAuthenticated, openLoginModal } = useAuth();
   const { t } = useLanguage();
+  const [isFairToleranceModalOpen, setIsFairToleranceModalOpen] = useState<boolean>(false);
   const usdToBrl = 5.45;
 
   // Calculate high-precision metrics
   const rewardedReports = reports.filter(r => r.status === 'REWARDED' || r.bountyAmount > 0);
   const totalEarnedUSD = rewardedReports.reduce((acc, r) => acc + (r.bountyAmount || 0), 0);
   const totalEarnedBRL = totalEarnedUSD * usdToBrl;
+
+  // Pending Critical Vulnerabilities: Critical reports that are pending action/triage/resolution
+  const pendingCriticalReports = useMemo(() => {
+    return reports.filter(r => 
+      r.severity === 'CRITICAL' && 
+      r.status !== 'RESOLVED' && 
+      r.status !== 'REWARDED' && 
+      r.status !== 'DUPLICATE' && 
+      r.status !== 'OUT_OF_SCOPE'
+    );
+  }, [reports]);
+
+  // Monitored Targets count: from actual targets state or unique targets in reports
+  const monitoredTargetsCount = useMemo(() => {
+    if (targets && targets.length > 0) return targets.length;
+    return new Set(reports.map(r => r.target).filter(Boolean)).size;
+  }, [targets, reports]);
+
+  const activeTargetsCount = useMemo(() => {
+    if (targets && targets.length > 0) {
+      return targets.filter(t => t.status === 'ACTIVE').length;
+    }
+    return monitoredTargetsCount;
+  }, [targets, monitoredTargetsCount]);
 
   const triagedReports = reports.filter(r => r.status === 'TRIAGED');
   const submittedReports = reports.filter(r => r.status === 'SUBMITTED');
@@ -400,6 +433,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           )}
 
           <button
+            id="btn-dashboard-monthly-bounties-chart"
+            onClick={() => document.getElementById('monthly-bounties-bar-chart-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-emerald-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ver Histórico de Recompensas por Mês (Recharts Bar Chart baseado em updatedAt)"
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{t('dash.monthlyBountiesShort', 'Histórico Mensal ($)')}</span>
+          </button>
+
+          <button
             id="btn-dashboard-sentiment-tracker"
             onClick={() => document.getElementById('reporter-interaction-sentiment-tracker')?.scrollIntoView({ behavior: 'smooth' })}
             className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-red-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm"
@@ -427,6 +470,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           >
             <Scale className="w-3.5 h-3.5 text-emerald-400" />
             <span>{t('Simulador FAIR', 'Simulador FAIR')}</span>
+          </button>
+
+          <button
+            id="btn-dashboard-fair-tolerance-config"
+            onClick={() => setIsFairToleranceModalOpen(true)}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-amber-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Configurar Limites de Tolerância ao Risco FAIR (ALE)"
+          >
+            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+            <span>{t('dash.fairTolerance', 'Tolerância FAIR')}</span>
           </button>
 
           <button
@@ -545,6 +598,210 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
       )}
+
+      {/* Visual Alert Banner for FAIR Risk Tolerance Breaches (ALE Limits per Target) */}
+      <FairRiskToleranceAlertBanner
+        reports={reports}
+        onOpenConfigModal={() => setIsFairToleranceModalOpen(true)}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+        onNavigateToTargets={() => onNavigateTab('targets')}
+      />
+
+      {/* Resumo Estatístico no Topo do Dashboard (Dados do Estado Atual) */}
+      <section 
+        id="dashboard-top-statistical-summary" 
+        aria-label="Resumo Estatístico Operacional"
+        className="space-y-3"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
+              <span>{t('dash.statSummaryTitle', 'Resumo Estatístico Operacional')}</span>
+              <span className="text-zinc-500 font-normal">•</span>
+              <span className="text-emerald-400 font-semibold">{t('Estado Atual em Tempo Real', 'Current Live State')}</span>
+            </h2>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-400">
+            <span className="px-2 py-0.5 rounded bg-[#16161c] border border-zinc-800 text-zinc-300">
+              {reports.length} {reports.length === 1 ? t('relatório', 'report') : t('relatórios', 'reports')}
+            </span>
+            <span className="px-2 py-0.5 rounded bg-[#16161c] border border-zinc-800 text-zinc-300">
+              {monitoredTargetsCount} {monitoredTargetsCount === 1 ? t('alvo', 'target') : t('alvos', 'targets')}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* Card 1: Total de Bounties Recebidos (USD) */}
+          <BaseCard
+            id="card-top-total-bounties-received"
+            elevation="card"
+            border="default"
+            rounded="xl"
+            padding="md"
+            hover="border"
+            interactive
+            className="relative overflow-hidden group bg-gradient-to-br from-[#0c1410] via-[#090c0a] to-[#0d0f14] border-emerald-500/35 hover:border-emerald-500/70 transition-all cursor-pointer shadow-xl shadow-black/40"
+            onClick={() => {
+              const el = document.getElementById('monthly-bounties-bar-chart-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/20 transition-all" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{t('dash.totalBountiesReceived', 'Total de Bounties Recebidos (USD)')}</span>
+                </span>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {t('Soma acumulada de recompensas em relatórios pagos ou recompensados')}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                <Award className="w-5 h-5 text-emerald-400" />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-emerald-500/20 flex flex-col justify-end">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl sm:text-4xl font-light text-white font-mono tracking-tight tabular-nums drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                  {formatCurrency(totalEarnedUSD, 'USD')}
+                </h3>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                <span className="text-emerald-300 font-semibold">
+                  ~ {formatCurrency(totalEarnedBRL, 'BRL')} <span className="text-zinc-500 text-[10px] font-normal">({t('BRL')})</span>
+                </span>
+                <span className="text-zinc-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold text-emerald-300">
+                  {rewardedReports.length} {rewardedReports.length === 1 ? t('recompensa paga', 'paid reward') : t('recompensas pagas', 'paid rewards')}
+                </span>
+              </div>
+            </div>
+          </BaseCard>
+
+          {/* Card 2: Vulnerabilidades Críticas Pendentes */}
+          <BaseCard
+            id="card-top-critical-pending-vulnerabilities"
+            elevation="card"
+            border={pendingCriticalReports.length > 0 ? 'critical' : 'default'}
+            rounded="xl"
+            padding="md"
+            hover="border"
+            interactive
+            className={`relative overflow-hidden group transition-all cursor-pointer shadow-xl shadow-black/40 ${
+              pendingCriticalReports.length > 0
+                ? 'bg-gradient-to-br from-[#1a0b0e] via-[#12080a] to-[#0f0b10] border-red-500/40 hover:border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
+                : 'bg-gradient-to-br from-[#0c0d12] via-[#090b0d] to-[#0d0f14] border-zinc-800'
+            }`}
+            onClick={() => {
+              if (onSelectSeverity) onSelectSeverity('CRITICAL');
+              else onNavigateTab('reports');
+            }}
+          >
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-red-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-red-500/20 transition-all" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-red-400 flex items-center gap-1.5">
+                  <ShieldAlert className={`w-4 h-4 text-red-400 shrink-0 ${pendingCriticalReports.length > 0 ? 'animate-pulse' : ''}`} />
+                  <span>{t('dash.criticalPending', 'Vulnerabilidades Críticas Pendentes')}</span>
+                </span>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {t('Achados CVSS 9.0-10.0 não resolvidos aguardando triagem')}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-red-500/20 flex flex-col justify-end">
+              <div className="flex items-baseline gap-2">
+                <h3 className={`text-3xl sm:text-4xl font-light font-mono tracking-tight tabular-nums ${
+                  pendingCriticalReports.length > 0
+                    ? 'text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.5)] font-normal'
+                    : 'text-zinc-300'
+                }`}>
+                  {String(pendingCriticalReports.length).padStart(2, '0')}
+                </h3>
+                {pendingCriticalReports.length > 0 ? (
+                  <span className="text-[10px] font-bold text-red-300 uppercase font-mono tracking-widest bg-red-500/20 px-2 py-0.5 rounded border border-red-500/40 animate-pulse">
+                    {t('AÇÃO URGENTE', 'URGENT ACTION')}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    {t('EM DIA', 'RESOLVED')}
+                  </span>
+                )}
+              </div>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                <span className={pendingCriticalReports.length > 0 ? 'text-red-300 font-semibold' : 'text-zinc-500'}>
+                  {pendingCriticalReports.filter(r => r.status === 'TRIAGED').length} em triagem • {pendingCriticalReports.filter(r => r.status === 'SUBMITTED').length} enviados
+                </span>
+                <span className="text-zinc-400 group-hover:text-red-300 transition-colors flex items-center gap-0.5 text-[10px]">
+                  <span>{t('Ver no filtro')}</span>
+                  <ChevronRight className="w-3 h-3" />
+                </span>
+              </div>
+            </div>
+          </BaseCard>
+
+          {/* Card 3: Alvos Monitorados */}
+          <BaseCard
+            id="card-top-monitored-targets"
+            elevation="card"
+            border="default"
+            rounded="xl"
+            padding="md"
+            hover="border"
+            interactive
+            className="relative overflow-hidden group bg-gradient-to-br from-[#0a1218] via-[#080d12] to-[#0c0f16] border-sky-500/35 hover:border-sky-500/70 transition-all cursor-pointer shadow-xl shadow-black/40"
+            onClick={() => onNavigateTab('targets')}
+          >
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-sky-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-sky-500/20 transition-all" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                  <Target className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>{t('dash.monitoredTargets', 'Alvos Monitorados')}</span>
+                </span>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {t('Programas de bug bounty autorizados e escopos ativos')}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-300 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                <ShieldCheck className="w-5 h-5 text-sky-400" />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-sky-500/20 flex flex-col justify-end">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl sm:text-4xl font-light text-white font-mono tracking-tight tabular-nums drop-shadow-[0_0_12px_rgba(14,165,233,0.35)]">
+                  {String(monitoredTargetsCount).padStart(2, '0')}
+                </h3>
+                <span className="text-[10px] font-mono font-semibold text-sky-300 bg-sky-500/15 px-2 py-0.5 rounded border border-sky-500/30">
+                  {activeTargetsCount} {t('ativos', 'active')}
+                </span>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                <span className="text-sky-300 font-semibold truncate max-w-[190px]">
+                  {targets && targets.length > 0 
+                    ? targets.slice(0, 3).map(t => t.name).join(', ') + (targets.length > 3 ? '...' : '')
+                    : 'HackerOne, Bugcrowd, Intigriti'}
+                </span>
+                <span className="text-zinc-400 group-hover:text-sky-300 transition-colors flex items-center gap-0.5 text-[10px] shrink-0">
+                  <span>{t('Gerenciar')}</span>
+                  <ChevronRight className="w-3 h-3" />
+                </span>
+              </div>
+            </div>
+          </BaseCard>
+
+        </div>
+      </section>
 
       {/* Daily Activity Summary Card: Reports Created Today, Criticals Resolved, Total Bounties Earned Today */}
       <DailyActivitySummary
@@ -847,6 +1104,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </BaseCard>
 
+      </section>
+
+      {/* Recharts Bar Chart: Monthly Rewards History based on updatedAt */}
+      <section id="monthly-bounties-bar-chart-section" aria-label="Histórico Mensal de Recompensas Ganhas">
+        <MonthlyBountiesBarChart
+          reports={reports}
+          onSelectReport={onSelectReport}
+          onNewReport={onNewReport}
+          onNavigateToReports={() => onNavigateTab('reports')}
+        />
       </section>
 
       {/* Recharts Analytics Panel: Severity Distribution (Pie/Bar) & Temporal Evolution of Rewards (Line) */}
@@ -1822,6 +2089,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
       </div>
+
+      {/* FAIR Risk Tolerance Configuration Modal */}
+      <FairRiskToleranceConfigModal
+        isOpen={isFairToleranceModalOpen}
+        onClose={() => setIsFairToleranceModalOpen(false)}
+        reports={reports}
+      />
 
     </div>
   );

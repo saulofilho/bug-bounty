@@ -30,7 +30,8 @@ import {
   Lock,
   ArrowUpRight,
   ShieldCheck,
-  FileText
+  FileText,
+  Sliders
 } from 'lucide-react';
 import { VulnerabilityReport, Severity } from '../types';
 import {
@@ -40,6 +41,7 @@ import {
   FairRiskCalculationResult
 } from '../utils/fairRiskEngine';
 import { formatCurrency, getSeverityBadgeColor } from '../utils/formatters';
+import { FairRiskToleranceConfigModal } from './FairRiskToleranceConfigModal';
 import toast from 'react-hot-toast';
 
 export interface RiskDashboardProps {
@@ -47,6 +49,7 @@ export interface RiskDashboardProps {
   onSelectReport?: (report: VulnerabilityReport) => void;
   onSelectSeverity?: (severity: Severity) => void;
   onNavigateToReports?: () => void;
+  onOpenToleranceConfig?: () => void;
   className?: string;
 }
 
@@ -147,6 +150,7 @@ export const RiskDashboard: React.FC<RiskDashboardProps> = ({
   onSelectReport,
   onSelectSeverity,
   onNavigateToReports,
+  onOpenToleranceConfig,
   className = ''
 }) => {
   // Interactive View States
@@ -156,6 +160,7 @@ export const RiskDashboard: React.FC<RiskDashboardProps> = ({
   const [currency, setCurrency] = useState<'USD' | 'BRL'>('USD');
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [copiedExecutiveReport, setCopiedExecutiveReport] = useState(false);
+  const [isToleranceModalOpen, setIsToleranceModalOpen] = useState(false);
 
   // 1. Filter reports based on active scope
   const filteredReports = useMemo(() => {
@@ -546,6 +551,18 @@ Este parecer quantitativo foi gerado automaticamente pelo BugSentinel para orien
                   <span>Parecer C-Level</span>
                 </>
               )}
+            </button>
+
+            {/* Tolerance Thresholds Configuration Button */}
+            <button
+              type="button"
+              id="btn-risk-dashboard-tolerance-config"
+              onClick={() => onOpenToleranceConfig ? onOpenToleranceConfig() : setIsToleranceModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-[#181d2a] hover:bg-[#202738] text-zinc-300 hover:text-white border border-[#2b354c] hover:border-emerald-500/40 text-xs font-mono font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+              title="Configurar Limites de Tolerância ao Risco (ALE) e Alertas de Violação"
+            >
+              <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Limites de Tolerância</span>
             </button>
           </div>
 
@@ -1076,6 +1093,13 @@ Este parecer quantitativo foi gerado automaticamente pelo BugSentinel para orien
         </div>
 
       </div>
+
+      {/* Embedded Tolerance Thresholds Configuration Modal */}
+      <FairRiskToleranceConfigModal
+        isOpen={isToleranceModalOpen}
+        onClose={() => setIsToleranceModalOpen(false)}
+        reports={reports}
+      />
 
     </section>
   );

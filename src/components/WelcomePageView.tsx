@@ -55,10 +55,10 @@ export const WelcomePageView: React.FC<WelcomePageViewProps> = ({
   targetsCount
 }) => {
   const { isCloudConnected, currentUser, openLoginModal } = useAuth();
-  const { t } = useLanguage();
+  const { t, language, rerenderVersion } = useLanguage();
 
   return (
-    <div className="space-y-10 pb-16 animate-in fade-in duration-300">
+    <div key={`welcome-view-${language}-${rerenderVersion}`} data-language={language} className="space-y-10 pb-16 animate-in fade-in duration-300">
       
       {/* 1. HERO SECTION */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#121526] via-[#0d101d] to-[#0a0c16] border border-[#232942] p-6 sm:p-10 lg:p-12 shadow-2xl">

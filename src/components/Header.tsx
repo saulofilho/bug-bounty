@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isMoreNavOpen, setIsMoreNavOpen] = useState(false);
   const activeMobileTabRef = useRef<HTMLButtonElement>(null);
   const { theme, resolvedTheme, toggleTheme } = useTheme();
-  const { t, appIconUrl } = useLanguage();
+  const { t, appIconUrl, language, rerenderVersion } = useLanguage();
   const usdToBrlRate = 5.45;
   const totalBRL = totalRewardedUSD * usdToBrlRate;
 
@@ -207,7 +207,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div 
               className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group py-1" 
               onClick={() => onTabChange('home')}
-              title="Ir para a Página Inicial (Boas-vindas)"
+              title={t('header.brandTooltip', 'Ir para a Página Inicial (Boas-vindas)')}
             >
               <div className="w-8 h-8 sm:w-8.5 sm:h-8.5 bg-emerald-500/15 group-hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg flex items-center justify-center shadow-sm shadow-emerald-500/25 transition-all shrink-0 overflow-hidden">
                 {appIconUrl ? (
@@ -598,7 +598,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'home'}
             onClick={() => onTabChange('home')} 
-            title="Página Inicial de Apresentação e Boas-Vindas"
+            title={t('nav.homeTitle', 'Página Inicial de Apresentação e Boas-Vindas')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'home' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
@@ -616,7 +616,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'dashboard'}
             onClick={() => onTabChange('dashboard')} 
-            title="Ir para o Dashboard"
+            title={t('nav.dashTitle', 'Ir para o Dashboard')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'dashboard' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
@@ -634,7 +634,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'reports'}
             onClick={() => onTabChange('reports')} 
-            title="Relatórios de Vulnerabilidade"
+            title={t('nav.reportsTitle', 'Relatórios de Vulnerabilidade')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'reports' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
@@ -642,7 +642,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <FileText className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'reports' ? 'text-emerald-400' : 'text-zinc-400'}`} />
-            <span>{t('nav.reports', 'Reports')}</span>
+            <span>{t('nav.reports', 'Relatórios')}</span>
             {searchQuery ? (
               <span
                 className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold border ${
@@ -667,7 +667,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'cve'}
             onClick={() => onTabChange('cve')} 
-            title="Base de Dados de CVEs e Exploits"
+            title={t('nav.cveTitle', 'Base de Dados de CVEs e Exploits')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'cve' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
@@ -685,7 +685,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'targets'}
             onClick={() => onTabChange('targets')} 
-            title="Programas e Alvos Bug Bounty"
+            title={t('nav.targetsTitle', 'Programas e Alvos Bug Bounty')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'targets' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
@@ -693,7 +693,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Target className={`w-3.5 h-3.5 shrink-0 ${currentTab === 'targets' ? 'text-emerald-400' : 'text-zinc-400'}`} />
-            <span>{t('nav.targets', 'Programs')}</span>
+            <span>{t('nav.targets', 'Programas')}</span>
           </button>
 
           {/* AppSec Tools Tab */}
@@ -703,7 +703,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'tools'}
             onClick={() => onTabChange('tools')} 
-            title="Central de Ferramentas AppSec & DevSecOps (10 Módulos)"
+            title={t('nav.toolsTitle', 'Central de Ferramentas AppSec & DevSecOps (10 Módulos)')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'tools' 
                 ? 'text-amber-300 font-bold bg-amber-500/15 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.18)]' 
@@ -724,7 +724,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'threat-intel'}
             onClick={() => onTabChange('threat-intel')} 
-            title="Threat Intelligence em Tempo Real"
+            title={t('nav.threatIntelTitle', 'Threat Intelligence em Tempo Real')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'threat-intel' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
@@ -745,7 +745,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'notifications'}
             onClick={() => onTabChange('notifications')} 
-            title={`Notificações do Sistema (${unreadNotificationsCount} não lidas)`}
+            title={t('nav.notificationsTitle', `Notificações do Sistema (${unreadNotificationsCount} não lidas)`)}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'notifications' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
@@ -768,7 +768,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'platforms'}
             onClick={() => onTabChange('platforms')} 
-            title="Plataformas de Bug Bounty & Ganhos"
+            title={t('nav.platformsTitle', 'Plataformas de Bug Bounty & Ganhos')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'platforms' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 
@@ -789,7 +789,7 @@ export const Header: React.FC<HeaderProps> = ({
             role="tab"
             aria-selected={currentTab === 'docs'}
             onClick={() => onTabChange('docs')} 
-            title="Biblioteca de Segurança, Guias e Metodologias"
+            title={t('nav.docsTitle', 'Biblioteca de Segurança, Guias e Metodologias')}
             className={`h-8 sm:h-8.5 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono tracking-wide uppercase transition-all shrink-0 active:scale-95 cursor-pointer ${
               currentTab === 'docs' 
                 ? 'text-emerald-300 font-bold bg-emerald-500/15 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.18)]' 

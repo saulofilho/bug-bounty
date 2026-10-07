@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Target, 
   Plus, 
@@ -12,24 +12,54 @@ import {
   FileText,
   AlertTriangle,
   RefreshCw,
+  Scale,
   X
 } from 'lucide-react';
-import { TargetProgram, PlatformName } from '../types';
+import { TargetProgram, PlatformName, VulnerabilityReport } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { useLanguage } from '../context/LanguageContext';
+import {
+  calculateTargetAccumulatedRisks,
+  getFairToleranceConfig,
+  FAIR_TOLERANCE_EVENT,
+  FairRiskToleranceConfig
+} from '../utils/fairRiskTolerance';
 
 interface TargetsViewProps {
   targets: TargetProgram[];
+  reports?: VulnerabilityReport[];
   onAddTarget: (target: TargetProgram) => void;
   onNewReportForTarget: (domain: string, platform: PlatformName) => void;
 }
 
 export const TargetsView: React.FC<TargetsViewProps> = ({
   targets,
+  reports = [],
   onAddTarget,
   onNewReportForTarget
 }) => {
   const { t } = useLanguage();
+  const [toleranceConfig, setToleranceConfig] = useState<FairRiskToleranceConfig>(getFairToleranceConfig);
+
+  useEffect(() => {
+    const handleUpdate = () => setToleranceConfig(getFairToleranceConfig());
+    window.addEventListener(FAIR_TOLERANCE_EVENT, handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener(FAIR_TOLERANCE_EVENT, handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  const targetFairRisks = useMemo(() => {
+    if (!reports || reports.length === 0) return new Map();
+    const list = calculateTargetAccumulatedRisks(reports, toleranceConfig);
+    const map = new Map<string, typeof list[0]>();
+    list.forEach(item => {
+      map.set(item.target.toLowerCase(), item);
+    });
+    return map;
+  }, [reports, toleranceConfig]);
   const [selectedTargetForAi, setSelectedTargetForAi] = useState<TargetProgram | null>(null);
   const [aiReconResult, setAiReconResult] = useState<any | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);

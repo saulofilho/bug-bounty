@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { translateString, enableUniversalDomTranslation } from '../utils/universalTranslator';
 
@@ -22,7 +22,7 @@ export const APP_ICON_URL_STORAGE_KEY = 'bbm_app_icon_url';
 export const I18N_ENABLED_STORAGE_KEY = 'bbm_i18n_enabled';
 export const DEFAULT_APP_ICON_URL = '/icon.svg';
 
-const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
+export const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
   'pt-BR': {
     // Navigation
     'nav.home': 'Início',
@@ -40,8 +40,19 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'nav.appsecShort': 'AppSec',
     'nav.intelShort': 'Intel',
     'nav.more': 'Mais',
+    'nav.homeTitle': 'Página Inicial de Apresentação e Boas-Vindas',
+    'nav.dashTitle': 'Ir para o Dashboard',
+    'nav.reportsTitle': 'Relatórios de Vulnerabilidade',
+    'nav.cveTitle': 'Base de Dados de CVEs e Exploits',
+    'nav.targetsTitle': 'Programas e Alvos Bug Bounty',
+    'nav.toolsTitle': 'Central de Ferramentas AppSec & DevSecOps (10 Módulos)',
+    'nav.threatIntelTitle': 'Threat Intelligence em Tempo Real',
+    'nav.notificationsTitle': 'Notificações do Sistema',
+    'nav.platformsTitle': 'Plataformas de Bug Bounty & Ganhos',
+    'nav.docsTitle': 'Biblioteca de Segurança, Guias e Metodologias',
 
     // Header & Actions
+    'header.brandTooltip': 'Ir para a Página Inicial (Boas-vindas)',
     'header.searchPlaceholder': 'Buscar alvo, CVE...',
     'header.addTarget': 'Novo Alvo',
     'header.signPgp': 'Assinar PGP',
@@ -79,6 +90,14 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'kpi.pendingPayout': 'Pagamento Pendente',
 
     // Dashboard Sections
+    'dash.statSummaryTitle': 'Resumo Estatístico Operacional',
+    'dash.totalBountiesReceived': 'Total de Bounties Recebidos (USD)',
+    'dash.criticalPending': 'Vulnerabilidades Críticas Pendentes',
+    'dash.monitoredTargets': 'Alvos Monitorados',
+    'dash.monthlyBountiesTitle': 'Histórico Mensal de Recompensas Ganhas',
+    'dash.monthlyBountiesDesc': 'Distribuição e evolução de recompensas financeiras por mês baseadas na data de pagamento/atualização (updatedAt) dos relatórios.',
+    'dash.monthlyBountiesShort': 'Histórico Mensal ($)',
+    'dash.fairTolerance': 'Tolerância FAIR',
     'dash.appSecToolsTitle': 'Central de Ferramentas AppSec & DevSecOps',
     'dash.toolsIntegrated': '40 FERRAMENTAS INTEGRADAS',
     'dash.openTools': 'Abrir Ferramentas AppSec',
@@ -231,8 +250,19 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'nav.appsecShort': 'AppSec',
     'nav.intelShort': 'Intel',
     'nav.more': 'More',
+    'nav.homeTitle': 'Home Page & Welcome Guide',
+    'nav.dashTitle': 'Go to Dashboard',
+    'nav.reportsTitle': 'Vulnerability Reports',
+    'nav.cveTitle': 'CVE & Exploits Database',
+    'nav.targetsTitle': 'Bug Bounty Programs & Targets',
+    'nav.toolsTitle': 'AppSec & DevSecOps Tools Suite (10 Modules)',
+    'nav.threatIntelTitle': 'Real-Time Threat Intelligence',
+    'nav.notificationsTitle': 'System Notifications',
+    'nav.platformsTitle': 'Bug Bounty Platforms & Payouts',
+    'nav.docsTitle': 'Security Library, Guides & Methodologies',
 
     // Header & Actions
+    'header.brandTooltip': 'Go to Home Page (Welcome Guide)',
     'header.searchPlaceholder': 'Search target, CVE...',
     'header.addTarget': 'Add Target',
     'header.signPgp': 'Sign PGP',
@@ -270,6 +300,14 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'kpi.pendingPayout': 'Pending Payout',
 
     // Dashboard Sections
+    'dash.statSummaryTitle': 'Operational Statistical Summary',
+    'dash.totalBountiesReceived': 'Total Bounties Received (USD)',
+    'dash.criticalPending': 'Pending Critical Vulnerabilities',
+    'dash.monitoredTargets': 'Monitored Targets',
+    'dash.monthlyBountiesTitle': 'Monthly Bounty Earnings History',
+    'dash.monthlyBountiesDesc': 'Distribution and timeline of financial rewards per month based on the reports payment/update date (updatedAt).',
+    'dash.monthlyBountiesShort': 'Monthly History ($)',
+    'dash.fairTolerance': 'FAIR Tolerance',
     'dash.appSecToolsTitle': 'AppSec & DevSecOps Tools Suite',
     'dash.toolsIntegrated': '40 INTEGRATED TOOLS',
     'dash.openTools': 'Open AppSec Tools',
@@ -421,8 +459,20 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'nav.tools': 'Herramientas AppSec',
     'nav.appsecShort': 'AppSec',
     'nav.intelShort': 'Intel',
+    'nav.more': 'Más',
+    'nav.homeTitle': 'Página de Inicio y Guía de Bienvenida',
+    'nav.dashTitle': 'Ir al Panel',
+    'nav.reportsTitle': 'Reportes de Vulnerabilidad',
+    'nav.cveTitle': 'Base de Datos de CVEs y Exploits',
+    'nav.targetsTitle': 'Programas y Objetivos de Bug Bounty',
+    'nav.toolsTitle': 'Suite de Herramientas AppSec y DevSecOps (10 Módulos)',
+    'nav.threatIntelTitle': 'Threat Intelligence en Tiempo Real',
+    'nav.notificationsTitle': 'Notificaciones del Sistema',
+    'nav.platformsTitle': 'Plataformas de Bug Bounty y Pagos',
+    'nav.docsTitle': 'Biblioteca de Seguridad, Guías y Metodologías',
 
     // Header & Actions
+    'header.brandTooltip': 'Ir a la Página de Inicio (Guía de Bienvenida)',
     'header.searchPlaceholder': 'Buscar objetivo, CVE...',
     'header.addTarget': 'Nuevo Objetivo',
     'header.signPgp': 'Firmar PGP',
@@ -460,6 +510,14 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'kpi.pendingPayout': 'Pago Pendiente',
 
     // Dashboard Sections
+    'dash.statSummaryTitle': 'Resumen Estadístico Operativo',
+    'dash.totalBountiesReceived': 'Total de Bounties Recibidos (USD)',
+    'dash.criticalPending': 'Vulnerabilidades Críticas Pendientes',
+    'dash.monitoredTargets': 'Objetivos Monitoreados',
+    'dash.monthlyBountiesTitle': 'Historial Mensual de Recompensas Ganadas',
+    'dash.monthlyBountiesDesc': 'Distribución y evolución de recompensas financieras por mes basadas en la fecha de actualización (updatedAt) de los reportes.',
+    'dash.monthlyBountiesShort': 'Historial Mensual ($)',
+    'dash.fairTolerance': 'Tolerancia FAIR',
     'dash.appSecToolsTitle': 'Suite de Herramientas AppSec & DevSecOps',
     'dash.toolsIntegrated': '40 HERRAMIENTAS INTEGRADAS',
     'dash.openTools': 'Abrir Herramientas AppSec',
@@ -833,37 +891,38 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  const setLanguage = (lang: AppLanguage) => {
+  const setLanguage = useCallback((lang: AppLanguage) => {
     setLanguageState(lang);
+    setRerenderVersion(v => v + 1);
     try {
       localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
     } catch {
       // ignore
     }
     document.documentElement.lang = lang;
+    document.documentElement.setAttribute('data-language', lang);
     const message = TRANSLATIONS[lang]?.['lang.changed'] || `Language changed to ${lang}`;
     toast.success(message, { 
       duration: 3000,
       icon: lang === 'en-US' ? '🇺🇸' : lang === 'es-ES' ? '🇪🇸' : '🇧🇷'
     });
-  };
+  }, []);
 
-  const forceRerender = (targetLocale?: AppLanguage) => {
+  const forceRerender = useCallback((targetLocale?: AppLanguage) => {
     const nextLang = targetLocale && (targetLocale === 'pt-BR' || targetLocale === 'en-US' || targetLocale === 'es-ES')
       ? targetLocale
       : language;
 
-    if (targetLocale && targetLocale !== language) {
-      setLanguageState(targetLocale);
-      try {
-        localStorage.setItem(LANGUAGE_STORAGE_KEY, targetLocale);
-      } catch {
-        // ignore
-      }
+    setLanguageState(nextLang);
+    setRerenderVersion(v => v + 1);
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLang);
+    } catch {
+      // ignore
     }
 
-    setRerenderVersion(v => v + 1);
     document.documentElement.lang = nextLang;
+    document.documentElement.setAttribute('data-language', nextLang);
     if (isI18nEnabled) {
       enableUniversalDomTranslation(nextLang);
     }
@@ -878,9 +937,9 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       duration: 3000,
       icon: nextLang === 'en-US' ? '🇺🇸' : nextLang === 'es-ES' ? '🇪🇸' : '🇧🇷'
     });
-  };
+  }, [language, isI18nEnabled]);
 
-  const toggleI18n = (targetLocale?: AppLanguage) => {
+  const toggleI18n = useCallback((targetLocale?: AppLanguage) => {
     if (targetLocale) {
       forceRerender(targetLocale);
     } else {
@@ -888,15 +947,15 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       const nextIndex = (order.indexOf(language) + 1) % order.length;
       forceRerender(order[nextIndex]);
     }
-  };
+  }, [forceRerender, language]);
 
-  const cycleLanguage = () => {
+  const cycleLanguage = useCallback(() => {
     const order: AppLanguage[] = ['pt-BR', 'en-US', 'es-ES'];
     const nextIndex = (order.indexOf(language) + 1) % order.length;
     setLanguage(order[nextIndex]);
-  };
+  }, [language, setLanguage]);
 
-  const setAppIconUrl = (url: string) => {
+  const setAppIconUrl = useCallback((url: string) => {
     const clean = url.trim() || DEFAULT_APP_ICON_URL;
     setAppIconUrlState(clean);
     try {
@@ -904,56 +963,80 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     } catch {
       // ignore
     }
-  };
+  }, []);
 
-  const t = (key: string, fallback?: string): string => {
+  const t = useCallback((key: string, fallback?: string): string => {
     if (!key) return '';
-    // 1. Direct key match (e.g. 'nav.dashboard')
+    const trimmed = key.trim();
+    // 1. Direct key match in active language
+    if (TRANSLATIONS[language]?.[trimmed]) {
+      return TRANSLATIONS[language][trimmed];
+    }
     if (TRANSLATIONS[language]?.[key]) {
       return TRANSLATIONS[language][key];
     }
-    // 2. Universal dictionary match on key
-    const trimmed = key.trim();
+    // 2. Exact phrase dictionary match
+    if (PHRASE_DICTIONARY[language]?.[trimmed]) {
+      return PHRASE_DICTIONARY[language][trimmed];
+    }
+    // 3. Universal translation match
     const translatedKey = translateString(trimmed, language);
     if (translatedKey && translatedKey !== trimmed) {
       return translatedKey;
     }
-    // 3. Phrase dictionary match
-    if (PHRASE_DICTIONARY[language]?.[trimmed]) {
-      return PHRASE_DICTIONARY[language][trimmed];
-    }
     // 4. Try translating fallback if provided
     if (fallback !== undefined) {
       const trimmedFallback = fallback.trim();
+      if (language === 'pt-BR') {
+        return fallback;
+      }
+      if (PHRASE_DICTIONARY[language]?.[trimmedFallback]) {
+        return PHRASE_DICTIONARY[language][trimmedFallback];
+      }
       const translatedFallback = translateString(trimmedFallback, language);
-      if (translatedFallback) {
+      if (translatedFallback && translatedFallback !== trimmedFallback) {
         return fallback.replace(trimmedFallback, translatedFallback);
       }
       return fallback;
     }
     // 5. Fallback to pt-BR if available
-    if (TRANSLATIONS['pt-BR']?.[key]) {
-      return TRANSLATIONS['pt-BR'][key];
+    if (TRANSLATIONS['pt-BR']?.[trimmed]) {
+      const ptVal = TRANSLATIONS['pt-BR'][trimmed];
+      if (language !== 'pt-BR') {
+        const transPt = translateString(ptVal, language);
+        if (transPt && transPt !== ptVal) return transPt;
+      }
+      return ptVal;
     }
     return key;
-  };
+  }, [language]);
+
+  const contextValue = useMemo(() => ({
+    language,
+    setLanguage,
+    cycleLanguage,
+    t,
+    appIconUrl,
+    setAppIconUrl,
+    rerenderVersion,
+    forceRerender,
+    isI18nEnabled,
+    setIsI18nEnabled,
+    toggleI18n
+  }), [
+    language,
+    setLanguage,
+    cycleLanguage,
+    t,
+    appIconUrl,
+    setAppIconUrl,
+    rerenderVersion,
+    forceRerender,
+    isI18nEnabled
+  ]);
 
   return (
-    <LanguageContext.Provider
-      value={{
-        language,
-        setLanguage,
-        cycleLanguage,
-        t,
-        appIconUrl,
-        setAppIconUrl,
-        rerenderVersion,
-        forceRerender,
-        isI18nEnabled,
-        setIsI18nEnabled,
-        toggleI18n
-      }}
-    >
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );
