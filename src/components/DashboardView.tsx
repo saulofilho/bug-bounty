@@ -37,7 +37,8 @@ import {
   PieChart as PieChartIcon,
   BarChart3,
   Target,
-  Sliders
+  Sliders,
+  Percent
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -86,6 +87,10 @@ import { ThreatIntelligenceDashboard } from './ThreatIntelligenceDashboard';
 import { VulnerabilityImpactLegend } from './VulnerabilityImpactLegend';
 import { VulnerabilityAndBountyAnalyticsPanel } from './VulnerabilityAndBountyAnalyticsPanel';
 import { MonthlyBountiesBarChart } from './MonthlyBountiesBarChart';
+import { MonthlyTttComparativePanel } from './MonthlyTttComparativePanel';
+import { TttDistributionHistogramPanel } from './TttDistributionHistogramPanel';
+import { AverageTttCard } from './AverageTttCard';
+import { calculateAverageTtt } from '../utils/tttComparativeEngine';
 import { FairRiskToleranceAlertBanner } from './FairRiskToleranceAlertBanner';
 import { FairRiskToleranceConfigModal } from './FairRiskToleranceConfigModal';
 import { BypassecIntegrationCard } from './BypassecIntegrationCard';
@@ -172,6 +177,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const acceptanceRate = closedCount > 0 ? Math.round((resolvedOrRewardedCount / closedCount) * 100) : 100;
 
   const avgRewardUSD = rewardedReports.length > 0 ? Math.round(totalEarnedUSD / rewardedReports.length) : 0;
+
+  // Taxa de Sucesso de Recompensas: percentual de relatórios com status 'REWARDED' sobre o total de relatórios submetidos
+  const totalSubmittedCount = reports.length;
+  const rewardedStatusReports = reports.filter(r => r.status === 'REWARDED');
+  const rewardSuccessRate = totalSubmittedCount > 0 
+    ? Math.round((rewardedStatusReports.length / totalSubmittedCount) * 1000) / 10 
+    : 0;
+
+  // Tempo Médio de Triagem (TTT): calculado usando a diferença de tempo entre a submissão inicial e a primeira transição para 'TRIAGED' ou 'VALIDATED' no array 'timeline'
+  const averageTttResult = useMemo(() => calculateAverageTtt(reports), [reports]);
 
   // Triage efficiency calculated from historical timeline events
   const triageEfficiency = useMemo(() => calculateTriageEfficiency(reports), [reports]);
@@ -483,6 +498,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
 
           <button
+            id="btn-dashboard-reward-success-rate"
+            onClick={() => document.getElementById('card-top-reward-success-rate')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-emerald-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ir para Card de Taxa de Sucesso de Recompensas"
+          >
+            <Percent className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{t('dash.rewardSuccessRate', 'Taxa de Recompensas')}</span>
+          </button>
+
+          <button
+            id="btn-dashboard-average-ttt"
+            onClick={() => document.getElementById('average-ttt-component')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-indigo-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ir para Componente de Tempo Médio de Triagem (TTT)"
+          >
+            <Timer className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{t('dash.avgTimeToTriage', 'Tempo Médio (TTT)')}</span>
+          </button>
+
+          <button
+            id="btn-dashboard-ttt-comparative"
+            onClick={() => document.getElementById('monthly-ttt-comparative-panel')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-indigo-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ir para Painel Comparativo Mensal de Tempo até Triagem (TTT)"
+          >
+            <Timer className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{t('dash.tttComparative', 'TTT Mensal')}</span>
+          </button>
+
+          <button
+            id="btn-dashboard-ttt-histogram"
+            onClick={() => document.getElementById('ttt-distribution-histogram-panel')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-blue-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ir para Histograma de Distribuição de TTT e Gargalos"
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+            <span>{t('dash.tttHistogram', 'Histograma TTT')}</span>
+          </button>
+
+          <button
             id="btn-dashboard-rate-limit-monitor"
             onClick={() => document.getElementById('rate-limit-monitor-view')?.scrollIntoView({ behavior: 'smooth' })}
             className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-cyan-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
@@ -633,7 +688,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           
           {/* Card 1: Total de Bounties Recebidos (USD) */}
           <BaseCard
@@ -658,7 +713,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span>{t('dash.totalBountiesReceived', 'Total de Bounties Recebidos (USD)')}</span>
                 </span>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  {t('Soma acumulada de recompensas em relatórios pagos ou recompensados')}
+                  {t('Soma acumulada de recompensas em relatórios pagos')}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
@@ -677,13 +732,135 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   ~ {formatCurrency(totalEarnedBRL, 'BRL')} <span className="text-zinc-500 text-[10px] font-normal">({t('BRL')})</span>
                 </span>
                 <span className="text-zinc-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold text-emerald-300">
-                  {rewardedReports.length} {rewardedReports.length === 1 ? t('recompensa paga', 'paid reward') : t('recompensas pagas', 'paid rewards')}
+                  {rewardedReports.length} {rewardedReports.length === 1 ? t('pago', 'paid') : t('pagos', 'paid')}
                 </span>
               </div>
             </div>
           </BaseCard>
 
-          {/* Card 2: Vulnerabilidades Críticas Pendentes */}
+          {/* Card 2: Taxa de Sucesso de Recompensas (Percentual de relatórios REWARDED sobre o total submetido) */}
+          <BaseCard
+            id="card-top-reward-success-rate"
+            elevation="card"
+            border="default"
+            rounded="xl"
+            padding="md"
+            hover="border"
+            interactive
+            className="relative overflow-hidden group bg-gradient-to-br from-[#0b1612] via-[#08100d] to-[#0c0f16] border-emerald-500/35 hover:border-emerald-500/70 transition-all cursor-pointer shadow-xl shadow-black/40"
+            onClick={() => {
+              const el = document.getElementById('bounty-payout-tracker');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              else {
+                const el2 = document.getElementById('monthly-bounties-bar-chart-section');
+                if (el2) el2.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          >
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/20 transition-all" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <Percent className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{t('dash.rewardSuccessRate', 'Taxa de Sucesso de Recompensas')}</span>
+                </span>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {t('Relatórios com status REWARDED sobre total submetido')}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                <Sparkles className="w-5 h-5 text-emerald-400" />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-emerald-500/20 flex flex-col justify-end">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl sm:text-4xl font-light text-white font-mono tracking-tight tabular-nums drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                  {rewardSuccessRate.toFixed(1)}%
+                </h3>
+                <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
+                  rewardSuccessRate >= 40
+                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                    : rewardSuccessRate >= 20
+                    ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                    : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                }`}>
+                  {rewardSuccessRate >= 40 ? 'ALTO SUCESSO' : rewardSuccessRate >= 20 ? 'CONVERSÃO OK' : 'EM PROGRESSO'}
+                </span>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                <span className="text-emerald-300 font-semibold">
+                  {rewardedStatusReports.length} de {totalSubmittedCount} relatórios
+                </span>
+                <span className="text-zinc-500 text-[10px]">
+                  Média: {formatCurrency(avgRewardUSD, 'USD')}
+                </span>
+              </div>
+            </div>
+          </BaseCard>
+
+          {/* Card 3: Tempo Médio de Triagem (TTT) a partir da Timeline */}
+          <BaseCard
+            id="card-top-average-ttt"
+            elevation="card"
+            border="default"
+            rounded="xl"
+            padding="md"
+            hover="border"
+            interactive
+            className="relative overflow-hidden group bg-gradient-to-br from-[#0c101c] via-[#090d17] to-[#0a0d14] border-indigo-500/35 hover:border-indigo-500/70 transition-all cursor-pointer shadow-xl shadow-black/40"
+            onClick={() => {
+              const el = document.getElementById('average-ttt-component');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              else {
+                const el2 = document.getElementById('monthly-ttt-comparative-panel');
+                if (el2) el2.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          >
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/20 transition-all" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                  <Timer className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span>{t('dash.avgTimeToTriage', 'Tempo Médio de Triagem (TTT)')}</span>
+                </span>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {t('Submissão inicial até 1ª transição TRIAGED/VALIDATED')}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                <Clock className="w-5 h-5 text-indigo-400" />
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-indigo-500/20 flex flex-col justify-end">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl sm:text-4xl font-light text-white font-mono tracking-tight tabular-nums drop-shadow-[0_0_12px_rgba(99,102,241,0.35)]">
+                  {averageTttResult.averageTttHours.toFixed(1)}h
+                </h3>
+                <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
+                  averageTttResult.averageTttHours <= 48
+                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                    : averageTttResult.averageTttHours <= 72
+                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                    : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                }`}>
+                  {averageTttResult.averageTttHours <= 48 ? 'SLA OK' : averageTttResult.averageTttHours <= 72 ? 'MODERADO' : 'ATENÇÃO'}
+                </span>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                <span className="text-indigo-300 font-semibold">
+                  ~{averageTttResult.averageTttDays.toFixed(1)} dias decorridos
+                </span>
+                <span className="text-zinc-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded text-[10px] font-semibold text-indigo-300">
+                  {averageTttResult.slaUnder48hPercent}% ≤ 48h
+                </span>
+              </div>
+            </div>
+          </BaseCard>
+
+          {/* Card 4: Vulnerabilidades Críticas Pendentes */}
           <BaseCard
             id="card-top-critical-pending-vulnerabilities"
             elevation="card"
@@ -1404,6 +1581,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNavigateToReports={() => onNavigateTab('reports')}
       />
 
+      {/* Componente de Tempo Médio de Triagem (TTT) baseado na Timeline (Submissão Inicial -> 1ª transição TRIAGED / VALIDATED) */}
+      <AverageTttCard
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
+      {/* Monthly Comparative TTT (Time to Triaged) Panel calculated from Timeline History */}
+      <MonthlyTttComparativePanel
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
+      {/* TTT Distribution Histogram & Bottleneck Productivity Analytics (Recharts) */}
+      <TttDistributionHistogramPanel
+        reports={reports}
+        onSelectReport={onSelectReport}
+        onNavigateToReports={() => onNavigateTab('reports')}
+      />
+
       {/* Triage Efficiency & Response Turnaround Module (DRAFT -> TRIAGED / CLOSED from Timeline) */}
       <TriageEfficiencyCard
         reports={reports}
@@ -1663,6 +1861,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <FairImpactSimulator
         reports={reports}
         onSelectReport={onSelectReport}
+        onOpenToleranceConfig={() => setIsFairToleranceModalOpen(true)}
       />
 
       {/* Target Rate Limit Monitor: Real-Time API Testing Cadence & Radial Progress Gauge */}

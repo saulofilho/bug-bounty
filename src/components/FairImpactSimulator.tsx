@@ -41,6 +41,7 @@ import {
   FairDataSensitivity,
   FairOperationalDependency,
   FairControlsStrength,
+  ThreatActorCapability,
   inferFairConfigFromReport,
   calculateFairRisk
 } from '../utils/fairRiskEngine';
@@ -102,8 +103,8 @@ export const FairImpactSimulator: React.FC<FairImpactSimulatorProps> = ({
     }
   }, [selectedReport]);
 
-  // Expandable parameter customization panel
-  const [isConfigExpanded, setIsConfigExpanded] = useState<boolean>(false);
+  // Expandable parameter customization panel (open by default to easily tune threat variables)
+  const [isConfigExpanded, setIsConfigExpanded] = useState<boolean>(true);
   const [copiedSummary, setCopiedSummary] = useState<boolean>(false);
 
   // 3. Execution: Run FAIR Calculation
@@ -207,9 +208,10 @@ ${fairResult.executiveSummary}
 
   return (
     <section
-      id="fair-impact-simulator-section"
+      id="fair-risk-simulator-view"
       className={`p-5 sm:p-6 rounded-xl bg-[#0a0a0d] border border-[#222228] space-y-6 shadow-2xl ${className}`}
     >
+      <span id="fair-impact-simulator-section" className="sr-only" />
       {/* 1. Header & Navigation Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#1e1e24]">
         <div className="flex items-start gap-3">
@@ -219,7 +221,7 @@ ${fairResult.executiveSummary}
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2 font-mono">
-                <span>FairImpactSimulator</span>
+                <span>Simulador de Risco FAIR</span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/25 font-semibold">
                   FAIR™ ISO/IEC 27005
                 </span>
@@ -357,12 +359,17 @@ ${fairResult.executiveSummary}
 
       {/* 3. Parameter Customization Drawer (Accordion) */}
       {isConfigExpanded && (
-        <div className="p-4 sm:p-5 rounded-xl bg-[#121217] border border-[#2a2a36] space-y-4 animate-in fade-in duration-200">
+        <div className="p-4 sm:p-5 rounded-xl bg-[#121217] border border-[#2a2a36] space-y-5 animate-in fade-in duration-200">
           <div className="flex items-center justify-between pb-2 border-b border-[#22222c]">
-            <span className="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold flex items-center gap-1.5">
-              <Sliders className="w-4 h-4" />
-              <span>Calibração dos Parâmetros de Entrada FAIR</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold flex items-center gap-1.5">
+                <Sliders className="w-4 h-4" />
+                <span>Calibração das Variáveis de Ameaça e Impacto FAIR</span>
+              </span>
+              <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-mono text-[10px] border border-amber-500/25">
+                Ajuste Dinâmico em Tempo Real
+              </span>
+            </div>
             <button
               type="button"
               onClick={handleResetToInferred}
@@ -373,70 +380,224 @@ ${fairResult.executiveSummary}
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
-            {/* Exposure */}
-            <div className="space-y-1.5">
-              <label className="text-zinc-400 block">Exposição da Aplicação (TEF):</label>
-              <select
-                value={config.exposure}
-                onChange={(e) => setConfig({ ...config, exposure: e.target.value as FairExposureLevel })}
-                className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-1.5 border border-[#30303c] focus:border-amber-500 focus:outline-none"
-              >
-                <option value="public_internet">Internet Pública (Ataques Constantes)</option>
-                <option value="partner_api">API de Parceiros / B2B (Média Frequência)</option>
-                <option value="internal_network">Rede Interna / Intranet (Baixa Frequência)</option>
-              </select>
+          {/* Section A: Variáveis de Ameaça e Frequência de Exploração */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-400" />
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-200">
+                Variáveis de Ameaça & Exploração (Threat & Exploitability)
+              </h3>
             </div>
 
-            {/* Data Sensitivity */}
-            <div className="space-y-1.5">
-              <label className="text-zinc-400 block">Classificação dos Dados em Risco:</label>
-              <select
-                value={config.dataSensitivity}
-                onChange={(e) => setConfig({ ...config, dataSensitivity: e.target.value as FairDataSensitivity })}
-                className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-1.5 border border-[#30303c] focus:border-amber-500 focus:outline-none"
-              >
-                <option value="financial">Financeiro / Cartões (PCI-DSS) - Alto Custo</option>
-                <option value="health_phi">Saúde / PHI (HIPAA) - Custo Extremo</option>
-                <option value="pii">Dados Pessoais (LGPD / GDPR) - Médio/Alto</option>
-                <option value="intellectual_property">Propriedade Intelectual / Código-Fonte</option>
-                <option value="low_sensitivity">Baixa Sensibilidade / Logs Públicos</option>
-              </select>
-            </div>
-
-            {/* Records at Risk */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-zinc-400">
-                <span>Registros Expostos:</span>
-                <span className="text-amber-400 font-bold">{config.recordCount.toLocaleString()}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono bg-[#0c0c10] p-4 rounded-xl border border-zinc-800">
+              {/* Variable 1: CVSS Score Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-zinc-300 font-semibold flex items-center gap-1">
+                    <span>Pontuação CVSS v3.1 / v4.0:</span>
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`px-2 py-0.5 rounded font-bold text-xs border ${
+                      (config.customCvss ?? selectedReport.cvssScore) >= 9.0
+                        ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                        : (config.customCvss ?? selectedReport.cvssScore) >= 7.0
+                        ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                        : (config.customCvss ?? selectedReport.cvssScore) >= 4.0
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                    }`}>
+                      {(config.customCvss ?? selectedReport.cvssScore).toFixed(1)}
+                    </span>
+                    {(config.customCvss !== undefined && config.customCvss !== selectedReport.cvssScore) && (
+                      <button
+                        type="button"
+                        onClick={() => setConfig({ ...config, customCvss: selectedReport.cvssScore })}
+                        className="text-[10px] text-zinc-500 hover:text-amber-400 underline"
+                        title="Restaurar CVSS do relatório"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="10.0"
+                  step="0.1"
+                  value={config.customCvss ?? selectedReport.cvssScore}
+                  onChange={(e) => setConfig({ ...config, customCvss: Number(e.target.value) })}
+                  className="w-full accent-amber-500 cursor-pointer h-1.5 bg-zinc-800 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-zinc-500">
+                  <span>0.1 (Baixo)</span>
+                  <span>4.0 (Médio)</span>
+                  <span>7.0 (Alto)</span>
+                  <span>10.0 (Crítico)</span>
+                </div>
               </div>
-              <select
-                value={config.recordCount}
-                onChange={(e) => setConfig({ ...config, recordCount: Number(e.target.value) })}
-                className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-1.5 border border-[#30303c] focus:border-amber-500 focus:outline-none"
-              >
-                <option value={500}>500 registros (Incidente Contido)</option>
-                <option value={5000}>5.000 registros (Vazamento Médio)</option>
-                <option value={25000}>25.000 registros (Base Corporativa)</option>
-                <option value={100000}>100.000 registros (Vazamento Amplo)</option>
-                <option value={500000}>500.000 registros (Vazamento Massivo)</option>
-              </select>
-            </div>
 
-            {/* Controls Strength */}
-            <div className="space-y-1.5">
-              <label className="text-zinc-400 block">Eficácia das Defesas Existentes:</label>
-              <select
-                value={config.controlsStrength}
-                onChange={(e) => setConfig({ ...config, controlsStrength: e.target.value as FairControlsStrength })}
-                className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-1.5 border border-[#30303c] focus:border-amber-500 focus:outline-none"
-              >
-                <option value="none">Sem Controles Específicos (Exploit Direto)</option>
-                <option value="basic">Defesas Básicas (Firewall & WAF Padrão)</option>
-                <option value="advanced_zerotrust">Defesas Avançadas (Zero Trust + SIEM + EDR)</option>
-              </select>
+              {/* Variable 2: Frequência Estimada de Exploração (TEF) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-zinc-300 font-semibold">
+                    Frequência de Tentativas (TEF):
+                  </label>
+                  <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                    {config.estimatedExploitFrequency ?? 36} tentativas / ano
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="120"
+                  step="1"
+                  value={config.estimatedExploitFrequency ?? 36}
+                  onChange={(e) => setConfig({ ...config, estimatedExploitFrequency: Number(e.target.value) })}
+                  className="w-full accent-amber-500 cursor-pointer h-1.5 bg-zinc-800 rounded-lg"
+                />
+                {/* Presets */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <span className="text-[10px] text-zinc-500">Presets:</span>
+                  {[
+                    { label: 'Baixa (4/ano)', val: 4 },
+                    { label: 'Média (12/ano)', val: 12 },
+                    { label: 'Alta (36/ano)', val: 36 },
+                    { label: 'Automatizada (80/ano)', val: 80 }
+                  ].map(pre => (
+                    <button
+                      key={pre.label}
+                      type="button"
+                      onClick={() => setConfig({ ...config, estimatedExploitFrequency: pre.val })}
+                      className={`text-[10px] px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                        (config.estimatedExploitFrequency ?? 36) === pre.val
+                          ? 'bg-amber-500 text-black font-bold'
+                          : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {pre.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Variable 3: Capacidade do Atacante (Threat Actor Capability) */}
+              <div className="space-y-1.5">
+                <label className="text-zinc-300 font-semibold block">
+                  Perfil & Capacidade do Atacante:
+                </label>
+                <select
+                  value={config.threatActorCapability || 'opportunistic'}
+                  onChange={(e) => setConfig({ ...config, threatActorCapability: e.target.value as ThreatActorCapability })}
+                  className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-2 border border-[#30303c] focus:border-amber-500 focus:outline-none text-xs"
+                >
+                  <option value="script_kiddie">Script Kiddie / Amador (Nível 2 - Scanners Públicos)</option>
+                  <option value="opportunistic">Oportunista / Bug Hunter (Nível 5 - Ferramentas Comuns)</option>
+                  <option value="skilled_hacker">Hacker Especializado (Nível 8 - Exploits Customizados)</option>
+                  <option value="apt_nation_state">APT / Estado-Nação (Nível 10 - 0-days, Recursos Ilimitados)</option>
+                </select>
+                <p className="text-[10px] text-zinc-500">
+                  Modula a probabilidade de bypass de defesas e taxa de sucesso do exploit.
+                </p>
+              </div>
             </div>
           </div>
+
+          {/* Section B: Variáveis de Exposição, Controles e Negócio */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-blue-400" />
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-200">
+                Variáveis de Exposição, Ativos e Impacto Organizacional (SLE)
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
+              {/* Exposure */}
+              <div className="space-y-1.5">
+                <label className="text-zinc-400 block">Exposição da Aplicação (Vetor de Acesso):</label>
+                <select
+                  value={config.exposure}
+                  onChange={(e) => setConfig({ ...config, exposure: e.target.value as FairExposureLevel })}
+                  className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-1.5 border border-[#30303c] focus:border-amber-500 focus:outline-none"
+                >
+                  <option value="public_internet">Internet Pública (Ataques Constantes)</option>
+                  <option value="partner_api">API de Parceiros / B2B (Média Frequência)</option>
+                  <option value="internal_network">Rede Interna / Intranet (Baixa Frequência)</option>
+                </select>
+              </div>
+
+              {/* Data Sensitivity */}
+              <div className="space-y-1.5">
+                <label className="text-zinc-400 block">Classificação dos Dados em Risco:</label>
+                <select
+                  value={config.dataSensitivity}
+                  onChange={(e) => setConfig({ ...config, dataSensitivity: e.target.value as FairDataSensitivity })}
+                  className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-1.5 border border-[#30303c] focus:border-amber-500 focus:outline-none"
+                >
+                  <option value="financial">Financeiro / Cartões (PCI-DSS) - Alto Custo</option>
+                  <option value="health_phi">Saúde / PHI (HIPAA) - Custo Extremo</option>
+                  <option value="pii">Dados Pessoais (LGPD / GDPR) - Médio/Alto</option>
+                  <option value="intellectual_property">Propriedade Intelectual / Código-Fonte</option>
+                  <option value="low_sensitivity">Baixa Sensibilidade / Logs Públicos</option>
+                </select>
+              </div>
+
+              {/* Records at Risk */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-zinc-400">
+                  <span>Registros Expostos:</span>
+                  <span className="text-amber-400 font-bold">{config.recordCount.toLocaleString()}</span>
+                </div>
+                <select
+                  value={config.recordCount}
+                  onChange={(e) => setConfig({ ...config, recordCount: Number(e.target.value) })}
+                  className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-1.5 border border-[#30303c] focus:border-amber-500 focus:outline-none"
+                >
+                  <option value={500}>500 registros (Incidente Contido)</option>
+                  <option value={5000}>5.000 registros (Vazamento Médio)</option>
+                  <option value={25000}>25.000 registros (Base Corporativa)</option>
+                  <option value={100000}>100.000 registros (Vazamento Amplo)</option>
+                  <option value={500000}>500.000 registros (Vazamento Massivo)</option>
+                </select>
+              </div>
+
+              {/* Controls Strength */}
+              <div className="space-y-1.5">
+                <label className="text-zinc-400 block">Eficácia das Defesas Existentes:</label>
+                <select
+                  value={config.controlsStrength}
+                  onChange={(e) => setConfig({ ...config, controlsStrength: e.target.value as FairControlsStrength })}
+                  className="w-full bg-[#181820] text-zinc-200 rounded px-2.5 py-1.5 border border-[#30303c] focus:border-amber-500 focus:outline-none"
+                >
+                  <option value="none">Sem Controles Específicos (Exploit Direto)</option>
+                  <option value="basic">Defesas Básicas (Firewall & WAF Padrão)</option>
+                  <option value="advanced_zerotrust">Defesas Avançadas (Zero Trust + SIEM + EDR)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Live Equation Banner */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/20 via-[#10131a] to-blue-950/20 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 text-xs font-mono shadow-inner">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-400 font-bold flex items-center gap-1">
+                <Scale className="w-3.5 h-3.5" />
+                <span>Equação FAIR em Tempo Real:</span>
+              </span>
+              <code className="text-zinc-200 bg-black/60 px-2.5 py-1 rounded border border-zinc-700/80 font-bold">
+                ALE ({formatMoney(fairResult.ale)}/ano) = ARO ({fairResult.aro}x/ano) × SLE ({formatMoney(fairResult.sle)})
+              </code>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] text-zinc-400 flex-wrap">
+              <span>TEF: <strong className="text-amber-300">{fairResult.tef} tentativas/ano</strong></span>
+              <span className="text-zinc-600">•</span>
+              <span>P(Exploit|CVSS): <strong className="text-indigo-300">{(fairResult.vulnProbability * 100).toFixed(0)}%</strong></span>
+              <span className="text-zinc-600">•</span>
+              <span>ARO: <strong className="text-emerald-300">{fairResult.aro} eventos/ano</strong></span>
+            </div>
+          </div>
+
         </div>
       )}
 
@@ -467,8 +628,8 @@ ${fairResult.executiveSummary}
           </div>
 
           <div className="pt-2 border-t border-[#1e1e26] text-[10px] font-mono flex items-center justify-between text-zinc-400">
-            <span>Risco pós-correção:</span>
-            <span className="text-emerald-400 font-semibold">{formatMoney(fairResult.residualAle)}/ano</span>
+            <span>CVSS {(config.customCvss ?? selectedReport.cvssScore).toFixed(1)} • {fairResult.tef} tentativas/ano</span>
+            <span className="text-emerald-400 font-semibold">{formatMoney(fairResult.residualAle)} residual</span>
           </div>
         </div>
 

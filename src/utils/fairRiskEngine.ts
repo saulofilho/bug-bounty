@@ -4,6 +4,7 @@ export type FairExposureLevel = 'public_internet' | 'partner_api' | 'internal_ne
 export type FairDataSensitivity = 'financial' | 'health_phi' | 'pii' | 'intellectual_property' | 'low_sensitivity';
 export type FairOperationalDependency = 'critical' | 'moderate' | 'low';
 export type FairControlsStrength = 'none' | 'basic' | 'advanced_zerotrust';
+export type ThreatActorCapability = 'script_kiddie' | 'opportunistic' | 'skilled_hacker' | 'apt_nation_state';
 
 export interface FairSimulationConfig {
   reportId: string;
@@ -14,6 +15,9 @@ export interface FairSimulationConfig {
   operationalDependency: FairOperationalDependency;
   controlsStrength: FairControlsStrength;
   customBountyOverride?: number;
+  customCvss?: number; // User adjustable CVSS score (0.1 - 10.0)
+  estimatedExploitFrequency?: number; // Estimated Threat Event Frequency TEF (attempts/yr)
+  threatActorCapability?: ThreatActorCapability; // Threat actor capability profile
 }
 
 export interface FairLossBreakdown {
@@ -124,6 +128,11 @@ export function inferFairConfigFromReport(report: VulnerabilityReport): FairSimu
     operationalDependency = 'low';
   }
 
+  let defaultTef = 12;
+  if (exposure === 'public_internet') defaultTef = 36;
+  else if (exposure === 'partner_api') defaultTef = 12;
+  else defaultTef = 4;
+
   return {
     reportId: report.id,
     exposure,
@@ -132,42 +141,67 @@ export function inferFairConfigFromReport(report: VulnerabilityReport): FairSimu
     dataSensitivity,
     operationalDependency,
     controlsStrength: 'basic',
-    customBountyOverride: report.bountyAmount > 0 ? report.bountyAmount : undefined
+    customBountyOverride: report.bountyAmount > 0 ? report.bountyAmount : undefined,
+    customCvss: report.cvssScore || 5.0,
+    estimatedExploitFrequency: defaultTef,
+    threatActorCapability: 'opportunistic'
   };
 }
 
 /**
  * Executes a Factor Analysis of Information Risk (FAIR) calculation
- * to compute Annual Loss Expectancy (ALE = ARO * SLE) and financial risk metrics.
+ * to compute Annual Loss Expectancy (ALE = ARO * SLE) and financial risk metrics,
+ * incorporating CVSS and estimated exploitation frequency.
  */
 export function calculateFairRisk(
   report: VulnerabilityReport,
   config: FairSimulationConfig
 ): FairRiskCalculationResult {
-  const cvss = Math.max(0.1, Math.min(10.0, report.cvssScore || 5.0));
+  const cvss = Math.max(0.1, Math.min(10.0, config.customCvss ?? (report.cvssScore || 5.0)));
   const vector = report.cvssVector || '';
 
   // 1. THREAT EVENT FREQUENCY (TEF) - How many threat actors attempt exploitation per year
-  let baseTef = 12; // Base 12 attempts/yr
-  if (config.exposure === 'public_internet') {
-    baseTef = 36; // Constant automated scanning & bug hunters on internet
-  } else if (config.exposure === 'partner_api') {
-    baseTef = 10;
-  } else {
-    baseTef = 3; // Internal corporate network
+  let baseTef = config.estimatedExploitFrequency ?? (
+    config.exposure === 'public_internet' ? 36 :
+    config.exposure === 'partner_api' ? 12 : 4
+  );
+
+  // Attack Complexity (AC:L = higher frequency attempts, AC:H = lower frequency)
+  if (vector.includes('AC:L')) baseTef *= 1.25;
+  else if (vector.includes('AC:H')) baseTef *= 0.75;
+
+  // Privileges Required (PR:N = unauthenticated / internet wide, PR:H = administrative privilege required)
+  if (vector.includes('PR:N')) baseTef *= 1.35;
+  else if (vector.includes('PR:H')) baseTef *= 0.55;
+
+  // Threat Actor Capability profile
+  let threatCapabilityScore = 5;
+  let threatMultiplier = 1.0;
+  switch (config.threatActorCapability) {
+    case 'script_kiddie':
+      threatCapabilityScore = 2;
+      threatMultiplier = 0.65;
+      break;
+    case 'opportunistic':
+      threatCapabilityScore = 5;
+      threatMultiplier = 1.0;
+      break;
+    case 'skilled_hacker':
+      threatCapabilityScore = 8;
+      threatMultiplier = 1.35;
+      break;
+    case 'apt_nation_state':
+      threatCapabilityScore = 10;
+      threatMultiplier = 1.75;
+      break;
+    default:
+      threatCapabilityScore = 5;
+      threatMultiplier = 1.0;
   }
 
-  // Attack Complexity (AC:L = high frequency, AC:H = lower frequency)
-  if (vector.includes('AC:L')) baseTef *= 1.4;
-  else if (vector.includes('AC:H')) baseTef *= 0.6;
-
-  // Privileges Required (PR:N = anyone, PR:L = regular user, PR:H = admin)
-  if (vector.includes('PR:N')) baseTef *= 1.5;
-  else if (vector.includes('PR:H')) baseTef *= 0.4;
-
   // 2. VULNERABILITY EXPLOITABILITY PROBABILITY (P_VULN)
-  // Likelihood that an attempt successfully breaches the control
-  let vulnProb = (cvss / 10) * 0.85;
+  // Likelihood that an attempt successfully breaches the control, factoring CVSS score and threat capability
+  let vulnProb = (cvss / 10) * 0.85 * threatMultiplier;
 
   // Controls Strength mitigation factor
   if (config.controlsStrength === 'advanced_zerotrust') {
@@ -180,7 +214,8 @@ export function calculateFairRisk(
 
   // Ensure reasonable bounds for FAIR TEF & ARO
   vulnProb = Math.max(0.02, Math.min(0.98, vulnProb));
-  const aro = Math.max(0.05, Number((baseTef * vulnProb).toFixed(2))); // Annualized Rate of Occurrence
+  const finalTef = Math.max(1, Math.round(baseTef));
+  const aro = Math.max(0.05, Number((finalTef * vulnProb).toFixed(2))); // Annualized Rate of Occurrence (Estimated exploit frequency)
 
   // 3. SINGLE LOSS EXPECTANCY (SLE) - LOSS MAGNITUDE PER BREACH EVENT
 
@@ -337,8 +372,8 @@ export function calculateFairRisk(
   const executiveSummary = `Segundo a taxonomia quantitativa FAIR (Factor Analysis of Information Risk), a vulnerabilidade "${report.title}" (CVSS ${cvss.toFixed(1)}) apresenta uma Taxa Anual de Ocorrência (ARO) de ${aro} eventos/ano e Perda por Incidente (SLE) estimada em US$ ${(sle / 1000).toFixed(0)}k. Isso gera uma Perda Anual Esperada (ALE) de US$ ${(ale / 1000).toFixed(0)}k/ano no cenário base. Com a recompensa/correção de US$ ${bountyPaid.toLocaleString()}, a organização atinge um ROI de ${savingsMultiple}x em custo evitado.`;
 
   return {
-    tef: Math.round(baseTef),
-    threatCapability: Math.round(cvss),
+    tef: finalTef,
+    threatCapability: threatCapabilityScore,
     vulnProbability: Number(vulnProb.toFixed(3)),
     aro,
     primaryLoss: {

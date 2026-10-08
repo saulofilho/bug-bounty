@@ -406,6 +406,7 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     timeline: [
       { id: "t1", date: getDaysAgoDate(52), title: "Submissão", notes: "Exploit PoC em HTML demonstrando roubo de token.", type: "creation", authorRole: "reporter" },
       { id: "t2", date: getDaysAgoDate(49), title: "Aviso da Equipe de Segurança", notes: "Testes automatizados contínuos com requisições repetidas violam nossas regras de engajamento. Esta conduta é inadmissível. Qualquer nova violação resultará em bloqueio de conta e advertência formal na plataforma.", type: "note", authorRole: "program_manager" },
+      { id: "t2b", date: getDaysAgoDate(48), title: "Triagem Confirmada", notes: "Triador do Intigriti reproduziu o bypass de CORS e confirmou o achado.", type: "status_change", authorRole: "triager" },
       { id: "t3", date: getDaysAgoDate(45), title: "Mediação e Resolução", notes: "Pesquisador esclareceu os parâmetros de teste e enviou PoC estática sem pings automatizados. Agradecemos a colaboração e concedemos o bounty.", type: "bounty", authorRole: "program_manager" }
     ]
   },
@@ -432,7 +433,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(78),
     updatedAt: getDaysAgoDate(65),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(78), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(78), title: "Submissão", notes: "Enviado via HackerOne com PoC em vídeo.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(76), title: "Triagem Confirmada", notes: "Triador do HackerOne reproduziu o bypass de MFA.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(65), title: "Recompensa Concedida", notes: "Bounty de $3,200 USD concedido.", type: "bounty" }
     ]
   },
   {
@@ -458,7 +461,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(105),
     updatedAt: getDaysAgoDate(95),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(105), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(105), title: "Submissão", notes: "Submetido no Bugcrowd com evidências de LFI.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(103), title: "Triagem Concluída", notes: "Classificado como P2 High pela equipe Bugcrowd ASE.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(95), title: "Correção Validada", notes: "Path canonicalization aplicada e relatório resolvido.", type: "status_change" }
     ]
   },
   {
@@ -484,7 +489,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(134),
     updatedAt: getDaysAgoDate(120),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(134), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(134), title: "Submissão", notes: "Relatado com script Turbo Intruder reproduzindo concorrência.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(133), title: "Triagem Aceita", notes: "Triador do HackerOne confirmou duplicação de saldo.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(120), title: "Recompensa Paga", notes: "Bounty de $2,800 USD aprovado pelo cliente.", type: "bounty" }
     ]
   },
   {
@@ -510,7 +517,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(160),
     updatedAt: getDaysAgoDate(150),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(160), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(160), title: "Submissão", notes: "Enviado pelo portal Intigriti com passos detalhados.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(158), title: "Triagem Concluída", notes: "Triador validou elevação indevida de privilégios.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(150), title: "Bounty Concedido", notes: "Recompensa de $1,900 USD paga.", type: "bounty" }
     ]
   },
   {
@@ -536,7 +545,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(192),
     updatedAt: getDaysAgoDate(175),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(192), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(192), title: "Submissão", notes: "Relatório de RCE Crítico submetido via Bugcrowd.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(191), title: "Triagem Imediata (RCE Crítico)", notes: "Triador do Bugcrowd validou em menos de 24h e escalou para CISO.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(175), title: "Recompensa Máxima ($6,000)", notes: "Bounty máximo concedido por reporte crítico responsável.", type: "bounty" }
     ]
   },
   {
@@ -562,7 +573,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(220),
     updatedAt: getDaysAgoDate(215),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(220), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(220), title: "Submissão", notes: "Submissão de redirecionamento aberto via HackerOne.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(217), title: "Triagem Aceita", notes: "Triador confirmou e repassou para correção de engenharia.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(215), title: "Mitigação Confirmada", notes: "Whitelist de redirecionamento aplicada em produção.", type: "status_change" }
     ]
   },
   {
@@ -588,7 +601,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(255),
     updatedAt: getDaysAgoDate(245),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(255), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(255), title: "Submissão", notes: "Relato de exposição de actuator do Spring Boot.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(253), title: "Triagem Concluída", notes: "Validado pelo triador e encaminhado ao time DevSecOps.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(245), title: "Bounty Concedido ($750)", notes: "Aprovado pelo programa de segurança da FinPay.", type: "bounty" }
     ]
   },
   {
@@ -614,7 +629,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(290),
     updatedAt: getDaysAgoDate(270),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(290), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(290), title: "Submissão", notes: "Submissão de SSTI com demonstração de sandbox escape.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(288), title: "Triagem Aprovada", notes: "Equipe Intigriti reproduziu execução remota em ambiente de staging.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(270), title: "Recompensa Paga ($2,500)", notes: "Bounty liberado após validação de fix pelo cliente.", type: "bounty" }
     ]
   },
   {
@@ -640,7 +657,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(320),
     updatedAt: getDaysAgoDate(305),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(320), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(320), title: "Submissão", notes: "Relatado com análise estatística de PRNG e script de previsão.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(317), title: "Triagem Confirmada", notes: "Triador do HackerOne confirmou a fragilidade criptográfica dos tokens.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(305), title: "Recompensa Concedida ($2,200)", notes: "Bounty creditado com agradecimento especial da equipe cripto.", type: "bounty" }
     ]
   },
   {
@@ -666,7 +685,9 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     createdAt: getDaysAgoDate(345),
     updatedAt: getDaysAgoDate(330),
     timeline: [
-      { id: "t1", date: getDaysAgoDate(345), title: "Submissão", type: "creation" }
+      { id: "t1", date: getDaysAgoDate(345), title: "Submissão", notes: "PoC em HTML demonstrando interceptação de handshake WebSocket.", type: "creation" },
+      { id: "t2", date: getDaysAgoDate(341), title: "Triagem Efetuada", notes: "Triador Intigriti confirmou falta de validação de Origin.", type: "status_change", authorRole: "triager" },
+      { id: "t3", date: getDaysAgoDate(330), title: "Resolução em Produção", notes: "Validação estrita de cabeçalho Origin implementada.", type: "status_change" }
     ]
   },
   {
@@ -697,6 +718,7 @@ export const INITIAL_REPORTS: VulnerabilityReport[] = [
     updatedAt: getDaysAgoDate(0),
     timeline: [
       { id: "t1", date: getDaysAgoDate(0), title: "Relatório Submetido Hoje", notes: "Submissão crítica com PoC funcional.", type: "creation", hoursSpent: 2.5 },
+      { id: "t1b", date: getDaysAgoDate(0), title: "Triagem Imediata Confirmada", notes: "Triador validou o bypass JWT em menos de 1 hora.", type: "status_change", authorRole: "triager" },
       { id: "t2", date: getDaysAgoDate(0), title: "Hotfix Aplicado & Crítico Resolvido", notes: "Mitigação emergencial implantada pela equipe da FinPay.", type: "status_change", hoursSpent: 1.0 },
       { id: "t3", date: getDaysAgoDate(0), title: "Bounty Concedido Hoje ($4,500)", notes: "Recompensa máxima creditada no mesmo dia devido à severidade crítica.", type: "bounty", hoursSpent: 0.5 }
     ]
