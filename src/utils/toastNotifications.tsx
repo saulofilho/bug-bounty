@@ -163,3 +163,138 @@ export const showInfoToast = (message: string) => {
     style: darkToastStyle
   });
 };
+
+export interface FairAleBreachNotificationParams {
+  reportTitle: string;
+  reportId: string;
+  ale: number;
+  threshold: number;
+  currency?: 'USD' | 'BRL';
+  cvss: number;
+  aro: number;
+  sle: number;
+  onOpenReport?: () => void;
+  onNavigateToRemediation?: () => void;
+}
+
+/**
+ * Toast Notification for FAIR ALE Threshold Breach, alerting that
+ * Annual Loss Expectancy has exceeded the user-configured limit and
+ * explicitly suggesting remediation prioritization.
+ */
+export function notifyFairAleBreach({
+  reportTitle,
+  reportId,
+  ale,
+  threshold,
+  currency = 'USD',
+  cvss,
+  aro,
+  sle,
+  onOpenReport,
+  onNavigateToRemediation
+}: FairAleBreachNotificationParams) {
+  const currencySymbol = currency === 'BRL' ? 'R$' : 'US$';
+  const formatVal = (v: number) => {
+    return `${currencySymbol} ${Math.round(v).toLocaleString()}`;
+  };
+
+  const excessPercent = Math.max(0, Math.round(((ale - threshold) / threshold) * 100));
+
+  toast.custom(
+    (t: Toast) => (
+      <div
+        className={`transform transition-all duration-300 ease-out ${
+          t.visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-2 scale-95'
+        } max-w-md w-full bg-[#140b0e] border-2 border-red-500/90 rounded-xl shadow-[0_0_35px_rgba(239,68,68,0.45)] p-4 pointer-events-auto flex flex-col gap-2.5 relative backdrop-blur-md font-mono`}
+        role="alert"
+        aria-live="assertive"
+      >
+        {/* Top Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/50 flex items-center justify-center text-red-400 shrink-0 animate-pulse">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-extrabold uppercase tracking-wider">
+                  ALERTA FAIR: LIMITE DE RISCO (ALE)
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-300 border border-red-800/80 text-[9px] font-bold">
+                  +{excessPercent}% acima do limite
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-white mt-0.5 leading-snug">
+                Valor de Risco Anualizado Ultrapassou o Limite!
+              </h4>
+            </div>
+          </div>
+
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="p-1 rounded text-zinc-400 hover:text-white hover:bg-red-950/60 transition-colors"
+            title="Fechar notificação"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Breach Figures */}
+        <div className="bg-[#1c0e12] border border-red-900/50 rounded-lg p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-zinc-400">ALE Calculado:</span>
+            <span className="text-red-400 font-bold text-sm drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+              {formatVal(ale)} / ano
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-1 border-t border-red-950/80">
+            <span>Limite Configurado:</span>
+            <span className="text-zinc-300 font-semibold">{formatVal(threshold)} / ano</span>
+          </div>
+          <div className="text-[11px] font-semibold text-zinc-200 truncate pt-1" title={reportTitle}>
+            Achado: <span className="text-white">{reportTitle}</span> ({reportId})
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-zinc-400">
+            <span>CVSS: <strong className="text-red-300">{cvss.toFixed(1)}</strong></span>
+            <span>ARO: <strong className="text-amber-300">{aro}x/ano</strong></span>
+            <span>SLE: <strong className="text-blue-300">{formatVal(sle)}</strong></span>
+          </div>
+        </div>
+
+        {/* Suggestion & Remediation Callout */}
+        <div className="p-2 rounded bg-red-950/60 border border-red-800/40 text-[11px] text-red-200 leading-relaxed flex items-start gap-1.5">
+          <Flame className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+          <span>
+            <strong>Priorização Recomendada:</strong> Esta vulnerabilidade excede o apetite de risco corporativo. Sugere-se priorizar imediatamente sua remediação para conter a perda financeira anual.
+          </span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-1 text-[10px]">
+          <span className="text-zinc-500">FAIR Risk Alert System</span>
+          <div className="flex items-center gap-2">
+            {onOpenReport && (
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  onOpenReport();
+                }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-bold transition-all text-[11px] shadow-sm active:scale-95"
+              >
+                <span>Ver Relatório</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      id: `fair-ale-${reportId}`,
+      duration: 8000,
+      position: 'top-right'
+    }
+  );
+}
+

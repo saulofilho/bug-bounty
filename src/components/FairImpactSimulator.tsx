@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -30,10 +30,14 @@ import {
   Calendar,
   Layers,
   ArrowRight,
-  Info
+  Info,
+  Bell,
+  BellRing,
+  Flame
 } from 'lucide-react';
 import { VulnerabilityReport, Severity } from '../types';
 import { formatCurrency, getSeverityBadgeColor } from '../utils/formatters';
+import { notifyFairAleBreach } from '../utils/toastNotifications';
 import {
   FairSimulationConfig,
   FairRiskCalculationResult,
@@ -107,11 +111,77 @@ export const FairImpactSimulator: React.FC<FairImpactSimulatorProps> = ({
   const [isConfigExpanded, setIsConfigExpanded] = useState<boolean>(true);
   const [copiedSummary, setCopiedSummary] = useState<boolean>(false);
 
+  // Configurable Alert Threshold for FAIR Annual Loss Expectancy (ALE)
+  const [alertThresholdUSD, setAlertThresholdUSD] = useState<number>(() => {
+    const saved = localStorage.getItem('fair_simulator_ale_alert_threshold');
+    return saved ? Number(saved) : 250000; // Default: $250,000 USD
+  });
+  const [alertsEnabled, setAlertsEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('fair_simulator_ale_alerts_enabled');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [autoToastOnBreach, setAutoToastOnBreach] = useState<boolean>(true);
+
+  useEffect(() => {
+    localStorage.setItem('fair_simulator_ale_alert_threshold', String(alertThresholdUSD));
+  }, [alertThresholdUSD]);
+
+  useEffect(() => {
+    localStorage.setItem('fair_simulator_ale_alerts_enabled', String(alertsEnabled));
+  }, [alertsEnabled]);
+
   // 3. Execution: Run FAIR Calculation
   const fairResult: FairRiskCalculationResult | null = useMemo(() => {
     if (!selectedReport) return null;
     return calculateFairRisk(selectedReport, config);
   }, [selectedReport, config]);
+
+  const lastAlertTriggerRef = useRef<{ reportId: string; ale: number; time: number } | null>(null);
+
+  const triggerAleAlertToast = (force = false) => {
+    if (!fairResult || !selectedReport) return;
+    const now = Date.now();
+    // Avoid repetitive toasts within short duration unless force clicked
+    if (!force && lastAlertTriggerRef.current) {
+      if (
+        lastAlertTriggerRef.current.reportId === selectedReport.id &&
+        Math.abs(lastAlertTriggerRef.current.ale - fairResult.ale) < 2000 &&
+        now - lastAlertTriggerRef.current.time < 8000
+      ) {
+        return;
+      }
+    }
+
+    lastAlertTriggerRef.current = {
+      reportId: selectedReport.id,
+      ale: fairResult.ale,
+      time: now
+    };
+
+    notifyFairAleBreach({
+      reportTitle: selectedReport.title,
+      reportId: selectedReport.id,
+      ale: fairResult.ale * currencyMultiplier,
+      threshold: alertThresholdUSD * currencyMultiplier,
+      currency,
+      cvss: config.customCvss ?? selectedReport.cvssScore,
+      aro: fairResult.aro,
+      sle: fairResult.sle * currencyMultiplier,
+      onOpenReport: () => {
+        if (onSelectReport) onSelectReport(selectedReport);
+      }
+    });
+  };
+
+  // Automatic debounced toast notification when ALE exceeds the user-configured limit
+  useEffect(() => {
+    if (alertsEnabled && autoToastOnBreach && fairResult && fairResult.ale > alertThresholdUSD) {
+      const timer = setTimeout(() => {
+        triggerAleAlertToast(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [fairResult?.ale, alertThresholdUSD, alertsEnabled, autoToastOnBreach, selectedReport?.id]);
 
   // Copy Executive Report to Clipboard
   const handleCopySummary = () => {
@@ -595,6 +665,165 @@ ${fairResult.executiveSummary}
               <span>P(Exploit|CVSS): <strong className="text-indigo-300">{(fairResult.vulnProbability * 100).toFixed(0)}%</strong></span>
               <span className="text-zinc-600">•</span>
               <span>ARO: <strong className="text-emerald-300">{fairResult.aro} eventos/ano</strong></span>
+            </div>
+          </div>
+
+          {/* Section C: Sistema de Alertas de Limite de Risco FAIR (ALE) com Notificação Toast & Sugestão de Remediação */}
+          <div 
+            id="fair-ale-alert-config-card"
+            className={`p-4 sm:p-5 rounded-xl border transition-all ${
+              fairResult.ale > alertThresholdUSD
+                ? 'bg-gradient-to-r from-red-950/40 via-[#180a0e] to-[#12080a] border-red-500/60 shadow-[0_0_25px_rgba(239,68,68,0.25)]'
+                : 'bg-[#0e111a] border-zinc-800'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
+                  fairResult.ale > alertThresholdUSD
+                    ? 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse'
+                    : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                }`}>
+                  <BellRing className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                      Sistema de Alertas de Limite de Risco FAIR (ALE)
+                    </h4>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                      fairResult.ale > alertThresholdUSD
+                        ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    }`}>
+                      {fairResult.ale > alertThresholdUSD ? 'LIMITE VIOLADO' : 'DENTRO DA TOLERÂNCIA'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Notifica via toast quando o Valor de Risco Anualizado ultrapassa o teto definido e sugere formalmente a priorização do remediamento.
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="flex items-center gap-4 text-xs font-mono shrink-0">
+                <label className="flex items-center gap-1.5 cursor-pointer text-zinc-300 select-none">
+                  <input
+                    type="checkbox"
+                    checked={alertsEnabled}
+                    onChange={(e) => setAlertsEnabled(e.target.checked)}
+                    className="accent-red-500 rounded cursor-pointer"
+                  />
+                  <span>Alertas Ativos</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 cursor-pointer text-zinc-400 select-none text-[11px]">
+                  <input
+                    type="checkbox"
+                    checked={autoToastOnBreach}
+                    onChange={(e) => setAutoToastOnBreach(e.target.checked)}
+                    className="accent-amber-500 rounded cursor-pointer"
+                  />
+                  <span>Disparo Automático</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Threshold controls & presets */}
+            <div className="pt-3.5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label htmlFor="fair-ale-threshold-input" className="text-zinc-300 font-semibold">
+                    Limite Máximo de Risco Tolerável (ALE):
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500">$</span>
+                    <input
+                      id="fair-ale-threshold-input"
+                      type="number"
+                      min={1000}
+                      step={5000}
+                      value={alertThresholdUSD}
+                      onChange={(e) => setAlertThresholdUSD(Math.max(1000, Number(e.target.value) || 0))}
+                      className="bg-[#161a26] border border-zinc-700 rounded pl-6 pr-3 py-1 text-white font-mono text-xs w-36 focus:border-red-500 focus:outline-none"
+                    />
+                  </div>
+                  <span className="text-zinc-400 text-[11px]">/ ano ({formatMoney(alertThresholdUSD)})</span>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-zinc-500">Presets de Limite:</span>
+                  {[
+                    { label: '$50k', val: 50000 },
+                    { label: '$150k', val: 150000 },
+                    { label: '$250k (Padrão)', val: 250000 },
+                    { label: '$500k', val: 500000 },
+                    { label: '$1M', val: 1000000 }
+                  ].map(p => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => setAlertThresholdUSD(p.val)}
+                      className={`text-[10px] px-2 py-0.5 rounded transition-all cursor-pointer font-mono ${
+                        alertThresholdUSD === p.val
+                          ? 'bg-red-500 text-white font-bold shadow'
+                          : 'bg-[#181d2c] text-zinc-400 hover:text-white border border-zinc-800'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status Comparison & Remediation Suggestion Box */}
+              <div className={`p-3 rounded-lg border text-xs font-mono transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                fairResult.ale > alertThresholdUSD
+                  ? 'bg-red-950/50 border-red-500/40 text-red-200'
+                  : 'bg-[#121622] border-zinc-800 text-zinc-300'
+              }`}>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">
+                      {fairResult.ale > alertThresholdUSD
+                        ? `🚨 Limite Excedido em +${Math.round(((fairResult.ale - alertThresholdUSD) / alertThresholdUSD) * 100)}%`
+                        : `✅ Risco Sob Controle`}
+                    </span>
+                    <span className="text-[11px] text-zinc-400">
+                      ALE Atual: <strong className={fairResult.ale > alertThresholdUSD ? 'text-red-400' : 'text-emerald-400'}>{formatMoney(fairResult.ale)}</strong> vs Limite: <strong>{formatMoney(alertThresholdUSD)}</strong>
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] leading-relaxed text-zinc-300">
+                    {fairResult.ale > alertThresholdUSD ? (
+                      <span>
+                        <strong className="text-red-300">Priorização Recomendada:</strong> Este achado representa um risco financeiro desproporcional. Sugere-se <span className="underline decoration-red-400">priorizar imediatamente a remediação e o patch</span> para mitigar até 95% do risco residual ({formatMoney(fairResult.costAvoidedAnnual)} em perdas anuais evitadas).
+                      </span>
+                    ) : (
+                      <span>
+                        O risco anualizado desta vulnerabilidade está dentro da faixa de tolerância aceitável da organização. O remediamento pode seguir a esteira operacional de rotina.
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => triggerAleAlertToast(true)}
+                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer ${
+                      fairResult.ale > alertThresholdUSD
+                        ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-950/50'
+                        : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
+                    }`}
+                    title="Disparar alerta toast de demonstração"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>{fairResult.ale > alertThresholdUSD ? 'Disparar Alerta Toast' : 'Testar Toast'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
