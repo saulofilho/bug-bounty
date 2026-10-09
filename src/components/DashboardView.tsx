@@ -458,6 +458,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
 
           <button
+            id="btn-dashboard-total-bounty-earnings-chart"
+            onClick={() => document.getElementById('total-bounty-earnings-line-chart-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-emerald-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="Ver Gráfico de Linha Recharts: Total Bounty Earnings Over Time (Apenas Status REWARDED)"
+          >
+            <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{t('dash.totalEarningsLineChart', 'Total Bounties (Linha)')}</span>
+          </button>
+
+          <button
             id="btn-dashboard-sentiment-tracker"
             onClick={() => document.getElementById('reporter-interaction-sentiment-tracker')?.scrollIntoView({ behavior: 'smooth' })}
             className="bg-[#141417] hover:bg-[#1f1f26] text-zinc-200 hover:text-white border border-[#2b2b35] hover:border-red-500/40 text-xs font-mono font-semibold tracking-wider px-3.5 py-2 rounded transition-all flex items-center gap-1.5 shadow-sm"

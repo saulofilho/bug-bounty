@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   Sparkles, 
@@ -16,7 +16,12 @@ import {
   Hash,
   Copy,
   AlertTriangle,
-  ShieldCheck
+  ShieldCheck,
+  Coins,
+  DollarSign,
+  TrendingUp,
+  History,
+  ArrowRight
 } from 'lucide-react';
 import { VulnerabilityReport, Severity, ReportStatus, PlatformName, TargetProgram, TechnicalDoc, AutoTagSuggestion, ValidationChecklistItem, GeneratedDraftReport } from '../types';
 import { calculateCvssScore, parseCvssVector, CvssMetrics } from '../utils/cvss';
@@ -29,6 +34,7 @@ import { MiniCvssCalculator } from './MiniCvssCalculator';
 import { CvssCalculatorModal } from './CvssCalculatorModal';
 import { DuplicateReportDetectorCard } from './DuplicateReportDetectorCard';
 import { detectPotentialDuplicates } from '../utils/duplicateDetector';
+import { calculateTargetEstimatedBounty, TargetBountyEstimationResult } from '../utils/targetBountyEstimator';
 import { INITIAL_REPORTS } from '../data/initialData';
 import { showSuccessToast, showErrorToast } from '../utils/toastNotifications';
 import { GeminiReportDraftModal } from './GeminiReportDraftModal';
@@ -75,6 +81,15 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
   const [vulnerabilityType, setVulnerabilityType] = useState(initialReport?.vulnerabilityType || 'IDOR / BOLA');
   const [status, setStatus] = useState<ReportStatus>(initialReport?.status || 'DRAFT');
   const [bountyAmount, setBountyAmount] = useState<number>(initialReport?.bountyAmount || 0);
+  const [estimatedBounty, setEstimatedBounty] = useState<number>(
+    initialReport?.estimatedBounty !== undefined
+      ? initialReport.estimatedBounty
+      : (initialReport?.bountyAmount || 0)
+  );
+  const [isEstimatedBountyAuto, setIsEstimatedBountyAuto] = useState<boolean>(
+    initialReport?.estimatedBounty === undefined
+  );
+  const [showTargetHistoryDetails, setShowTargetHistoryDetails] = useState<boolean>(false);
 
   // Technical Classification & CVSS
   const initialMetrics: CvssMetrics = initialReport?.cvssVector 
@@ -214,6 +229,24 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
   else if (effectiveScore > 0.0) currentSeverity = 'LOW';
 
   const sevBadge = getSeverityBadgeColor(currentSeverity);
+
+  // Automated Target Estimated Bounty & Potential Reward Range Calculation
+  const targetEstimation: TargetBountyEstimationResult = useMemo(() => {
+    return calculateTargetEstimatedBounty(
+      target,
+      targets,
+      availableExistingReports,
+      currentSeverity,
+      effectiveScore
+    );
+  }, [target, targets, availableExistingReports, currentSeverity, effectiveScore]);
+
+  // Synchronize estimated bounty when target or severity changes and auto-calculate mode is active
+  useEffect(() => {
+    if (isEstimatedBountyAuto && targetEstimation.suggestedBounty > 0) {
+      setEstimatedBounty(targetEstimation.suggestedBounty);
+    }
+  }, [targetEstimation.suggestedBounty, isEstimatedBountyAuto]);
 
   // Step helpers
   const handleAddStep = () => {
@@ -468,6 +501,7 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
       remediation: remediation.trim(),
       validationChecklist,
       bountyAmount: Number(bountyAmount) || 0,
+      estimatedBounty: Number(estimatedBounty) || 0,
       currency: 'USD',
       createdAt: initialReport?.createdAt || new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString().split('T')[0],
@@ -1105,37 +1139,275 @@ export const ReportFormModal: React.FC<ReportFormModalProps> = ({
             </div>
           </div>
 
-          {/* Status and Bounty */}
-          <div className="p-4 rounded-lg bg-[#121212] border border-[#262626] grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Status do Envio</label>
-                <StatusBadge status={status} size="xs" />
+          {/* Status, Estimated Bounty & Target Reward Valuation */}
+          <div className="p-4 sm:p-5 rounded-xl bg-[#101014] border border-[#262632] space-y-4">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+              {/* Field 1: Status do Envio */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Status do Envio</label>
+                  <StatusBadge status={status} size="xs" />
+                </div>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as ReportStatus)}
+                  className="w-full bg-[#161620] border border-[#2d2d3c] rounded px-3 py-2 text-zinc-200 font-mono text-xs focus:border-zinc-500 focus:outline-none"
+                >
+                  <option value="DRAFT">Rascunho (Não enviado)</option>
+                  <option value="SUBMITTED">Enviado para Plataforma</option>
+                  <option value="TRIAGED">Em Triagem</option>
+                  <option value="REWARDED">Recompensado ($ Bounty Pago)</option>
+                  <option value="RESOLVED">Resolvido</option>
+                  <option value="DUPLICATE">Duplicado</option>
+                  <option value="OUT_OF_SCOPE">Fora de Escopo</option>
+                </select>
+                <span className="text-[10px] text-zinc-500 block font-mono">
+                  {status === 'REWARDED' ? 'Relatório concluído com pagamento liberado' : 'Estágio do ciclo de vida no programa'}
+                </span>
               </div>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ReportStatus)}
-                className="w-full bg-[#171717] border border-[#262626] rounded px-3 py-2 text-zinc-200 font-mono text-xs"
-              >
-                <option value="DRAFT">Rascunho (Não enviado)</option>
-                <option value="SUBMITTED">Enviado para Plataforma</option>
-                <option value="TRIAGED">Em Triagem</option>
-                <option value="REWARDED">Recompensado ($ Bounty Pago)</option>
-                <option value="RESOLVED">Resolvido</option>
-                <option value="DUPLICATE">Duplicado</option>
-                <option value="OUT_OF_SCOPE">Fora de Escopo</option>
-              </select>
+
+              {/* Field 2: 'Estimated Bounty' Input Field */}
+              <div className="space-y-1.5 relative">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="input-estimated-bounty" className="text-[10px] font-bold text-amber-400 uppercase tracking-wider font-mono flex items-center gap-1">
+                    <Coins className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Estimated Bounty ($ USD) *</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    {isEstimatedBountyAuto ? (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-0.5" title="Valor atualizado automaticamente com base no histórico do alvo">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        Auto
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEstimatedBountyAuto(true);
+                          if (targetEstimation.suggestedBounty > 0) {
+                            setEstimatedBounty(targetEstimation.suggestedBounty);
+                          }
+                        }}
+                        className="text-[9px] font-mono text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                        title="Restaurar cálculo automático da média do alvo"
+                      >
+                        Auto-calcular
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-mono font-bold text-xs">$</span>
+                  <input
+                    id="input-estimated-bounty"
+                    type="number"
+                    min={0}
+                    step={25}
+                    placeholder="0"
+                    value={estimatedBounty || ''}
+                    onChange={(e) => {
+                      setEstimatedBounty(Number(e.target.value) || 0);
+                      setIsEstimatedBountyAuto(false);
+                    }}
+                    className="w-full bg-[#161620] border border-amber-500/40 focus:border-amber-400 rounded pl-7 pr-3 py-2 text-amber-300 font-mono font-bold text-xs focus:outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 pt-0.5">
+                  <span className="text-zinc-500 truncate" title={targetEstimation.calculationMethod}>
+                    Sugerido: <strong className="text-amber-300">${targetEstimation.suggestedBounty.toLocaleString()}</strong>
+                  </span>
+                  {estimatedBounty > 0 && bountyAmount === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setBountyAmount(estimatedBounty)}
+                      className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 cursor-pointer font-bold"
+                      title="Copiar valor estimado para o campo de recompensa final"
+                    >
+                      <span>Copiar p/ Pago</span>
+                      <ArrowRight className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Field 3: Valor da Recompensa Concedida / Actual Bounty Amount ($ USD) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Valor da Recompensa ($ USD)</span>
+                  </label>
+                  {bountyAmount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono text-emerald-300 bg-emerald-950/40 border border-emerald-800/40 font-bold">
+                      Pago
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-mono font-bold text-xs">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={50}
+                    placeholder="0"
+                    value={bountyAmount || ''}
+                    onChange={(e) => setBountyAmount(Number(e.target.value))}
+                    className="w-full bg-[#161620] border border-[#2d2d3c] focus:border-emerald-500 rounded pl-7 pr-3 py-2 text-emerald-400 font-mono font-bold text-xs focus:outline-none transition-colors"
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-500 block font-mono">
+                  {bountyAmount > 0 ? 'Recompensa final concedida pelo programa' : 'Preencher quando status for REWARDED'}
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Valor da Recompensa ($ USD)</label>
-              <input
-                type="number"
-                placeholder="0"
-                value={bountyAmount || ''}
-                onChange={(e) => setBountyAmount(Number(e.target.value))}
-                className="w-full bg-[#171717] border border-[#262626] rounded px-3 py-2 text-emerald-400 font-mono font-bold text-xs"
-              />
+            {/* Target Potential Reward Range & Historical Average Banner */}
+            <div className="p-3.5 rounded-lg bg-[#14141c] border border-[#242434] space-y-2 text-xs font-mono">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>Faixa Potencial de Recompensa:</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded font-bold text-white bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-sm">
+                    {targetEstimation.potentialRange.displayString} USD
+                  </span>
+                  <span className="text-[11px] text-zinc-400">
+                    (Severidade {currentSeverity})
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] text-zinc-400">
+                    Média do Alvo: <strong className="text-zinc-200">${targetEstimation.targetAverageBounty.toLocaleString()} USD</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowTargetHistoryDetails(!showTargetHistoryDetails)}
+                    className="text-[10px] text-zinc-400 hover:text-white flex items-center gap-1 px-2 py-0.5 rounded bg-[#1c1c28] border border-[#2e2e40] transition-colors cursor-pointer"
+                  >
+                    <History className="w-3 h-3 text-cyan-400" />
+                    <span>{showTargetHistoryDetails ? 'Ocultar Detalhes' : 'Ver Histórico do Alvo'}</span>
+                    {showTargetHistoryDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Calculation Basis explanation */}
+              <div className="text-[11px] text-zinc-400 flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1.5 border-t border-zinc-800/80">
+                <span className="truncate" title={targetEstimation.historicalSummaryText}>
+                  {targetEstimation.historicalSummaryText}
+                </span>
+                <span className="text-[10px] text-zinc-500 shrink-0">
+                  {targetEstimation.calculationMethod}
+                </span>
+              </div>
+
+              {/* Expandable Target Historical Reports Drawer */}
+              {showTargetHistoryDetails && (
+                <div className="pt-2 mt-2 border-t border-zinc-800 space-y-2 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between text-[11px] flex-wrap gap-1">
+                    <span className="text-zinc-300 font-semibold flex items-center gap-1">
+                      <History className="w-3 h-3 text-amber-400" />
+                      <span>Histórico de Recompensas de {targetEstimation.targetName} ({targetEstimation.targetDomain}):</span>
+                    </span>
+                    <span className="text-zinc-500 text-[10px]">
+                      Total Premiado: <strong className="text-emerald-400">${targetEstimation.targetTotalRewarded.toLocaleString()}</strong> ({targetEstimation.rewardedHistoricalCount} relatórios pagos)
+                    </span>
+                  </div>
+
+                  {targetEstimation.historicalReports.length > 0 ? (
+                    <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                      {targetEstimation.historicalReports.map((hRep) => {
+                        const hSevBadge = getSeverityBadgeColor(hRep.severity);
+                        return (
+                          <div
+                            key={hRep.id}
+                            className="p-1.5 rounded bg-[#181824] border border-[#2a2a3a] flex items-center justify-between gap-2 text-[11px]"
+                          >
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className={`px-1 py-0.2 rounded text-[9px] font-bold border ${hSevBadge.bg} ${hSevBadge.text} ${hSevBadge.border}`}>
+                                {hRep.severity}
+                              </span>
+                              <span className="text-zinc-200 truncate" title={hRep.title}>
+                                [{hRep.id}] {hRep.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="font-bold text-emerald-400">
+                                ${hRep.bountyAmount.toLocaleString()}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEstimatedBounty(hRep.bountyAmount);
+                                  setIsEstimatedBountyAuto(false);
+                                }}
+                                className="text-[9px] px-1.5 py-0.5 rounded bg-[#232334] hover:bg-[#303046] text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                                title="Usar este valor histórico como estimativa"
+                              >
+                                Usar
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-2 rounded bg-[#181824] border border-[#2a2a3a] text-zinc-400 text-[11px]">
+                      {targetEstimation.programFound ? (
+                        <span>
+                          Nenhum relatório anterior com pagamento registrado ainda para este alvo. Estimativa calculada com base na faixa oficial do programa ({targetEstimation.programBountyRangeStr || 'sob demanda'}).
+                        </span>
+                      ) : (
+                        <span>
+                          Alvo não catalogado na lista de programas. Estimativa calculada com base nas faixas médias padrão da indústria para severidade {currentSeverity}.
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Quick Action Presets to populate Estimated Bounty */}
+                  <div className="flex items-center justify-between pt-1 text-[10px] text-zinc-400 flex-wrap gap-1">
+                    <span>Preencher rapidamente 'Estimated Bounty':</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEstimatedBounty(targetEstimation.potentialRange.min);
+                          setIsEstimatedBountyAuto(false);
+                        }}
+                        className="px-2 py-0.5 rounded bg-[#1f1f2e] hover:bg-[#2c2c40] text-zinc-300 border border-zinc-700 cursor-pointer"
+                      >
+                        Mínimo (${targetEstimation.potentialRange.min.toLocaleString()})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEstimatedBounty(targetEstimation.suggestedBounty);
+                          setIsEstimatedBountyAuto(true);
+                        }}
+                        className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 cursor-pointer font-bold"
+                      >
+                        Média/Sugerido (${targetEstimation.suggestedBounty.toLocaleString()})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEstimatedBounty(targetEstimation.potentialRange.max);
+                          setIsEstimatedBountyAuto(false);
+                        }}
+                        className="px-2 py-0.5 rounded bg-[#1f1f2e] hover:bg-[#2c2c40] text-zinc-300 border border-zinc-700 cursor-pointer"
+                      >
+                        Máximo (${targetEstimation.potentialRange.max.toLocaleString()})
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -46,6 +46,7 @@ export interface VulnerabilityReport {
   businessImpact: string;
   remediation: string;
   bountyAmount: number;
+  estimatedBounty?: number;
   currency: 'USD' | 'BRL';
   submissionId?: string;
   submissionUrl?: string;

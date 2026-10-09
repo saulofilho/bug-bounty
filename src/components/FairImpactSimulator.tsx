@@ -33,7 +33,8 @@ import {
   Info,
   Bell,
   BellRing,
-  Flame
+  Flame,
+  Play
 } from 'lucide-react';
 import { VulnerabilityReport, Severity } from '../types';
 import { formatCurrency, getSeverityBadgeColor } from '../utils/formatters';
@@ -50,6 +51,25 @@ import {
   calculateFairRisk
 } from '../utils/fairRiskEngine';
 import { FairRiskToleranceConfigModal } from './FairRiskToleranceConfigModal';
+import { FairRiskToleranceConfigPanel } from './FairRiskToleranceConfigPanel';
+import {
+  FairNotificationChannel,
+  FairSeverityTier,
+  FairSeverityThresholdRule,
+  FairSeverityThresholdsConfig,
+  getFairSeverityThresholdsConfig,
+  saveFairSeverityThresholdsConfig,
+  mapReportSeverityToTier,
+  getEffectiveSeverityRule,
+  FAIR_SEVERITY_THRESHOLDS_EVENT,
+  FairRiskAlertPreferences,
+  FairRiskInternalLog,
+  getFairRiskAlertPreferences,
+  saveFairRiskAlertPreferences,
+  getFairRiskInternalLogs,
+  dispatchFairRiskAlert,
+  FAIR_INTERNAL_LOGS_EVENT
+} from '../utils/fairRiskNotificationEngine';
 
 interface FairImpactSimulatorProps {
   reports: VulnerabilityReport[];
@@ -67,6 +87,9 @@ export const FairImpactSimulator: React.FC<FairImpactSimulatorProps> = ({
   className = ''
 }) => {
   const [isToleranceModalOpen, setIsToleranceModalOpen] = useState<boolean>(false);
+  const [isTolerancePanelOpen, setIsTolerancePanelOpen] = useState<boolean>(false);
+  const [tolerancePanelTab, setTolerancePanelTab] = useState<'tolerance' | 'severity_tiers' | 'notifications' | 'logs'>('tolerance');
+
   // 1. State: Selected Report
   const [selectedReportId, setSelectedReportId] = useState<string>(
     initialReportId || (reports.length > 0 ? reports[0].id : '')
@@ -111,24 +134,69 @@ export const FairImpactSimulator: React.FC<FairImpactSimulatorProps> = ({
   const [isConfigExpanded, setIsConfigExpanded] = useState<boolean>(true);
   const [copiedSummary, setCopiedSummary] = useState<boolean>(false);
 
-  // Configurable Alert Threshold for FAIR Annual Loss Expectancy (ALE)
-  const [alertThresholdUSD, setAlertThresholdUSD] = useState<number>(() => {
-    const saved = localStorage.getItem('fair_simulator_ale_alert_threshold');
-    return saved ? Number(saved) : 250000; // Default: $250,000 USD
-  });
-  const [alertsEnabled, setAlertsEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('fair_simulator_ale_alerts_enabled');
-    return saved !== null ? saved === 'true' : true;
-  });
-  const [autoToastOnBreach, setAutoToastOnBreach] = useState<boolean>(true);
+  // Unified Alert & Tolerance Preferences (ALE threshold + Toast / Internal Log preferences)
+  const [alertPreferences, setAlertPreferences] = useState<FairRiskAlertPreferences>(getFairRiskAlertPreferences);
+  const [severityConfig, setSeverityConfig] = useState<FairSeverityThresholdsConfig>(getFairSeverityThresholdsConfig);
+  const [internalLogs, setInternalLogs] = useState<FairRiskInternalLog[]>(getFairRiskInternalLogs);
 
+  // Sync internal logs and severity config state across tabs and triggers
   useEffect(() => {
-    localStorage.setItem('fair_simulator_ale_alert_threshold', String(alertThresholdUSD));
-  }, [alertThresholdUSD]);
+    const handleLogsUpdate = (e: Event) => {
+      const custom = e as CustomEvent<FairRiskInternalLog[]>;
+      if (custom.detail) {
+        setInternalLogs(custom.detail);
+      } else {
+        setInternalLogs(getFairRiskInternalLogs());
+      }
+    };
 
-  useEffect(() => {
-    localStorage.setItem('fair_simulator_ale_alerts_enabled', String(alertsEnabled));
-  }, [alertsEnabled]);
+    const handleSeverityUpdate = (e: Event) => {
+      const custom = e as CustomEvent<FairSeverityThresholdsConfig>;
+      if (custom.detail) {
+        setSeverityConfig(custom.detail);
+      } else {
+        setSeverityConfig(getFairSeverityThresholdsConfig());
+      }
+    };
+
+    window.addEventListener(FAIR_INTERNAL_LOGS_EVENT, handleLogsUpdate);
+    window.addEventListener(FAIR_SEVERITY_THRESHOLDS_EVENT, handleSeverityUpdate);
+    window.addEventListener('storage', handleLogsUpdate);
+    window.addEventListener('storage', handleSeverityUpdate);
+    return () => {
+      window.removeEventListener(FAIR_INTERNAL_LOGS_EVENT, handleLogsUpdate);
+      window.removeEventListener(FAIR_SEVERITY_THRESHOLDS_EVENT, handleSeverityUpdate);
+      window.removeEventListener('storage', handleLogsUpdate);
+      window.removeEventListener('storage', handleSeverityUpdate);
+    };
+  }, []);
+
+  const updateAlertPreferences = (newPrefs: FairRiskAlertPreferences) => {
+    setAlertPreferences(newPrefs);
+    saveFairRiskAlertPreferences(newPrefs);
+  };
+
+  const updateSeverityConfig = (newConfig: FairSeverityThresholdsConfig) => {
+    setSeverityConfig(newConfig);
+    saveFairSeverityThresholdsConfig(newConfig);
+  };
+
+  // Determine effective rule and threshold for currently analyzed report
+  const currentSeverityTier: FairSeverityTier = useMemo(() => {
+    return selectedReport ? mapReportSeverityToTier(selectedReport.severity) : 'LOW';
+  }, [selectedReport]);
+
+  const currentSeverityRule: FairSeverityThresholdRule | null = useMemo(() => {
+    if (!selectedReport) return null;
+    return getEffectiveSeverityRule(selectedReport.severity, severityConfig);
+  }, [selectedReport, severityConfig]);
+
+  const effectiveThresholdUSD = useMemo(() => {
+    if (severityConfig.enabled && currentSeverityRule) {
+      return currentSeverityRule.thresholdUSD;
+    }
+    return alertPreferences.thresholdUSD;
+  }, [severityConfig.enabled, currentSeverityRule, alertPreferences.thresholdUSD]);
 
   // 3. Execution: Run FAIR Calculation
   const fairResult: FairRiskCalculationResult | null = useMemo(() => {
@@ -138,10 +206,10 @@ export const FairImpactSimulator: React.FC<FairImpactSimulatorProps> = ({
 
   const lastAlertTriggerRef = useRef<{ reportId: string; ale: number; time: number } | null>(null);
 
-  const triggerAleAlertToast = (force = false) => {
+  const triggerAleAlert = (force = false, forcedChannel?: FairNotificationChannel) => {
     if (!fairResult || !selectedReport) return;
     const now = Date.now();
-    // Avoid repetitive toasts within short duration unless force clicked
+    // Avoid repetitive automatic triggers within short duration unless force clicked
     if (!force && lastAlertTriggerRef.current) {
       if (
         lastAlertTriggerRef.current.reportId === selectedReport.id &&
@@ -158,30 +226,53 @@ export const FairImpactSimulator: React.FC<FairImpactSimulatorProps> = ({
       time: now
     };
 
-    notifyFairAleBreach({
-      reportTitle: selectedReport.title,
-      reportId: selectedReport.id,
-      ale: fairResult.ale * currencyMultiplier,
-      threshold: alertThresholdUSD * currencyMultiplier,
-      currency,
-      cvss: config.customCvss ?? selectedReport.cvssScore,
+    const targetPreferences = forcedChannel
+      ? { ...alertPreferences, channel: forcedChannel, alertsEnabled: true }
+      : alertPreferences;
+
+    const { dispatchedLog } = dispatchFairRiskAlert({
+      report: selectedReport,
+      aleUSD: fairResult.ale,
       aro: fairResult.aro,
-      sle: fairResult.sle * currencyMultiplier,
+      sleUSD: fairResult.sle,
+      cvss: config.customCvss ?? selectedReport.cvssScore,
+      currency,
+      currencyMultiplier,
+      preferences: targetPreferences,
+      severityConfig,
       onOpenReport: () => {
         if (onSelectReport) onSelectReport(selectedReport);
-      }
+      },
+      forceManual: force
     });
+
+    if (dispatchedLog) {
+      setInternalLogs(getFairRiskInternalLogs());
+    }
   };
 
-  // Automatic debounced toast notification when ALE exceeds the user-configured limit
+  // Automatic debounced notification when ALE exceeds the active limit
   useEffect(() => {
-    if (alertsEnabled && autoToastOnBreach && fairResult && fairResult.ale > alertThresholdUSD) {
+    if (
+      alertPreferences.alertsEnabled &&
+      alertPreferences.autoDispatchOnBreach &&
+      fairResult &&
+      fairResult.ale > effectiveThresholdUSD
+    ) {
       const timer = setTimeout(() => {
-        triggerAleAlertToast(false);
+        triggerAleAlert(false);
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [fairResult?.ale, alertThresholdUSD, alertsEnabled, autoToastOnBreach, selectedReport?.id]);
+  }, [
+    fairResult?.ale,
+    effectiveThresholdUSD,
+    alertPreferences.alertsEnabled,
+    alertPreferences.autoDispatchOnBreach,
+    alertPreferences.channel,
+    severityConfig,
+    selectedReport?.id
+  ]);
 
   // Copy Executive Report to Clipboard
   const handleCopySummary = () => {
@@ -340,16 +431,57 @@ ${fairResult.executiveSummary}
             </button>
           </div>
 
-          {/* Tolerance Thresholds Configuration Button */}
+          {/* Tolerance Thresholds & Notifications Configuration Panel Button */}
           <button
             type="button"
             id="btn-fair-tolerance-settings"
-            onClick={() => onOpenToleranceConfig ? onOpenToleranceConfig() : setIsToleranceModalOpen(true)}
-            className="px-3 py-1.5 rounded-lg bg-[#141418] hover:bg-[#1a1a22] border border-[#2a2a34] hover:border-emerald-500/40 text-xs text-zinc-300 hover:text-white font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-            title="Configurar Limites de Tolerância ao Risco (ALE) e Alertas de Violação"
+            onClick={() => {
+              setIsTolerancePanelOpen(!isTolerancePanelOpen);
+              setTolerancePanelTab('tolerance');
+            }}
+            className={`px-3 py-1.5 rounded-lg border text-xs text-zinc-300 hover:text-white font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+              isTolerancePanelOpen && tolerancePanelTab === 'tolerance'
+                ? 'bg-amber-500/20 border-amber-500/60 text-amber-200'
+                : 'bg-[#141418] hover:bg-[#1a1a22] border-[#2a2a34] hover:border-amber-500/40'
+            }`}
+            title="Abrir Painel de Configuração de Tolerância ao Risco (ALE) e Preferências de Notificação"
           >
-            <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Limites de Tolerância</span>
+            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+            <span>Configurar Tolerância</span>
+            <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+              alertPreferences.channel === 'both'
+                ? 'bg-indigo-500/20 text-indigo-300'
+                : alertPreferences.channel === 'toast'
+                ? 'bg-amber-500/20 text-amber-300'
+                : 'bg-blue-500/20 text-blue-300'
+            }`}>
+              {alertPreferences.channel === 'both' ? 'Toast+Log' : alertPreferences.channel === 'toast' ? 'Toast' : 'Log'}
+            </span>
+            {internalLogs.filter(l => l.status === 'UNREAD').length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" title="Novos logs de violação pendentes" />
+            )}
+          </button>
+
+          {/* Severity Tiers Multi-Tier Quick Button */}
+          <button
+            type="button"
+            id="btn-fair-severity-tiers-quick"
+            onClick={() => {
+              setIsTolerancePanelOpen(true);
+              setTolerancePanelTab('severity_tiers');
+            }}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+              isTolerancePanelOpen && tolerancePanelTab === 'severity_tiers'
+                ? 'bg-amber-500/20 border-amber-500/60 text-amber-200'
+                : 'bg-[#141418] hover:bg-[#1a1a22] border-[#2a2a34] hover:border-amber-500/40 text-zinc-300 hover:text-white'
+            }`}
+            title="Abrir Painel de Limiares Diferenciados por Severidade (Baixo, Médio, Alto, Crítico)"
+          >
+            <Layers className="w-3.5 h-3.5 text-amber-400" />
+            <span>Limiares por Severidade</span>
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">
+              4 Faixas
+            </span>
           </button>
 
           {/* Copy Executive Summary */}
@@ -374,6 +506,23 @@ ${fairResult.executiveSummary}
           </button>
         </div>
       </div>
+
+      {/* Embedded Painel de Configuração de Tolerância ao Risco & Preferências de Notificação */}
+      {isTolerancePanelOpen && (
+        <FairRiskToleranceConfigPanel
+          currentReport={selectedReport}
+          currentAleUSD={fairResult.ale}
+          currentAro={fairResult.aro}
+          currentSleUSD={fairResult.sle}
+          currency={currency}
+          currencyMultiplier={currencyMultiplier}
+          onSelectReport={onSelectReport}
+          onPreferencesChange={updateAlertPreferences}
+          onSeverityConfigChange={updateSeverityConfig}
+          defaultTab={tolerancePanelTab}
+          className="border-amber-500/30"
+        />
+      )}
 
       {/* 2. Report Selector & Quick Meta Bar */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-[#101014] p-3.5 rounded-xl border border-[#1e1e24]">
@@ -668,11 +817,11 @@ ${fairResult.executiveSummary}
             </div>
           </div>
 
-          {/* Section C: Sistema de Alertas de Limite de Risco FAIR (ALE) com Notificação Toast & Sugestão de Remediação */}
+          {/* Section C: Sistema de Alertas de Limite de Risco FAIR (ALE) com Limiares por Severidade & Ações Automáticas Diferenciadas */}
           <div 
             id="fair-ale-alert-config-card"
             className={`p-4 sm:p-5 rounded-xl border transition-all ${
-              fairResult.ale > alertThresholdUSD
+              fairResult.ale > effectiveThresholdUSD
                 ? 'bg-gradient-to-r from-red-950/40 via-[#180a0e] to-[#12080a] border-red-500/60 shadow-[0_0_25px_rgba(239,68,68,0.25)]'
                 : 'bg-[#0e111a] border-zinc-800'
             }`}
@@ -680,38 +829,54 @@ ${fairResult.executiveSummary}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
               <div className="flex items-center gap-2.5">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
-                  fairResult.ale > alertThresholdUSD
+                  fairResult.ale > effectiveThresholdUSD
                     ? 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse'
                     : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
                 }`}>
                   <BellRing className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-white">
-                      Sistema de Alertas de Limite de Risco FAIR (ALE)
+                      Sistema de Alertas FAIR: Tolerância ALE & Ações Automáticas
                     </h4>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
-                      fairResult.ale > alertThresholdUSD
+                      fairResult.ale > effectiveThresholdUSD
                         ? 'bg-red-500/20 text-red-300 border-red-500/40'
                         : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                     }`}>
-                      {fairResult.ale > alertThresholdUSD ? 'LIMITE VIOLADO' : 'DENTRO DA TOLERÂNCIA'}
+                      {fairResult.ale > effectiveThresholdUSD
+                        ? `VIOLAÇÃO (${severityConfig.enabled ? currentSeverityTier : 'GLOBAL'})`
+                        : `DENTRO DO LIMITE (${severityConfig.enabled ? currentSeverityTier : 'GLOBAL'})`}
                     </span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                      alertPreferences.channel === 'both'
+                        ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                        : alertPreferences.channel === 'toast'
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                    }`}>
+                      Canal: {alertPreferences.channel === 'both' ? 'Toast + Log Interno' : alertPreferences.channel === 'toast' ? 'Toast' : 'Log Interno'}
+                    </span>
+                    {severityConfig.enabled && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        Multi-Tier Ativo (4 Faixas)
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-zinc-400 mt-0.5">
-                    Notifica via toast quando o Valor de Risco Anualizado ultrapassa o teto definido e sugere formalmente a priorização do remediamento.
+                    Monitora a Perda Anual Esperada (ALE) com limiares específicos por severidade (Baixo, Médio, Alto, Crítico) e dispara ações de remediação automatizadas.
                   </p>
                 </div>
               </div>
 
-              {/* Toggles */}
-              <div className="flex items-center gap-4 text-xs font-mono shrink-0">
+              {/* Toggles & Panel Launchers */}
+              <div className="flex items-center gap-2.5 text-xs font-mono shrink-0 flex-wrap">
                 <label className="flex items-center gap-1.5 cursor-pointer text-zinc-300 select-none">
                   <input
                     type="checkbox"
-                    checked={alertsEnabled}
-                    onChange={(e) => setAlertsEnabled(e.target.checked)}
+                    checked={alertPreferences.alertsEnabled}
+                    onChange={(e) => updateAlertPreferences({ ...alertPreferences, alertsEnabled: e.target.checked })}
                     className="accent-red-500 rounded cursor-pointer"
                   />
                   <span>Alertas Ativos</span>
@@ -720,107 +885,354 @@ ${fairResult.executiveSummary}
                 <label className="flex items-center gap-1.5 cursor-pointer text-zinc-400 select-none text-[11px]">
                   <input
                     type="checkbox"
-                    checked={autoToastOnBreach}
-                    onChange={(e) => setAutoToastOnBreach(e.target.checked)}
+                    checked={alertPreferences.autoDispatchOnBreach}
+                    onChange={(e) => updateAlertPreferences({ ...alertPreferences, autoDispatchOnBreach: e.target.checked })}
                     className="accent-amber-500 rounded cursor-pointer"
                   />
-                  <span>Disparo Automático</span>
+                  <span>Auto Disparo</span>
                 </label>
+
+                {/* Switch between Multi-Tier and Single Global */}
+                <button
+                  type="button"
+                  id="btn-toggle-multi-tier"
+                  onClick={() => updateSeverityConfig({ ...severityConfig, enabled: !severityConfig.enabled })}
+                  className={`px-2.5 py-1 rounded text-[11px] font-mono transition-all border flex items-center gap-1 cursor-pointer ${
+                    severityConfig.enabled
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-semibold'
+                      : 'bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700'
+                  }`}
+                  title="Alternar entre Limiares por Severidade Multi-Tier e Limiar Global"
+                >
+                  <Layers className="w-3 h-3 text-amber-400" />
+                  <span>{severityConfig.enabled ? 'Multi-Tier Ativo' : 'Limiar Global Único'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  id="btn-open-severity-matrix"
+                  onClick={() => {
+                    setIsTolerancePanelOpen(true);
+                    setTolerancePanelTab('severity_tiers');
+                  }}
+                  className="px-2.5 py-1 rounded bg-[#181a24] hover:bg-[#202432] text-amber-300 border border-amber-500/30 text-[11px] flex items-center gap-1 cursor-pointer shadow-sm"
+                  title="Abrir painel completo de configuração de limiares por severidade"
+                >
+                  <Sliders className="w-3 h-3 text-amber-400" />
+                  <span>Configurar Matriz</span>
+                </button>
               </div>
             </div>
 
-            {/* Threshold controls & presets */}
-            <div className="pt-3.5 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <label htmlFor="fair-ale-threshold-input" className="text-zinc-300 font-semibold">
-                    Limite Máximo de Risco Tolerável (ALE):
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500">$</span>
-                    <input
-                      id="fair-ale-threshold-input"
-                      type="number"
-                      min={1000}
-                      step={5000}
-                      value={alertThresholdUSD}
-                      onChange={(e) => setAlertThresholdUSD(Math.max(1000, Number(e.target.value) || 0))}
-                      className="bg-[#161a26] border border-zinc-700 rounded pl-6 pr-3 py-1 text-white font-mono text-xs w-36 focus:border-red-500 focus:outline-none"
-                    />
+            {/* Threshold controls & Multi-Tier Matrix Preview */}
+            <div className="pt-3.5 space-y-3 font-mono">
+              {severityConfig.enabled ? (
+                /* Multi-Tier 4-Band Grid (Low, Medium, High, Critical) */
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs text-zinc-400">
+                    <span className="flex items-center gap-1.5 font-semibold text-zinc-200">
+                      <Layers className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Limiares e Ações Automáticas por Faixa de Severidade:</span>
+                    </span>
+                    <span className="text-[11px] text-zinc-400">
+                      Achado analisado: <strong className="text-white">[{selectedReport.id}] {currentSeverityTier}</strong> (Teto: <strong className="text-amber-300">{formatMoney(effectiveThresholdUSD)}</strong>)
+                    </span>
                   </div>
-                  <span className="text-zinc-400 text-[11px]">/ ano ({formatMoney(alertThresholdUSD)})</span>
-                </div>
 
-                {/* Quick Presets */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-zinc-500">Presets de Limite:</span>
-                  {[
-                    { label: '$50k', val: 50000 },
-                    { label: '$150k', val: 150000 },
-                    { label: '$250k (Padrão)', val: 250000 },
-                    { label: '$500k', val: 500000 },
-                    { label: '$1M', val: 1000000 }
-                  ].map(p => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => setAlertThresholdUSD(p.val)}
-                      className={`text-[10px] px-2 py-0.5 rounded transition-all cursor-pointer font-mono ${
-                        alertThresholdUSD === p.val
-                          ? 'bg-red-500 text-white font-bold shadow'
-                          : 'bg-[#181d2c] text-zinc-400 hover:text-white border border-zinc-800'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as FairSeverityTier[]).map((tier) => {
+                      const rule = severityConfig.tiers[tier];
+                      const isCurrentTier = currentSeverityTier === tier;
+                      const tierStyles = {
+                        LOW: {
+                          border: isCurrentTier ? 'border-emerald-500 ring-1 ring-emerald-500/50' : 'border-emerald-500/30',
+                          badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                          text: 'text-emerald-400',
+                          bg: 'bg-emerald-950/20'
+                        },
+                        MEDIUM: {
+                          border: isCurrentTier ? 'border-yellow-500 ring-1 ring-yellow-500/50' : 'border-yellow-500/30',
+                          badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+                          text: 'text-yellow-400',
+                          bg: 'bg-yellow-950/20'
+                        },
+                        HIGH: {
+                          border: isCurrentTier ? 'border-orange-500 ring-1 ring-orange-500/50' : 'border-orange-500/30',
+                          badge: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
+                          text: 'text-orange-400',
+                          bg: 'bg-orange-950/20'
+                        },
+                        CRITICAL: {
+                          border: isCurrentTier ? 'border-red-500 ring-1 ring-red-500/50' : 'border-red-500/30',
+                          badge: 'bg-red-500/20 text-red-300 border-red-500/40',
+                          text: 'text-red-400',
+                          bg: 'bg-red-950/20'
+                        }
+                      }[tier];
 
-              {/* Status Comparison & Remediation Suggestion Box */}
-              <div className={`p-3 rounded-lg border text-xs font-mono transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                fairResult.ale > alertThresholdUSD
+                      return (
+                        <div
+                          key={tier}
+                          className={`p-3 rounded-lg border bg-[#12141e] transition-all flex flex-col justify-between ${tierStyles.border} ${
+                            isCurrentTier ? 'shadow-md shadow-amber-500/10' : ''
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between pb-1.5 border-b border-zinc-800/80">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${tierStyles.badge}`}>
+                                {tier}
+                              </span>
+                              {isCurrentTier && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
+                                  Achado Atual
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Threshold input for this tier */}
+                            <div className="my-2">
+                              <label htmlFor={`quick-tier-input-${tier}`} className="text-[10px] text-zinc-400 block mb-0.5">
+                                Limiar ALE:
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px]">$</span>
+                                <input
+                                  id={`quick-tier-input-${tier}`}
+                                  type="number"
+                                  min={1000}
+                                  step={5000}
+                                  value={rule.thresholdUSD}
+                                  onChange={(e) => {
+                                    const val = Math.max(1000, Number(e.target.value) || 0);
+                                    updateSeverityConfig({
+                                      ...severityConfig,
+                                      tiers: {
+                                        ...severityConfig.tiers,
+                                        [tier]: { ...severityConfig.tiers[tier], thresholdUSD: val }
+                                      }
+                                    });
+                                  }}
+                                  className="w-full bg-[#171926] border border-[#2b2e40] rounded pl-5 pr-2 py-1 text-white text-[11px] font-mono focus:border-amber-500 focus:outline-none"
+                                />
+                              </div>
+                              <span className="text-[10px] text-zinc-400 block mt-0.5">
+                                {formatMoney(rule.thresholdUSD)} / ano
+                              </span>
+                            </div>
+
+                            {/* Automated Action Badge */}
+                            <div className="p-2 rounded bg-[#161824] border border-zinc-800/80 space-y-1 text-[10px]">
+                              <span className="text-amber-400 font-bold block flex items-center gap-1">
+                                <Zap className="w-3 h-3" />
+                                <span>Ação Automática:</span>
+                              </span>
+                              <span className="text-zinc-200 font-semibold block truncate" title={rule.actionTitle}>
+                                {rule.actionTitle}
+                              </span>
+                              <div className="flex items-center justify-between text-zinc-400 pt-1 border-t border-zinc-800/60">
+                                <span>SLA: <strong className="text-white">{rule.slaTargetHours}h</strong></span>
+                                <span className="text-[9px] text-zinc-400 font-mono">[{rule.tagToApply}]</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick test button */}
+                          <div className="pt-2 mt-2 border-t border-zinc-800/80 flex items-center justify-between">
+                            <span className="text-[9px] text-zinc-500">
+                              Canal: {rule.channel === 'both' ? 'Toast+Log' : rule.channel === 'toast' ? 'Toast' : 'Log'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const simReport: VulnerabilityReport = {
+                                  ...selectedReport,
+                                  severity: tier as Severity
+                                };
+                                const testAle = Math.max(fairResult.ale, rule.thresholdUSD * 1.35);
+                                dispatchFairRiskAlert({
+                                  report: simReport,
+                                  aleUSD: testAle,
+                                  aro: fairResult.aro,
+                                  sleUSD: fairResult.sle,
+                                  cvss: tier === 'CRITICAL' ? 9.8 : tier === 'HIGH' ? 8.2 : tier === 'MEDIUM' ? 5.5 : 2.5,
+                                  currency,
+                                  currencyMultiplier,
+                                  preferences: { ...alertPreferences, alertsEnabled: true, useSeverityThresholds: true },
+                                  severityConfig,
+                                  onOpenReport: onSelectReport,
+                                  forceManual: true
+                                });
+                                setInternalLogs(getFairRiskInternalLogs());
+                              }}
+                              className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white border border-zinc-700 flex items-center gap-1 cursor-pointer transition-all"
+                              title={`Testar ação automatizada para ${tier}`}
+                            >
+                              <Play className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                              <span>Testar</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* Global Single Threshold Control */
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs font-mono">
+                  {/* Threshold input */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label htmlFor="fair-ale-threshold-input" className="text-zinc-300 font-semibold">
+                      Limite Global de Tolerância ao Risco (ALE):
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500">$</span>
+                      <input
+                        id="fair-ale-threshold-input"
+                        type="number"
+                        min={1000}
+                        step={5000}
+                        value={alertPreferences.thresholdUSD}
+                        onChange={(e) => updateAlertPreferences({
+                          ...alertPreferences,
+                          thresholdUSD: Math.max(1000, Number(e.target.value) || 0)
+                        })}
+                        className="bg-[#161a26] border border-zinc-700 rounded pl-6 pr-3 py-1 text-white font-mono text-xs w-36 focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+                    <span className="text-zinc-400 text-[11px]">/ ano ({formatMoney(alertPreferences.thresholdUSD)})</span>
+                  </div>
+
+                  {/* Notification Channel Quick Selector */}
+                  <div className="flex items-center gap-2 bg-[#12141c] p-1 rounded-lg border border-zinc-800">
+                    <span className="text-[10px] text-zinc-400 px-1 font-semibold uppercase">Canal:</span>
+                    {[
+                      { id: 'toast' as const, label: 'Toast', desc: 'Pop-up flutuante' },
+                      { id: 'internal_log' as const, label: 'Log Interno', desc: 'Auditoria interna silenciosa' },
+                      { id: 'both' as const, label: 'Ambos (Toast + Log)', desc: 'Alerta na tela e no log' }
+                    ].map((chan) => (
+                      <button
+                        key={chan.id}
+                        type="button"
+                        onClick={() => updateAlertPreferences({ ...alertPreferences, channel: chan.id })}
+                        className={`px-2.5 py-1 rounded text-[11px] font-mono transition-all cursor-pointer ${
+                          alertPreferences.channel === chan.id
+                            ? 'bg-amber-500 text-black font-bold shadow-sm'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        }`}
+                        title={chan.desc}
+                      >
+                        {chan.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-zinc-500">Presets:</span>
+                    {[
+                      { label: '$50k', val: 50000 },
+                      { label: '$150k', val: 150000 },
+                      { label: '$250k (Padrão)', val: 250000 },
+                      { label: '$500k', val: 500000 },
+                      { label: '$1M', val: 1000000 }
+                    ].map(p => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => updateAlertPreferences({ ...alertPreferences, thresholdUSD: p.val })}
+                        className={`text-[10px] px-2 py-0.5 rounded transition-all cursor-pointer font-mono ${
+                          alertPreferences.thresholdUSD === p.val
+                            ? 'bg-red-500 text-white font-bold shadow'
+                            : 'bg-[#181d2c] text-zinc-400 hover:text-white border border-zinc-800'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Status Comparison & Differentiated Remediation Suggestion Box */}
+              <div className={`p-3.5 rounded-lg border text-xs font-mono transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                fairResult.ale > effectiveThresholdUSD
                   ? 'bg-red-950/50 border-red-500/40 text-red-200'
                   : 'bg-[#121622] border-zinc-800 text-zinc-300'
               }`}>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold">
-                      {fairResult.ale > alertThresholdUSD
-                        ? `🚨 Limite Excedido em +${Math.round(((fairResult.ale - alertThresholdUSD) / alertThresholdUSD) * 100)}%`
-                        : `✅ Risco Sob Controle`}
+                      {fairResult.ale > effectiveThresholdUSD
+                        ? `🚨 Limite ${severityConfig.enabled ? `da Faixa ${currentSeverityTier}` : 'Global'} Excedido em +${Math.round(((fairResult.ale - effectiveThresholdUSD) / effectiveThresholdUSD) * 100)}%`
+                        : `✅ Risco Sob Controle na Faixa ${currentSeverityTier}`}
                     </span>
                     <span className="text-[11px] text-zinc-400">
-                      ALE Atual: <strong className={fairResult.ale > alertThresholdUSD ? 'text-red-400' : 'text-emerald-400'}>{formatMoney(fairResult.ale)}</strong> vs Limite: <strong>{formatMoney(alertThresholdUSD)}</strong>
+                      ALE Calculado: <strong className={fairResult.ale > effectiveThresholdUSD ? 'text-red-400' : 'text-emerald-400'}>{formatMoney(fairResult.ale)}</strong> vs Limite {currentSeverityTier}: <strong>{formatMoney(effectiveThresholdUSD)}</strong>
                     </span>
                   </div>
 
                   <p className="text-[11px] leading-relaxed text-zinc-300">
-                    {fairResult.ale > alertThresholdUSD ? (
+                    {fairResult.ale > effectiveThresholdUSD ? (
                       <span>
-                        <strong className="text-red-300">Priorização Recomendada:</strong> Este achado representa um risco financeiro desproporcional. Sugere-se <span className="underline decoration-red-400">priorizar imediatamente a remediação e o patch</span> para mitigar até 95% do risco residual ({formatMoney(fairResult.costAvoidedAnnual)} em perdas anuais evitadas).
+                        <strong className="text-amber-300">Ação Automática Diferenciada [{currentSeverityTier}]:</strong> {currentSeverityRule?.actionTitle || 'Priorização Imediata'} — {currentSeverityRule?.actionDescription}
+                        <span className="block text-[10px] text-zinc-400 mt-1">
+                          Responsável Designado: <strong className="text-zinc-200">{currentSeverityRule?.escalationRole}</strong> • SLA Alvo: <strong className="text-zinc-200">{currentSeverityRule?.slaTargetHours}h</strong> • Tag: <code className="text-amber-300">[{currentSeverityRule?.tagToApply}]</code>
+                        </span>
                       </span>
                     ) : (
                       <span>
-                        O risco anualizado desta vulnerabilidade está dentro da faixa de tolerância aceitável da organização. O remediamento pode seguir a esteira operacional de rotina.
+                        O risco anualizado desta vulnerabilidade ({formatMoney(fairResult.ale)}) está dentro da tolerância para a faixa {currentSeverityTier} ({formatMoney(effectiveThresholdUSD)}). Ação operacional recomendada: <strong className="text-zinc-200">{currentSeverityRule?.actionTitle}</strong> (SLA de {currentSeverityRule?.slaTargetHours}h).
                       </span>
                     )}
                   </p>
                 </div>
 
-                <div className="shrink-0 flex items-center gap-2">
+                <div className="shrink-0 flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => triggerAleAlertToast(true)}
-                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer ${
-                      fairResult.ale > alertThresholdUSD
-                        ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-950/50'
-                        : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
-                    }`}
-                    title="Disparar alerta toast de demonstração"
+                    onClick={() => triggerAleAlert(true, 'toast')}
+                    className="px-2.5 py-1.5 rounded-lg font-mono text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-all flex items-center gap-1 cursor-pointer"
+                    title="Disparar alerta toast de teste"
                   >
-                    <Bell className="w-3.5 h-3.5" />
-                    <span>{fairResult.ale > alertThresholdUSD ? 'Disparar Alerta Toast' : 'Testar Toast'}</span>
+                    <Bell className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Testar Toast</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => triggerAleAlert(true, 'internal_log')}
+                    className="px-2.5 py-1.5 rounded-lg font-mono text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-all flex items-center gap-1 cursor-pointer"
+                    title="Gravar evento de teste no log interno"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Gravar Log</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => triggerAleAlert(true)}
+                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer ${
+                      fairResult.ale > effectiveThresholdUSD
+                        ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-950/50'
+                        : 'bg-amber-600 hover:bg-amber-500 text-black'
+                    }`}
+                    title="Disparar alerta configurado com a ação automática da faixa"
+                  >
+                    <Flame className="w-3.5 h-3.5" />
+                    <span>{fairResult.ale > effectiveThresholdUSD ? `Disparar Ação [${currentSeverityTier}]` : `Testar Ação [${currentSeverityTier}]`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTolerancePanelOpen(true);
+                      setTolerancePanelTab('logs');
+                    }}
+                    className="px-2 py-1.5 rounded-lg font-mono text-xs text-blue-300 hover:text-blue-200 bg-blue-950/40 border border-blue-800/40 flex items-center gap-1 cursor-pointer"
+                    title="Ver histórico do Log Interno de Riscos"
+                  >
+                    <FileText className="w-3 h-3 text-blue-400" />
+                    <span>Logs ({internalLogs.length})</span>
                   </button>
                 </div>
               </div>

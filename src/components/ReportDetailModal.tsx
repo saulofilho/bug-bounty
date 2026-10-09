@@ -1479,6 +1479,11 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                     <div className="text-xl font-bold font-mono text-emerald-400">
                       {report.bountyAmount > 0 ? formatCurrency(report.bountyAmount, 'USD') : 'Pendente / Não concedido'}
                     </div>
+                    {report.estimatedBounty !== undefined && report.estimatedBounty > 0 && (
+                      <div className="text-[10px] font-mono text-amber-400/90 mt-0.5">
+                        Estimated Bounty: {formatCurrency(report.estimatedBounty, 'USD')}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">

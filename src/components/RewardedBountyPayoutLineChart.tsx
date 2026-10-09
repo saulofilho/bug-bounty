@@ -260,6 +260,7 @@ export const RewardedBountyPayoutLineChart: React.FC<RewardedBountyPayoutLineCha
 
   return (
     <BaseCard
+      id="rewarded-bounty-payout-line-chart"
       elevation="card"
       border="default"
       rounded="lg"
@@ -275,7 +276,7 @@ export const RewardedBountyPayoutLineChart: React.FC<RewardedBountyPayoutLineCha
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm sm:text-base font-bold text-white font-mono uppercase tracking-wide flex items-center gap-2">
-                <span>Evolução dos Pagamentos de Bounties</span>
+                <span>Total Bounty Earnings Over Time</span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-sans font-bold flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   REWARDED ONLY
@@ -283,7 +284,7 @@ export const RewardedBountyPayoutLineChart: React.FC<RewardedBountyPayoutLineCha
               </h3>
             </div>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Curva financeira dos pagamentos confirmados de vulnerabilidades com status <code className="text-emerald-300 font-mono">REWARDED</code> ao longo do tempo.
+              Visualização temporal agregando o campo <code className="text-emerald-300 font-mono">bountyAmount</code> de todos os relatórios com status <code className="text-emerald-300 font-mono">REWARDED</code>.
             </p>
           </div>
         </div>
@@ -492,16 +493,23 @@ export const RewardedBountyPayoutLineChart: React.FC<RewardedBountyPayoutLineCha
                   <Area
                     type="monotone"
                     dataKey="cumulativeTotal"
+                    legendType="none"
+                    stroke="none"
+                    fillOpacity={1}
+                    fill="url(#payoutEmeraldGradient)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulativeTotal"
                     name="Total Acumulado ($)"
                     stroke="#10b981"
                     strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#payoutEmeraldGradient)"
+                    dot={{ r: 4, fill: '#10b981', stroke: '#0e111a', strokeWidth: 2 }}
                     activeDot={{
                       r: 6,
-                      stroke: '#10b981',
+                      stroke: '#ffffff',
                       strokeWidth: 2,
-                      fill: '#050505',
+                      fill: '#34d399',
                       onClick: (_: any, e: any) => {
                         const rep = e?.payload?.report;
                         if (rep && onSelectReport) onSelectReport(rep);
